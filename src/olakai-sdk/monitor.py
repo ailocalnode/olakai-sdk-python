@@ -9,6 +9,7 @@ import re
 
 from .client import send_to_api, get_config
 from .types import MonitorOptions, Middleware, MonitorPayload
+from .utils import to_api_string
 
 # Type variables for generic functions
 TArgs = TypeVar('TArgs')
@@ -143,15 +144,6 @@ def safe_monitoring_operation(operation: Callable[[], Any], context: str) -> Non
             except Exception as handler_error:
                 if config.debug:
                     print(f"[Olakai SDK] Error handler itself failed: {handler_error}")
-
-def to_api_string(data: Any) -> str:
-    """Convert data to API string format."""
-    if isinstance(data, str):
-        return data
-    try:
-        return json.dumps(data, default=str)
-    except Exception:
-        return str(data)
 
 def monitor(options_or_func: Union[MonitorOptions, Callable, None] = None, options: Optional[MonitorOptions] = None):
     """
