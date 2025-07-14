@@ -2,6 +2,7 @@ import json
 import os
 import threading
 import time
+from dataclasses import asdict
 from typing import Optional, List, Union
 import requests
 
@@ -78,13 +79,16 @@ def sleep(ms: int):
 def make_api_call(payload: Union[MonitorPayload, List[MonitorPayload]]) -> APIResponse:
     if not config.apiKey:
         raise Exception("[Olakai SDK] API key is not set")
+    if not config.apiUrl:
+        raise Exception("[Olakai SDK] API URL is not set")
     headers = {"x-api-key": config.apiKey}
-    data = {"batch": [p.data for p in payload]} if isinstance(payload, list) else payload.data
+    data = {"batch": payload} if isinstance(payload, list) else payload
+    data_dict = asdict(data) if isinstance(data, MonitorPayload) else data
     try:
         response = requests.post(
             config.apiUrl,
             headers=headers,
-            json=data,
+            json=json.dumps(data_dict),
             timeout=config.timeout / 1000,
         )
         if config.verbose:
@@ -95,11 +99,13 @@ def make_api_call(payload: Union[MonitorPayload, List[MonitorPayload]]) -> APIRe
     except Exception as err:
         raise err
 
-def send_with_retry(payload: Union[MonitorPayload, List[MonitorPayload]], max_retries: int = None) -> bool:
-    if max_retries is None:
+def send_with_retry(payload: Union[MonitorPayload, List[MonitorPayload]]) -> bool:
+    if config.retries <= 0:
+        return make_api_call(payload).success
+    else:
         max_retries = config.retries
     last_error = None
-    for attempt in range(max_retries + 1):
+    for attempt in range(config.retries + 1):
         try:
             make_api_call(payload)
             return True
@@ -160,9 +166,7 @@ def process_batch_queue():
     if batchQueue:
         schedule_batch_processing()
 
-def send_to_api(payload: MonitorPayload, options: dict = None):
-    if options is None:
-        options = {}
+def send_to_api(payload: MonitorPayload, options: dict = {}):
     if not config.apiKey:
         if config.debug:
             print("[Olakai SDK] API key is not set.")
