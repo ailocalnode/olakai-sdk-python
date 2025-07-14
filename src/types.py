@@ -39,4 +39,23 @@ class SDKConfig:
     maxLocalStorageSize: int = 1000000  # 1MB
     debug: bool = False
     verbose: bool = False
-    onError: Optional[Callable[[Exception], None]] = None 
+    onError: Optional[Callable[[Exception], None]] = None
+    sanitize_patterns: Optional[List[Any]] = None
+
+@dataclass
+class MonitorOptions:
+    enabled: Union[bool, Callable] = True
+    sample_rate: Optional[float] = None
+    capture: Optional[Callable] = None
+    sanitize: bool = False
+    on_error: Optional[Callable] = None
+    priority: str = "normal"
+    retries: Optional[int] = None
+    timeout: Optional[int] = None
+
+@dataclass 
+class Middleware:
+    name: str
+    before_call: Optional[Callable] = None
+    after_call: Optional[Callable] = None
+    on_error: Optional[Callable] = None 
