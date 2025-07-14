@@ -3,11 +3,14 @@ from typing import Optional, Callable, List, Dict, Any, Union
 
 @dataclass
 class MonitorPayload:
-    # Define the fields according to your payload structure
-    # Example fields (customize as needed):
-    data: Dict[str, Any]
-    # Add more fields as required
-
+    userId: str
+    chatId: str
+    prompt: str
+    response: str
+    tokens: Optional[int]
+    requestTime: Optional[int]
+    errorMessage: Optional[str]
+    
 @dataclass
 class BatchRequest:
     id: str
