@@ -9,12 +9,11 @@ import requests
 from .types import SDKConfig, MonitorPayload, BatchRequest, APIResponse
 
 # Default config
-subdomain = "staging.app"  # TODO: make this dynamic
 isBatchingEnabled = False
 
 config = SDKConfig(
     apiKey="",
-    apiUrl=f"https://{subdomain}.olakai.ai/api/monitoring/prompt",
+    apiUrl="",
 )
 
 batchQueue: List[BatchRequest] = []
@@ -23,13 +22,12 @@ isOnline = True  # No browser events; assume online
 
 QUEUE_FILE = "olakai_sdk_queue.json"
 
-def init_client(key_or_config: Union[str, SDKConfig]):
+def init_client(api_key: str, domain: Optional[str] = None, sdk_config: Optional[SDKConfig] = None):
     global config
-    if isinstance(key_or_config, str):
-        config.apiKey = key_or_config
-    else:
-        # Merge with defaults
-        for field_name, value in key_or_config.__dict__.items():
+    config.apiKey = api_key
+    config.apiUrl = f"{domain}/api/monitoring/prompt" if domain else "https://staging.app.olakai.ai/api/monitoring/prompt"
+    if sdk_config:
+        for field_name, value in sdk_config.__dict__.items():
             setattr(config, field_name, value)
     if config.verbose:
         print("[Olakai SDK] Config:", config)
