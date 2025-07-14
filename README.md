@@ -1,6 +1,6 @@
 # Olakai SDK
 
-A Python SDK for monitoring and tracking AI/ML model interactions with the Olakai platform.
+A Python SDK for monitoring and tracking external AI/ML model interactions. Enable reporting and control through the Olakai UNO product.
 
 ## Features
 
