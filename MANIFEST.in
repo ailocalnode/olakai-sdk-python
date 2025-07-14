@@ -3,11 +3,11 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "olakai_sdk"
+name = "olakai-sdk"
 version = "0.1.0"
-description = "Your SDK description here"
+description = "Olakai SDK"
 authors = [
-    { name="Your Name", email="your@email.com" }
+    { name="Olakai", email="support@olakai.ai" }
 ]
 readme = "README.md"
 requires-python = ">=3.7"
