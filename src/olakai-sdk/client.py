@@ -22,7 +22,7 @@ isOnline = True  # No browser events; assume online
 
 QUEUE_FILE = "olakai_sdk_queue.json"
 
-def init_client(api_key: str, domain: Optional[str] = None, sdk_config: Optional[SDKConfig] = None):
+def init_client(api_key: str, domain: str = "app.olakai.ai", sdk_config: Optional[SDKConfig] = None):
     global config
     config.apiKey = api_key
     config.apiUrl = f"{domain}/api/monitoring/prompt" if domain else "https://staging.app.olakai.ai/api/monitoring/prompt"

@@ -23,13 +23,13 @@ pip install olakai-sdk
 ### 1. Initialize the SDK
 
 ```python
-from olakai_sdk import init_client
+from olakai-sdk import init_client
 
 # Initialize with API key
-init_client("your-api-key-here")
+init_client("your-api-key-here", domain="your-domain-url-here")
 
 # Or with custom configuration
-from olakai_sdk.types import SDKConfig
+from olakai-sdk.types import SDKConfig
 
 config = SDKConfig(
     apiKey="your-api-key-here",
@@ -43,7 +43,7 @@ init_client(config)
 ### 2. Monitor Function Calls
 
 ```python
-from olakai_sdk import monitor
+from olakai-sdk import monitor
 
 @monitor()
 def generate_response(prompt: str) -> str:
@@ -58,8 +58,8 @@ result = generate_response("Hello, world!")
 ### 3. Manual Monitoring
 
 ```python
-from olakai_sdk import send_to_api
-from olakai_sdk.types import MonitorPayload
+from olakai-sdk import send_to_api
+from olakai-sdk.types import MonitorPayload
 
 payload = MonitorPayload(
     userId="user123",
@@ -94,7 +94,7 @@ send_to_api(payload)
 ### Monitor Options
 
 ```python
-from olakai_sdk.types import MonitorOptions
+from olakai-sdk.types import MonitorOptions
 
 @monitor(MonitorOptions(
     enabled=True,
@@ -113,8 +113,8 @@ def my_function():
 Add custom processing logic with middleware:
 
 ```python
-from olakai_sdk import add_middleware
-from olakai_sdk.types import Middleware
+from olakai-sdk import add_middleware
+from olakai-sdk.types import Middleware
 
 def before_call(args, kwargs):
     print(f"Function called with args: {args}")
@@ -135,7 +135,7 @@ add_middleware(middleware)
 
 ```python
 import asyncio
-from olakai_sdk import monitor
+from olakai-sdk import monitor
 
 @monitor()
 async def async_generate_response(prompt: str) -> str:
@@ -150,7 +150,7 @@ result = await async_generate_response("Hello, async world!")
 ### Queue Management
 
 ```python
-from olakai_sdk import get_queue_size, flush_queue, clear_queue
+from olakai-sdk import get_queue_size, flush_queue, clear_queue
 
 # Check queue size
 size = get_queue_size()
@@ -166,7 +166,7 @@ clear_queue()
 ### Error Handling
 
 ```python
-from olakai_sdk.types import SDKConfig
+from olakai-sdk.types import SDKConfig
 
 def error_handler(error: Exception):
     print(f"SDK Error: {error}")
@@ -200,8 +200,8 @@ config = SDKConfig(
 ### Basic Chat Bot Monitoring
 
 ```python
-from olakai_sdk import init_client, monitor
-from olakai_sdk.types import MonitorOptions
+from olakai-sdk import init_client, monitor
+from olakai-sdk.types import MonitorOptions
 
 init_client("your-api-key")
 
@@ -218,8 +218,8 @@ response = chat_completion("user123", "Hello!")
 ### Batch Processing Example
 
 ```python
-from olakai_sdk import init_client
-from olakai_sdk.types import SDKConfig
+from olakai-sdk import init_client
+from olakai-sdk.types import SDKConfig
 
 # Configure for high-throughput
 config = SDKConfig(
@@ -260,9 +260,9 @@ pytest
 pytest
 
 # Run with coverage
-pytest --cov=olakai_sdk
+pytest --cov=olakai-sdk
 
-# Run specific test file
+# Run specific test file (not implemented yet)
 pytest tests/test_client.py
 ```
 
