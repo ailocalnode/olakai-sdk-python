@@ -6,6 +6,9 @@ from dataclasses import asdict
 from typing import Any, Callable, List, Optional, Union, TypeVar, Generic, Dict, Awaitable
 from functools import wraps
 import re
+from .logger import get_logger
+
+logger = get_logger()
 
 from .client import send_to_api, get_config
 from .types import MonitorOptions, Middleware, MonitorPayload
@@ -21,36 +24,14 @@ middlewares: List[Middleware] = []
 def add_middleware(middleware: Middleware) -> None:
     """Add middleware to the global middleware registry."""
     middlewares.append(middleware)
+    logger.info(f"Added middleware: {middleware.name}")
 
 def remove_middleware(name: str) -> None:
     """Remove middleware from the global middleware registry by name."""
     global middlewares
     middlewares = [m for m in middlewares if m.name != name]
+    logger.info(f"Removed middleware: {name}")
 
-def should_monitor(options: MonitorOptions, args: tuple) -> bool:
-    """
-    Determine if a function call should be monitored based on options.
-    
-    Args:
-        options: The monitor options
-        args: The function arguments
-        
-    Returns:
-        True if the function should be monitored, False otherwise
-    """
-    # Check if monitoring is enabled
-    if isinstance(options.enabled, bool) and not options.enabled:
-        return False
-    if callable(options.enabled) and not options.enabled(args):
-        return False
-    
-    # Check sample rate
-    if options.sample_rate is not None:
-        import random
-        if random.random() > options.sample_rate:
-            return False
-    
-    return True
 
 def sanitize_data(data: Any, patterns: Optional[List[re.Pattern]] = None) -> Any:
     """
@@ -72,14 +53,10 @@ def sanitize_data(data: Any, patterns: Optional[List[re.Pattern]] = None) -> Any
             serialized = pattern.sub("[REDACTED]", serialized)
         
         parsed = json.loads(serialized)
-        config = get_config()
-        if config.verbose:
-            print("[Olakai SDK] Data successfully sanitized")
+        logger.debug("Data successfully sanitized")
         return parsed
     except Exception:
-        config = get_config()
-        if config.debug:
-            print("[Olakai SDK] Data failed to sanitize")
+        logger.debug("Data failed to sanitize")
         return "[SANITIZED]"
 
 def create_error_info(error: Exception) -> Dict[str, Any]:
@@ -92,6 +69,7 @@ def create_error_info(error: Exception) -> Dict[str, Any]:
     Returns:
         Dictionary containing error message and stack trace
     """
+    logger.debug(f"Creating error info: {error}")
     return {
         "error_message": str(error),
         "stack_trace": traceback.format_exc() if isinstance(error, Exception) else None
@@ -113,15 +91,12 @@ def safe_monitoring_operation(operation: Callable[[], Any], context: str) -> Non
                 try:
                     await result
                 except Exception as error:
-                    config = get_config()
-                    if config.debug:
-                        print(f"[Olakai SDK] Monitoring operation failed ({context}): {error}")
+                    logger.debug(f"Monitoring operation failed ({context}): {error}")
                     if config.onError:
                         try:
                             config.onError(error)
                         except Exception as handler_error:
-                            if config.debug:
-                                print(f"[Olakai SDK] Error handler itself failed: {handler_error}")
+                            logger.debug(f"Error handler itself failed: {handler_error}")
             
             # Schedule the async operation
             try:
@@ -136,14 +111,12 @@ def safe_monitoring_operation(operation: Callable[[], Any], context: str) -> Non
                 
     except Exception as error:
         config = get_config()
-        if config.debug:
-            print(f"[Olakai SDK] Monitoring operation failed ({context}): {error}")
+        logger.debug(f"Monitoring operation failed ({context}): {error}")
         if config.onError:
             try:
                 config.onError(error)
             except Exception as handler_error:
-                if config.debug:
-                    print(f"[Olakai SDK] Error handler itself failed: {handler_error}")
+                logger.debug(f"Error handler itself failed: {handler_error}")
 
 def monitor(options_or_func: Union[MonitorOptions, Callable, None] = None, options: Optional[MonitorOptions] = None):
     """
@@ -212,7 +185,7 @@ def _monitor_execution(func: Callable, options: MonitorOptions, args: tuple, kwa
     # Check if we should monitor this call
     should_monitor_call = False
     try:
-        should_monitor_call = should_monitor(options, args)
+        should_monitor_call = True
     except Exception as error:
         safe_monitoring_operation(lambda: None, "shouldMonitor check")
         # If monitoring check fails, still execute the function
@@ -330,8 +303,7 @@ def _monitor_execution(func: Callable, options: MonitorOptions, args: tuple, kwa
                 errorMessage=None
             )
             
-            if config.verbose:
-                print("[Olakai SDK] Successfully defined payload", payload)
+            logger.info(f"Successfully defined payload: {payload}")
             
             # Send to API
             send_to_api(payload, {
