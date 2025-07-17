@@ -49,6 +49,8 @@ def init_client(api_key: str, domain: str = "app.olakai.ai", sdk_config: Optiona
         process_batch_queue()
 
 def get_config() -> SDKConfig:
+    if not config:
+        raise Exception("[Olakai SDK] Config is not initialized")
     return config
 
 def persist_queue():
@@ -67,7 +69,7 @@ def persist_queue():
         logger.debug(f"Failed to persist queue: {err}")
 
 def sleep(ms: int):
-    logger.debug(f"Sleeping for {ms} ms")
+    logger.debug(f"[Olakai SDK] Sleeping for {ms} ms")
     time.sleep(ms / 1000)
 
 def make_api_call(payload: Union[MonitorPayload, List[MonitorPayload]]) -> APIResponse:
@@ -85,7 +87,7 @@ def make_api_call(payload: Union[MonitorPayload, List[MonitorPayload]]) -> APIRe
             json=json.dumps(data_dict),
             timeout=config.timeout / 1000,
         )
-        logger.debug(f"API response: {response}")
+        logger.debug(f"[Olakai SDK] API response: {response}")
         response.raise_for_status()
         result = response.json()
         return APIResponse(success=True, data=result)
@@ -104,13 +106,13 @@ def send_with_retry(payload: Union[MonitorPayload, List[MonitorPayload]]) -> boo
             return True
         except Exception as err:
             last_error = err
-            logger.debug(f"Attempt {attempt+1}/{max_retries+1} failed: {err}")
+            logger.debug(f"[Olakai SDK] Attempt {attempt+1}/{max_retries+1} failed: {err}")
             if attempt < max_retries:
                 delay = min(1000 * (2 ** attempt), 30000)
                 sleep(delay)
     if config.onError and last_error:
         config.onError(last_error)
-    logger.debug(f"All retry attempts failed: {last_error}")
+    logger.debug(f"[Olakai SDK] All retry attempts failed: {last_error}")
     return False
 
 def schedule_batch_processing():
@@ -139,9 +141,9 @@ def process_batch_queue():
             success = send_with_retry(payloads)
             if success:
                 successful_batches.add(batch_index)
-                logger.debug(f"Successfully sent batch of {len(batch)} items")
+                logger.debug(f"[Olakai SDK] Successfully sent batch of {len(batch)} items")
         except Exception as err:
-            logger.debug(f"Batch {batch_index} failed: {err}")
+            logger.debug(f"[Olakai SDK] Batch {batch_index} failed: {err}")
     # Remove successfully sent items
     remove_count = 0
     for i in range(len(batches)):
@@ -157,7 +159,7 @@ def process_batch_queue():
 
 def send_to_api(payload: MonitorPayload, options: dict = {}):
     if not config.apiKey:
-        logger.debug("API key is not set.")
+        logger.debug("[Olakai SDK] API key is not set.")
         return
     if isBatchingEnabled:
         batch_item = BatchRequest(
@@ -184,8 +186,8 @@ def clear_queue():
     batchQueue = []
     if config.enableLocalStorage and os.path.exists(QUEUE_FILE):
         os.remove(QUEUE_FILE)
-        logger.info("Cleared queue from file")
+        logger.info("[Olakai SDK] Cleared queue from file")
 
 def flush_queue():
-    logger.info("Flushing queue")
+    logger.info("[Olakai SDK] Flushing queue")
     process_batch_queue() 
