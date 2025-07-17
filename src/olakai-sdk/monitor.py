@@ -149,9 +149,10 @@ def monitor(options_or_func: Union[MonitorOptions, Callable, None] = None, optio
     """
     Monitor a function with the given options.
     
-    Can be used in two ways:
-    1. As a decorator with options: @monitor(options)
-    2. As a function wrapper: monitor(func, options)
+    Can be used in three ways:
+    1. As a decorator without parentheses: @monitor
+    2. As a decorator with options: @monitor(options) or @monitor()
+    3. As a function wrapper: monitor(func, options)
     
     Args:
         options_or_func: Either MonitorOptions or the function to monitor
@@ -160,44 +161,37 @@ def monitor(options_or_func: Union[MonitorOptions, Callable, None] = None, optio
     Returns:
         The monitored function or decorator
     """
-    monitor_options: Optional[MonitorOptions] = None
-    
-    def decorator(func: Callable):
-        # Determine if function is async
-        is_async = asyncio.iscoroutinefunction(func)
-        
-        if is_async:
-            @wraps(func)
-            async def async_wrapper(*args, **kwargs):
-                return await _monitor_execution(func, monitor_options or MonitorOptions(), args, kwargs, is_async=True)
-            return async_wrapper
-        else:
-            @wraps(func)
-            def sync_wrapper(*args, **kwargs):
-                return _monitor_execution(func, monitor_options or MonitorOptions(), args, kwargs, is_async=False)
-            return sync_wrapper
+    def create_decorator(monitor_options: MonitorOptions):
+        def decorator(func: Callable):
+            # Determine if function is async
+            is_async = asyncio.iscoroutinefunction(func)
+            
+            if is_async:
+                @wraps(func)
+                async def async_wrapper(*args, **kwargs):
+                    return await _monitor_execution(func, monitor_options, args, kwargs, is_async=True)
+                return async_wrapper
+            else:
+                @wraps(func)
+                def sync_wrapper(*args, **kwargs):
+                    return _monitor_execution(func, monitor_options, args, kwargs, is_async=False)
+                return sync_wrapper
+        return decorator
     
     # Handle different call patterns
     if options_or_func is None:
-        # Called as @monitor() - return decorator that expects options
-        def options_decorator(opts: MonitorOptions):
-            nonlocal monitor_options
-            monitor_options = opts
-            return decorator
-        return options_decorator
+        # Called as @monitor() - use default options
+        return create_decorator(MonitorOptions())
     elif isinstance(options_or_func, MonitorOptions):
-        # Called as @monitor(options) - return decorator
-        monitor_options = options_or_func
-        return decorator
+        # Called as @monitor(options) - use provided options
+        return create_decorator(options_or_func)
     elif callable(options_or_func):
         if options is not None:
             # Called as monitor(func, options)
-            monitor_options = options
-            return decorator(options_or_func)
+            return create_decorator(options)(options_or_func)
         else:
-            # Called as @monitor with no options - use defaults
-            monitor_options = MonitorOptions()
-            return decorator(options_or_func)
+            # Called as @monitor with no parentheses - use defaults
+            return create_decorator(MonitorOptions())(options_or_func)
     else:
         raise ValueError("Invalid arguments to monitor function")
 
