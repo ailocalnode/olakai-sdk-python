@@ -3,25 +3,42 @@ Logging utilities for the Olakai SDK using Python's built-in logging module.
 """
 
 import logging
+from typing import Optional
 
-# Create a logger for the SDK
-sdk_logger = logging.getLogger('olakai-sdk')
-
-def setup_logging(level=logging.INFO):
+def get_default_logger() -> logging.Logger:
     """
-    Setup logging configuration for the SDK.
+    Get a default logger for the SDK if none is provided.
     
-    Args:
-        level: Logging level (default: INFO)
+    Returns:
+        A configured logger instance
     """
+    logger = logging.getLogger('olakai-sdk')
+    
     # Only configure if not already configured
-    if not sdk_logger.handlers:
+    if not logger.handlers:
         handler = logging.StreamHandler()
         formatter = logging.Formatter('[%(name)s] %(levelname)s: %(message)s')
         handler.setFormatter(formatter)
-        sdk_logger.addHandler(handler)
-        sdk_logger.setLevel(level)
+        logger.addHandler(handler)
+        logger.setLevel(logging.INFO)
+    
+    return logger
 
-def get_logger():
-    """Get the SDK logger instance."""
-    return sdk_logger 
+def safe_log(logger: Optional[logging.Logger], level: str, message: str) -> None:
+    """
+    Safely log a message with fallback to print if logger is None or fails.
+    
+    Args:
+        logger: Logger instance (can be None)
+        level: Log level ('debug', 'info', 'warning', 'error')
+        message: Message to log
+    """
+    if logger is None:
+        print(message)
+        return
+    
+    try:
+        getattr(logger, level.lower())(message)
+    except Exception:
+        # Fallback to print if logging fails
+        print(message) 

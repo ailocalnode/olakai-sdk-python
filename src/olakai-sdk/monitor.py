@@ -2,17 +2,16 @@ import asyncio
 import json
 import time
 import traceback
+import logging
 from dataclasses import asdict
 from typing import Any, Callable, List, Optional, Union, TypeVar, Generic, Dict, Awaitable
 from functools import wraps
 import re
-from .logger import get_logger
-
-logger = get_logger()
 
 from .client import send_to_api, get_config
 from .types import MonitorOptions, Middleware, MonitorPayload
 from .utils import to_api_string
+from .logger import get_default_logger, safe_log
 
 # Type variables for generic functions
 TArgs = TypeVar('TArgs')
@@ -21,29 +20,37 @@ TResult = TypeVar('TResult')
 # Global middleware registry
 middlewares: List[Middleware] = []
 
-def add_middleware(middleware: Middleware) -> None:
+def add_middleware(middleware: Middleware, logger: Optional[logging.Logger] = None) -> None:
     """Add middleware to the global middleware registry."""
+    if logger is None:
+        logger = get_default_logger()
     middlewares.append(middleware)
-    logger.info(f"Added middleware: {middleware.name}")
+    safe_log(logger, 'info', f"Added middleware: {middleware.name}")
 
-def remove_middleware(name: str) -> None:
+def remove_middleware(name: str, logger: Optional[logging.Logger] = None) -> None:
     """Remove middleware from the global middleware registry by name."""
+    if logger is None:
+        logger = get_default_logger()
     global middlewares
     middlewares = [m for m in middlewares if m.name != name]
-    logger.info(f"Removed middleware: {name}")
+    safe_log(logger, 'info', f"Removed middleware: {name}")
 
 
-def sanitize_data(data: Any, patterns: Optional[List[re.Pattern]] = None) -> Any:
+def sanitize_data(data: Any, patterns: Optional[List[re.Pattern]] = None, logger: Optional[logging.Logger] = None) -> Any:
     """
     Sanitize data by replacing sensitive information with a placeholder.
     
     Args:
         data: The data to sanitize
         patterns: List of regex patterns to replace
+        logger: Optional logger instance
         
     Returns:
         The sanitized data
     """
+    if logger is None:
+        logger = get_default_logger()
+        
     if not patterns:
         return data
     
@@ -53,13 +60,17 @@ def sanitize_data(data: Any, patterns: Optional[List[re.Pattern]] = None) -> Any
             serialized = pattern.sub("[REDACTED]", serialized)
         
         parsed = json.loads(serialized)
-        logger.debug("Data successfully sanitized")
+        config = get_config()
+        if config.verbose:
+            safe_log(logger, 'debug', "Data successfully sanitized")
         return parsed
     except Exception:
-        logger.debug("Data failed to sanitize")
+        config = get_config()
+        if config.debug:
+            safe_log(logger, 'debug', "Data failed to sanitize")
         return "[SANITIZED]"
 
-def create_error_info(error: Exception) -> Dict[str, Any]:
+def create_error_info(error: Exception, logger: Optional[logging.Logger] = None) -> Dict[str, Any]:
     """
     Create error information dictionary from an exception.
     
@@ -69,13 +80,18 @@ def create_error_info(error: Exception) -> Dict[str, Any]:
     Returns:
         Dictionary containing error message and stack trace
     """
-    logger.debug(f"Creating error info: {error}")
+    if logger is None:
+        logger = get_default_logger()
+    
+    config = get_config()
+    if config.debug:
+        safe_log(logger, 'debug', f"Creating error info: {error}")
     return {
         "error_message": str(error),
         "stack_trace": traceback.format_exc() if isinstance(error, Exception) else None
     }
 
-def safe_monitoring_operation(operation: Callable[[], Any], context: str) -> None:
+def safe_monitoring_operation(operation: Callable[[], Any], context: str, logger: Optional[logging.Logger] = None) -> None:
     """
     Safely execute monitoring operations without affecting the original function.
     
@@ -83,6 +99,10 @@ def safe_monitoring_operation(operation: Callable[[], Any], context: str) -> Non
         operation: The monitoring operation to execute
         context: Context information for debugging
     """
+    if logger is None:
+        logger = get_default_logger()
+    config = get_config()
+        
     try:
         result = operation()
         # Handle async operations
@@ -91,12 +111,14 @@ def safe_monitoring_operation(operation: Callable[[], Any], context: str) -> Non
                 try:
                     await result
                 except Exception as error:
-                    logger.debug(f"Monitoring operation failed ({context}): {error}")
+                    if config.debug:
+                        safe_log(logger, 'debug', f"Monitoring operation failed ({context}): {error}")
                     if config.onError:
                         try:
                             config.onError(error)
                         except Exception as handler_error:
-                            logger.debug(f"Error handler itself failed: {handler_error}")
+                            if config.debug:
+                                safe_log(logger, 'debug', f"Error handler itself failed: {handler_error}")
             
             # Schedule the async operation
             try:
@@ -110,15 +132,16 @@ def safe_monitoring_operation(operation: Callable[[], Any], context: str) -> Non
                 asyncio.run(handle_async())
                 
     except Exception as error:
-        config = get_config()
-        logger.debug(f"Monitoring operation failed ({context}): {error}")
+        if config.debug:
+            safe_log(logger, 'debug', f"Monitoring operation failed ({context}): {error}")
         if config.onError:
             try:
                 config.onError(error)
             except Exception as handler_error:
-                logger.debug(f"Error handler itself failed: {handler_error}")
+                if config.debug:
+                    safe_log(logger, 'debug', f"Error handler itself failed: {handler_error}")
 
-def monitor(options_or_func: Union[MonitorOptions, Callable, None] = None, options: Optional[MonitorOptions] = None):
+def monitor(options_or_func: Union[MonitorOptions, Callable, None] = None, options: Optional[MonitorOptions] = None, logger: Optional[logging.Logger] = None):
     """
     Monitor a function with the given options.
     
@@ -134,7 +157,10 @@ def monitor(options_or_func: Union[MonitorOptions, Callable, None] = None, optio
     Returns:
         The monitored function or decorator
     """
-    def create_decorator(monitor_options: MonitorOptions):
+    def create_decorator(monitor_options: MonitorOptions, logger: Optional[logging.Logger] = None):
+        if logger is None:
+            logger = get_default_logger()
+        
         def decorator(func: Callable):
             # Determine if function is async
             is_async = asyncio.iscoroutinefunction(func)
@@ -142,33 +168,33 @@ def monitor(options_or_func: Union[MonitorOptions, Callable, None] = None, optio
             if is_async:
                 @wraps(func)
                 async def async_wrapper(*args, **kwargs):
-                    return await _monitor_execution(func, monitor_options, args, kwargs, is_async=True)
+                    return await _monitor_execution(func, monitor_options, args, kwargs, is_async=True, logger=logger)
                 return async_wrapper
             else:
                 @wraps(func)
                 def sync_wrapper(*args, **kwargs):
-                    return _monitor_execution(func, monitor_options, args, kwargs, is_async=False)
+                    return _monitor_execution(func, monitor_options, args, kwargs, is_async=False, logger=logger)
                 return sync_wrapper
         return decorator
     
     # Handle different call patterns
     if options_or_func is None:
         # Called as @monitor() - use default options
-        return create_decorator(MonitorOptions())
+        return create_decorator(MonitorOptions(), logger)
     elif isinstance(options_or_func, MonitorOptions):
         # Called as @monitor(options) - use provided options
-        return create_decorator(options_or_func)
+        return create_decorator(options_or_func, logger)
     elif callable(options_or_func):
         if options is not None:
             # Called as monitor(func, options)
-            return create_decorator(options)(options_or_func)
+            return create_decorator(options, logger)(options_or_func)
         else:
             # Called as @monitor with no parentheses - use defaults
-            return create_decorator(MonitorOptions())(options_or_func)
+            return create_decorator(MonitorOptions(), logger)(options_or_func)
     else:
         raise ValueError("Invalid arguments to monitor function")
 
-def _monitor_execution(func: Callable, options: MonitorOptions, args: tuple, kwargs: dict, is_async: bool = False):
+def _monitor_execution(func: Callable, options: MonitorOptions, args: tuple, kwargs: dict, is_async: bool = False, logger: Optional[logging.Logger] = None):
     """
     Execute the monitored function with monitoring logic.
     
@@ -182,12 +208,15 @@ def _monitor_execution(func: Callable, options: MonitorOptions, args: tuple, kwa
     Returns:
         The function result
     """
+    if logger is None:
+        logger = get_default_logger()
+        
     # Check if we should monitor this call
     should_monitor_call = False
     try:
         should_monitor_call = True
     except Exception as error:
-        safe_monitoring_operation(lambda: None, "shouldMonitor check")
+        safe_monitoring_operation(lambda: None, "shouldMonitor check", logger)
         # If monitoring check fails, still execute the function
         if is_async:
             return asyncio.create_task(func(*args, **kwargs))
@@ -207,7 +236,7 @@ def _monitor_execution(func: Callable, options: MonitorOptions, args: tuple, kwa
         config = get_config()
         start = time.time() * 1000  # Convert to milliseconds
     except Exception as error:
-        safe_monitoring_operation(lambda: None, "monitoring initialization")
+        safe_monitoring_operation(lambda: None, "monitoring initialization", logger)
         if is_async:
             return func(*args, **kwargs)
         return func(*args, **kwargs)
@@ -221,7 +250,7 @@ def _monitor_execution(func: Callable, options: MonitorOptions, args: tuple, kwa
                 if result:
                     processed_args = result
     
-    safe_monitoring_operation(apply_before_middleware, "beforeCall middleware")
+    safe_monitoring_operation(apply_before_middleware, "beforeCall middleware", logger)
     
     # Execute the function
     function_error = None
@@ -238,7 +267,10 @@ def _monitor_execution(func: Callable, options: MonitorOptions, args: tuple, kwa
         function_error = error
         
         # Handle error monitoring
-        def handle_error_monitoring():
+        def handle_error_monitoring(logger: Optional[logging.Logger] = None):
+            if logger is None:
+                logger = get_default_logger()
+                
             # Apply error middleware
             for middleware in middlewares:
                 if hasattr(middleware, 'on_error') and middleware.on_error:
@@ -247,7 +279,7 @@ def _monitor_execution(func: Callable, options: MonitorOptions, args: tuple, kwa
             # Capture error data if onError handler is provided
             if hasattr(options, 'on_error') and options.on_error:
                 error_result = options.on_error(function_error, processed_args)
-                error_info = create_error_info(function_error)
+                error_info = create_error_info(function_error, logger)
                 
                 payload = MonitorPayload(
                     prompt="",
@@ -263,11 +295,14 @@ def _monitor_execution(func: Callable, options: MonitorOptions, args: tuple, kwa
                     "priority": "high"  # Errors always get high priority
                 })
         
-        safe_monitoring_operation(handle_error_monitoring, "error monitoring")
+        safe_monitoring_operation(handle_error_monitoring, "error monitoring", logger)
         raise error  # Re-raise the original error
     
     # Handle success monitoring
-    def handle_success_monitoring():
+    def handle_success_monitoring(logger: Optional[logging.Logger] = None):
+        if logger is None:
+            logger = get_default_logger()
+            
         nonlocal result
         
         # Apply afterCall middleware
@@ -303,7 +338,8 @@ def _monitor_execution(func: Callable, options: MonitorOptions, args: tuple, kwa
                 errorMessage=None
             )
             
-            logger.info(f"Successfully defined payload: {payload}")
+            if config.verbose:
+                safe_log(logger, 'info', f"Successfully defined payload: {payload}")
             
             # Send to API
             send_to_api(payload, {
@@ -311,6 +347,6 @@ def _monitor_execution(func: Callable, options: MonitorOptions, args: tuple, kwa
             })
     
     if function_error is None:
-        safe_monitoring_operation(handle_success_monitoring, "success monitoring")
+        safe_monitoring_operation(handle_success_monitoring, "success monitoring", logger)
     
     return result
