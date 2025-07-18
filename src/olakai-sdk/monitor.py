@@ -258,6 +258,7 @@ async def olakai_monitor(options: MonitorOptions, logger: Optional[logging.Logge
                                 chatId = str(chatId)
                         except Exception:
                             chatId = "anonymous"
+                            c = safe_log(logger, 'debug', f"Error getting chatId: {chatId}")
                     else:
                         chatId = options.chatId
                     if callable(options.userId):
@@ -267,6 +268,7 @@ async def olakai_monitor(options: MonitorOptions, logger: Optional[logging.Logge
                                 userId = str(userId)
                         except Exception:
                             userId = "anonymous"
+                            c = safe_log(logger, 'debug', f"Error getting userId: {userId}")
                     else:
                         userId = options.userId
                         
