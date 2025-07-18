@@ -1,7 +1,8 @@
 import json
 from typing import Any, Callable, List
 import asyncio
-from .types import Middleware
+from .types import MonitorOptions
+from dataclasses import dataclass
 
 
 def to_api_string(data: Any) -> str:
@@ -22,3 +23,26 @@ async def execute_func(f:Callable, *args, **kwargs) -> None:
             f(*args, **kwargs)
     except Exception as e:
         raise e
+
+@dataclass
+class MonitorUtils:
+    def capture_all_f(**kwargs):
+        return {
+            "input": kwargs["args"],
+            "output": kwargs["result"]
+        }
+    capture_all: MonitorOptions = MonitorOptions(capture=capture_all_f)
+    
+    def capture_input_f(**kwargs):
+        return {
+            "input": kwargs["args"],
+            "output": "Function executed successfully"
+        }
+    capture_input: MonitorOptions = MonitorOptions(capture=capture_input_f)
+
+    def capture_output_f(**kwargs):
+        return {
+            "input": "Function called",
+            "output": kwargs["result"]
+        }
+    capture_output: MonitorOptions = MonitorOptions(capture=capture_output_f)    

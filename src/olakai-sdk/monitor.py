@@ -186,7 +186,7 @@ async def olakai_monitor(options: MonitorOptions, logger: Optional[logging.Logge
             except Exception as error:
                 function_error = error
                         
-                        # Handle error monitoring
+                # Handle error monitoring
                 async def handle_error_monitoring():
                     # Apply error middleware
                     for middleware in middlewares:
@@ -237,19 +237,19 @@ async def olakai_monitor(options: MonitorOptions, logger: Optional[logging.Logge
                         
                     # Capture success data
                 if hasattr(options, 'capture') and options.capture:
-                    capture_result = options.capture({
-                            "args": processed_args,
-                            "result": result
-                        })
+                    capture_result = options.capture(
+                        args=processed_args,
+                        result=result
+                    )
                                 
                             # Apply sanitization if enabled
                     prompt = capture_result.get("input", "")
                     response = capture_result.get("output", "")
                                 
                     if getattr(options, 'sanitize', False):
-                                sanitize_patterns = getattr(config, 'sanitize_patterns', None)
-                                prompt = await sanitize_data(prompt, sanitize_patterns, logger)
-                                response = await sanitize_data(response, sanitize_patterns, logger)
+                            sanitize_patterns = getattr(config, 'sanitize_patterns', None)
+                            prompt = await sanitize_data(prompt, sanitize_patterns, logger)
+                            response = await sanitize_data(response, sanitize_patterns, logger)
                                 
                     payload = MonitorPayload(
                                     prompt=to_api_string(prompt),
