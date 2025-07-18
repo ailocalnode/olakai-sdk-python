@@ -124,8 +124,7 @@ async def make_api_call(payload: Union[MonitorPayload, List[MonitorPayload]], lo
             json=json.dumps(data_dict),
             timeout=config.timeout / 1000,
         )
-        if config.verbose:
-            c = safe_log(logger, 'debug', f"[Olakai SDK] API response: {response}")
+        await safe_log(logger, 'debug', f"[Olakai SDK] API response: {response}")
         response.raise_for_status()
         result = response.json()
         return APIResponse(success=True, data=result)

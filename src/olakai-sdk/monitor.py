@@ -168,15 +168,17 @@ def olakai_monitor(options: MonitorOptions, logger: logging.Logger):
                                 processed_args = middleware_result
                         except Exception as middleware_error:
                             await safe_log(logger, 'debug', f"Middleware error: {middleware_error}")
-
+                await safe_log(logger, 'debug', f"Processed arguments: {processed_args}")
                 # Execute the function
                 function_error = None
                 result = None
                         
                 try:
                     result = await execute_func(f, *processed_args, **kwargs)
+                    await safe_log(logger, 'debug', f"Function executed successfully")
                 except Exception as error:
                     function_error = error
+                    await safe_log(logger, 'debug', f"Function execution failed: {error}")
                             
                     # Handle error monitoring
                     async def handle_error_monitoring():
@@ -226,7 +228,8 @@ def olakai_monitor(options: MonitorOptions, logger: logging.Logger):
                                     result = middleware_result
                             except Exception as middleware_error:
                                 await safe_log(logger, 'debug', f"After middleware failed: {middleware_error}")
-                            
+
+                    await safe_log(logger, 'info', f"Result: {result}")
                     # Capture success data
                     if hasattr(options, 'capture') and options.capture:
                         capture_result = options.capture(
@@ -237,12 +240,16 @@ def olakai_monitor(options: MonitorOptions, logger: logging.Logger):
                         # Apply sanitization if enabled
                         prompt = capture_result.get("input", "")
                         response = capture_result.get("output", "")
-                                    
+
+                        await safe_log(logger, 'info', f"Prompt: {prompt}")
+                        await safe_log(logger, 'info', f"Response: {response}")
+
                         if getattr(options, 'sanitize', False):
                             sanitize_patterns = getattr(config, 'sanitize_patterns', None)
                             prompt = await sanitize_data(prompt, sanitize_patterns, logger)
                             response = await sanitize_data(response, sanitize_patterns, logger)
 
+                        await safe_log(logger, 'info', f"Sanitized prompt: {prompt}")
                         # Handle chatId and userId
                         chatId = "anonymous"
                         userId = "anonymous"
@@ -283,10 +290,10 @@ def olakai_monitor(options: MonitorOptions, logger: logging.Logger):
 
                         await safe_log(logger, 'info', f"Successfully defined payload: {payload}")
                                     
-                        # Send to API
+                        # Send to API (this is the async API call you want!)
                         await send_to_api(payload, {
                             "priority": getattr(options, 'priority', 'normal')
-                        })
+                        }, logger)
                         
                 if function_error is None:
                     await safe_monitoring_operation(handle_success_monitoring, "success monitoring", logger)
@@ -297,6 +304,50 @@ def olakai_monitor(options: MonitorOptions, logger: logging.Logger):
                 await safe_log(logger, 'error', f"Error: {error}")
                 result = await execute_func(f, *args, **kwargs)
                 return result
+        
+        # Check if the decorated function is async or sync
+        if asyncio.iscoroutinefunction(f):
+            # For async functions, return the async wrapper directly
+            return async_wrapped_f
+        else:
+            # For sync functions, create a sync wrapper that fires off monitoring in background
+            @wraps(f)
+            def sync_wrapped_f(*args, **kwargs):
+                # Execute the original function first
+                function_error = None
                 
-        return async_wrapped_f
+                try:
+                    f(*args, **kwargs)
+                except Exception as error:
+                    function_error = error
+                
+                # Fire off async monitoring in background (don't wait for it)
+                def fire_and_forget_monitoring():
+                    try:
+                        # Check if there's already an event loop running
+                        try:
+                            loop = asyncio.get_running_loop()
+                            # If there's a running loop, schedule the monitoring as a task
+                            asyncio.create_task(async_wrapped_f(*args, **kwargs))
+                        except RuntimeError:
+                            # No running loop, create a new one for monitoring
+                            # Run in a separate thread to avoid blocking the sync function
+                            import threading
+                            def run_monitoring():
+                                asyncio.run(async_wrapped_f(*args, **kwargs))
+                            
+                            thread = threading.Thread(target=run_monitoring, daemon=True)
+                            thread.start()
+                    except Exception:
+                        # If monitoring fails, don't affect the original function
+                        pass
+                
+                # Start background monitoring
+                fire_and_forget_monitoring()
+                
+                # Return the original result or raise the original error
+            
+            
+            return sync_wrapped_f
+    
     return wrap
