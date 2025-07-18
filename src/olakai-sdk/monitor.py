@@ -247,19 +247,39 @@ async def olakai_monitor(options: MonitorOptions, logger: Optional[logging.Logge
                     response = capture_result.get("output", "")
                                 
                     if getattr(options, 'sanitize', False):
-                            sanitize_patterns = getattr(config, 'sanitize_patterns', None)
-                            prompt = await sanitize_data(prompt, sanitize_patterns, logger)
-                            response = await sanitize_data(response, sanitize_patterns, logger)
-                                
+                        sanitize_patterns = getattr(config, 'sanitize_patterns', None)
+                        prompt = await sanitize_data(prompt, sanitize_patterns, logger)
+                        response = await sanitize_data(response, sanitize_patterns, logger)
+
+                    if callable(options.chatId):
+                        try:
+                            chatId = options.chatId()
+                            if not isinstance(chatId, str):
+                                chatId = str(chatId)
+                        except Exception:
+                            chatId = "anonymous"
+                    else:
+                        chatId = options.chatId
+                    if callable(options.userId):
+                        try:
+                            userId = options.userId()
+                            if not isinstance(userId, str):
+                                userId = str(userId)
+                        except Exception:
+                            userId = "anonymous"
+                    else:
+                        userId = options.userId
+                        
+
                     payload = MonitorPayload(
-                                    prompt=to_api_string(prompt),
-                                    response=to_api_string(response),
-                                    chatId="123",
-                                    userId="anonymous",
-                                    tokens=0,
-                                    requestTime=int(time.time() * 1000 - start),
-                                    errorMessage=None
-                                )
+                        prompt=to_api_string(prompt),
+                        response=to_api_string(response),
+                        chatId=chatId if chatId else "anonymous",
+                        userId=userId if userId else "anonymous",
+                        tokens=0,
+                        requestTime=int(time.time() * 1000 - start),
+                        errorMessage=None
+                    )
 
                     c= safe_log(logger, 'info', f"Successfully defined payload: {payload}")
                                 

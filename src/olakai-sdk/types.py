@@ -44,14 +44,12 @@ class SDKConfig:
 
 @dataclass
 class MonitorOptions:
-    enabled: Union[bool, Callable] = True
-    sample_rate: Optional[float] = None
     capture: Optional[Callable] = None
     sanitize: bool = False
     on_error: Optional[Callable] = None
     priority: str = "normal"
-    retries: Optional[int] = None
-    timeout: Optional[int] = None
+    userId: Optional[Union[str, Callable]] = "anonymous"
+    chatId: Optional[Union[str, Callable]] = "123"
 
 @dataclass 
 class Middleware:
