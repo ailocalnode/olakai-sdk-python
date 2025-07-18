@@ -1,5 +1,7 @@
 import json
-from typing import Any
+from typing import Any, Callable, List
+import asyncio
+from .types import Middleware
 
 
 def to_api_string(data: Any) -> str:
@@ -10,3 +12,13 @@ def to_api_string(data: Any) -> str:
         return json.dumps(data, default=str)
     except Exception:
         return str(data)
+
+async def execute_func(f:Callable, *args, **kwargs) -> None:
+    """Execute a function with arguments and return None."""
+    try:
+        if asyncio.iscoroutinefunction(f):
+            await f(*args, **kwargs)
+        else:
+            f(*args, **kwargs)
+    except Exception as e:
+        raise e
