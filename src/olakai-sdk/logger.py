@@ -5,7 +5,7 @@ Logging utilities for the Olakai SDK using Python's built-in logging module.
 import logging
 from typing import Optional
 
-def get_default_logger() -> logging.Logger:
+async def get_default_logger() -> logging.Logger:
     """
     Get a default logger for the SDK if none is provided.
     
@@ -24,7 +24,7 @@ def get_default_logger() -> logging.Logger:
     
     return logger
 
-def safe_log(logger: Optional[logging.Logger], level: str, message: str) -> None:
+async def safe_log(logger: Optional[logging.Logger], level: str, message: str) -> None:
     """
     Safely log a message with fallback to print if logger is None or fails.
     
