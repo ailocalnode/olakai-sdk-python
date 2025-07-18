@@ -141,7 +141,7 @@ async def safe_monitoring_operation(operation: Callable[[], Any], context: str, 
                     c = safe_log(logger, 'debug', f"Error handler itself failed: {handler_error}")
 
 
-async def olakai_monitor(options: MonitorOptions, logger: Optional[logging.Logger] = None):
+def olakai_monitor(options: MonitorOptions, logger: logging.Logger):
     """
     Monitor a function with the given options.
     
@@ -149,60 +149,52 @@ async def olakai_monitor(options: MonitorOptions, logger: Optional[logging.Logge
         options: Monitor options
         logger: Optional logger instance
     """
-    if logger is None:
-        logger = await get_default_logger()
-
-    async def wrap(f: Callable) -> Callable:
+    def wrap(f: Callable) -> Callable:
         async def async_wrapped_f(*args, **kwargs):
-            c= safe_log(logger, 'debug', f"Monitoring function: {f.__name__}")
-            c= safe_log(logger, 'debug', f"Arguments: {args}")
+            await safe_log(logger, 'debug', f"Monitoring function: {f.__name__}")
+            await safe_log(logger, 'debug', f"Arguments: {args}")
 
             try:
                 config = await get_config()
                 start = time.time() * 1000  # Convert to milliseconds
                 processed_args = args
-            except Exception as error:
-                await safe_monitoring_operation(lambda: None, "monitoring initialization", logger)
-                c= safe_log(logger, 'error', f"Error: {error}")
-                await execute_func(f, *args, **kwargs)
-                raise error
                 
-            # Apply before middleware
-            for middleware in middlewares:
-                if hasattr(middleware, 'before_call') and middleware.before_call:
-                    try:
-                        middleware_result = middleware.before_call(processed_args)
-                        if middleware_result:
-                            processed_args = middleware_result
-                    except Exception as middleware_error:
-                        c= safe_log(logger, 'debug', f"Middleware error: {middleware_error}")
-
-            # Execute the function
-            function_error = None
-            result = None
-                    
-            try:
-                result = await execute_func(f, *processed_args, **kwargs)
-            except Exception as error:
-                function_error = error
-                        
-                # Handle error monitoring
-                async def handle_error_monitoring():
-                    # Apply error middleware
-                    for middleware in middlewares:
-                        if hasattr(middleware, 'on_error') and middleware.on_error:
-                            try:
-                                middleware.on_error(function_error, processed_args)
-                            except Exception as middleware_error:
-                                c= safe_log(logger, 'debug', f"Error middleware failed: {middleware_error}")
-                            
-                            # Capture error data if onError handler is provided
-                    if hasattr(options, 'on_error') and options.on_error:
+                # Apply before middleware
+                for middleware in middlewares:
+                    if hasattr(middleware, 'before_call') and middleware.before_call:
                         try:
-                            error_result = options.on_error(function_error, processed_args)
-                            error_info = await create_error_info(function_error, logger)
-                                    
-                            payload = MonitorPayload(
+                            middleware_result = middleware.before_call(processed_args)
+                            if middleware_result:
+                                processed_args = middleware_result
+                        except Exception as middleware_error:
+                            await safe_log(logger, 'debug', f"Middleware error: {middleware_error}")
+
+                # Execute the function
+                function_error = None
+                result = None
+                        
+                try:
+                    result = await execute_func(f, *processed_args, **kwargs)
+                except Exception as error:
+                    function_error = error
+                            
+                    # Handle error monitoring
+                    async def handle_error_monitoring():
+                        # Apply error middleware
+                        for middleware in middlewares:
+                            if hasattr(middleware, 'on_error') and middleware.on_error:
+                                try:
+                                    middleware.on_error(function_error, processed_args)
+                                except Exception as middleware_error:
+                                    await safe_log(logger, 'debug', f"Error middleware failed: {middleware_error}")
+                                
+                        # Capture error data if onError handler is provided
+                        if hasattr(options, 'on_error') and options.on_error:
+                            try:
+                                error_result = options.on_error(function_error, processed_args)
+                                error_info = await create_error_info(function_error, logger)
+                                        
+                                payload = MonitorPayload(
                                     prompt="",
                                     response="",
                                     errorMessage=to_api_string(error_info["error_message"]) + to_api_string(error_result),
@@ -211,86 +203,100 @@ async def olakai_monitor(options: MonitorOptions, logger: Optional[logging.Logge
                                     tokens=0,
                                     requestTime=int(time.time() * 1000 - start)
                                 )
-                                    
-                            await send_to_api(payload, {
+                                        
+                                await send_to_api(payload, {
                                     "priority": "high"  # Errors always get high priority
                                 })
-                        except Exception as capture_error:
-                            c= safe_log(logger, 'debug', f"Error capture failed: {capture_error}")
+                            except Exception as capture_error:
+                                await safe_log(logger, 'debug', f"Error capture failed: {capture_error}")
+                            
+                    await safe_monitoring_operation(handle_error_monitoring, "error monitoring", logger)
+                    raise function_error  # Re-raise the original error
                         
-                await safe_monitoring_operation(handle_error_monitoring, "error monitoring", logger)
-                raise function_error  # Re-raise the original error
-                    
-            # Handle success monitoring
-            async def handle_success_monitoring():
-                nonlocal result
-                        
-                        # Apply afterCall middleware
-                for middleware in middlewares:
-                    if hasattr(middleware, 'after_call') and middleware.after_call:
-                        try:
-                            middleware_result = middleware.after_call(result, processed_args)
-                            if middleware_result:
-                                result = middleware_result
-                        except Exception as middleware_error:
-                            c= safe_log(logger, 'debug', f"After middleware failed: {middleware_error}")
-                        
+                # Handle success monitoring
+                async def handle_success_monitoring():
+                    nonlocal result
+                            
+                    # Apply afterCall middleware
+                    for middleware in middlewares:
+                        if hasattr(middleware, 'after_call') and middleware.after_call:
+                            try:
+                                middleware_result = middleware.after_call(result, processed_args)
+                                if middleware_result:
+                                    result = middleware_result
+                            except Exception as middleware_error:
+                                await safe_log(logger, 'debug', f"After middleware failed: {middleware_error}")
+                            
                     # Capture success data
-                if hasattr(options, 'capture') and options.capture:
-                    capture_result = options.capture(
-                        args=processed_args,
-                        result=result
-                    )
-                                
-                            # Apply sanitization if enabled
-                    prompt = capture_result.get("input", "")
-                    response = capture_result.get("output", "")
-                                
-                    if getattr(options, 'sanitize', False):
-                        sanitize_patterns = getattr(config, 'sanitize_patterns', None)
-                        prompt = await sanitize_data(prompt, sanitize_patterns, logger)
-                        response = await sanitize_data(response, sanitize_patterns, logger)
+                    if hasattr(options, 'capture') and options.capture:
+                        capture_result = options.capture(
+                            args=processed_args,
+                            result=result
+                        )
+                                    
+                        # Apply sanitization if enabled
+                        prompt = capture_result.get("input", "")
+                        response = capture_result.get("output", "")
+                                    
+                        if getattr(options, 'sanitize', False):
+                            sanitize_patterns = getattr(config, 'sanitize_patterns', None)
+                            prompt = await sanitize_data(prompt, sanitize_patterns, logger)
+                            response = await sanitize_data(response, sanitize_patterns, logger)
 
-                    if callable(options.chatId):
-                        try:
-                            chatId = options.chatId()
-                            if not isinstance(chatId, str):
-                                chatId = str(chatId)
-                        except Exception:
-                            chatId = "anonymous"
-                            c = safe_log(logger, 'debug', f"Error getting chatId: {chatId}")
-                    else:
-                        chatId = options.chatId
-                    if callable(options.userId):
-                        try:
-                            userId = options.userId()
-                            if not isinstance(userId, str):
-                                userId = str(userId)
-                        except Exception:
-                            userId = "anonymous"
-                            c = safe_log(logger, 'debug', f"Error getting userId: {userId}")
-                    else:
-                        userId = options.userId
+                        # Handle chatId and userId
+                        chatId = "anonymous"
+                        userId = "anonymous"
                         
-
-                    payload = MonitorPayload(
-                        prompt=to_api_string(prompt),
-                        response=to_api_string(response),
-                        chatId=chatId if chatId else "anonymous",
-                        userId=userId if userId else "anonymous",
-                        tokens=0,
-                        requestTime=int(time.time() * 1000 - start),
-                        errorMessage=None
-                    )
-
-                    c= safe_log(logger, 'info', f"Successfully defined payload: {payload}")
+                        if hasattr(options, 'chatId'):
+                            if callable(options.chatId):
+                                try:
+                                    chatId = options.chatId()
+                                    if not isinstance(chatId, str):
+                                        chatId = str(chatId)
+                                except Exception:
+                                    chatId = "anonymous"
+                                    await safe_log(logger, 'debug', f"Error getting chatId")
+                            else:
+                                chatId = options.chatId
                                 
-                                # Send to API
-                    await send_to_api(payload, {
+                        if hasattr(options, 'userId'):
+                            if callable(options.userId):
+                                try:
+                                    userId = options.userId()
+                                    if not isinstance(userId, str):
+                                        userId = str(userId)
+                                except Exception:
+                                    userId = "anonymous"
+                                    await safe_log(logger, 'debug', f"Error getting userId")
+                            else:
+                                userId = options.userId
+
+                        payload = MonitorPayload(
+                            prompt=to_api_string(prompt),
+                            response=to_api_string(response),
+                            chatId=chatId if chatId else "anonymous",
+                            userId=userId if userId else "anonymous",
+                            tokens=0,
+                            requestTime=int(time.time() * 1000 - start),
+                            errorMessage=None
+                        )
+
+                        await safe_log(logger, 'info', f"Successfully defined payload: {payload}")
+                                    
+                        # Send to API
+                        await send_to_api(payload, {
                             "priority": getattr(options, 'priority', 'normal')
                         })
-                    
-                await safe_monitoring_operation(handle_success_monitoring, "success monitoring", logger)
-            return result
+                        
+                if function_error is None:
+                    await safe_monitoring_operation(handle_success_monitoring, "success monitoring", logger)
+                return result
+                
+            except Exception as error:
+                await safe_monitoring_operation(lambda: None, "monitoring initialization", logger)
+                await safe_log(logger, 'error', f"Error: {error}")
+                result = await execute_func(f, *args, **kwargs)
+                return result
+                
         return async_wrapped_f
     return wrap

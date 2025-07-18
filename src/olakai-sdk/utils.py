@@ -31,18 +31,18 @@ class MonitorUtils:
             "input": kwargs["args"],
             "output": kwargs["result"]
         }
-    capture_all: MonitorOptions = MonitorOptions(capture=capture_all_f)
+    capture_all = MonitorOptions(capture=capture_all_f)
     
     def capture_input_f(**kwargs):
         return {
             "input": kwargs["args"],
             "output": "Function executed successfully"
         }
-    capture_input: MonitorOptions = MonitorOptions(capture=capture_input_f)
+    capture_input = MonitorOptions(capture=capture_input_f)
 
     def capture_output_f(**kwargs):
         return {
             "input": "Function called",
             "output": kwargs["result"]
         }
-    capture_output: MonitorOptions = MonitorOptions(capture=capture_output_f)    
+    capture_output = MonitorOptions(capture=capture_output_f)    
