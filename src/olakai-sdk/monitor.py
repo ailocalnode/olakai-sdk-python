@@ -154,7 +154,9 @@ def olakai_monitor(options: MonitorOptions, logger: logging.Logger):
                                     email="anonymous@olakai.ai",
                                     shouldScore=getattr(options, 'shouldScore', False),
                                     tokens=0,
-                                    requestTime=int(time.time() * 1000 - start)
+                                    requestTime=int(time.time() * 1000 - start),
+                                    task=getattr(options, 'task', None),
+                                    subTask=getattr(options, 'subTask', None)
                                 )
                                         
                                 await send_to_api(payload, {
@@ -240,7 +242,9 @@ def olakai_monitor(options: MonitorOptions, logger: logging.Logger):
                             shouldScore=getattr(options, 'shouldScore', False),
                             tokens=0,
                             requestTime=int(time.time() * 1000 - start),
-                            errorMessage=None
+                            errorMessage=None,
+                            task=getattr(options, 'task', None),
+                            subTask=getattr(options, 'subTask', None)
                         )
 
                         await safe_log(logger, 'info', f"Successfully defined payload: {payload}")

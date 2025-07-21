@@ -11,6 +11,8 @@ class MonitorPayload:
     tokens: Optional[int]
     requestTime: Optional[int]
     errorMessage: Optional[str]
+    task: Optional[str]
+    subTask: Optional[str]
     
 @dataclass
 class BatchRequest:
@@ -51,6 +53,8 @@ class MonitorOptions:
     email: Optional[Union[str, Callable]] = "anonymous@olakai.ai"
     chatId: Optional[Union[str, Callable]] = "123"
     shouldScore: bool = False
+    task: Optional[str] = None
+    subTask: Optional[str] = None
 
 @dataclass 
 class Middleware:
