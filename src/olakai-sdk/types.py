@@ -7,6 +7,7 @@ class MonitorPayload:
     chatId: str
     prompt: str
     response: str
+    shouldScore: bool
     tokens: Optional[int]
     requestTime: Optional[int]
     errorMessage: Optional[str]

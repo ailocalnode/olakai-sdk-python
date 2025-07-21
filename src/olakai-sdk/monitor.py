@@ -152,6 +152,7 @@ def olakai_monitor(options: MonitorOptions, logger: logging.Logger):
                                     errorMessage=to_api_string(error_info["error_message"]) + to_api_string(error_result),
                                     chatId="123",
                                     email="anonymous@olakai.ai",
+                                    shouldScore=getattr(options, 'shouldScore', False),
                                     tokens=0,
                                     requestTime=int(time.time() * 1000 - start)
                                 )
@@ -236,6 +237,7 @@ def olakai_monitor(options: MonitorOptions, logger: logging.Logger):
                             response=await toStringApi(response),
                             chatId=chatId if chatId else "anonymous",
                             email=email if email else "anonymous@olakai.ai",
+                            shouldScore=getattr(options, 'shouldScore', False),
                             tokens=0,
                             requestTime=int(time.time() * 1000 - start),
                             errorMessage=None
