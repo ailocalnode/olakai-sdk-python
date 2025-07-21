@@ -13,7 +13,8 @@ from .client import (
 from .monitor import add_middleware, remove_middleware
 from .types import SDKConfig, MonitorOptions, Middleware, MonitorPayload
 from .logger import get_default_logger, safe_log
-from .utils import MonitorUtils, olakai_monitor
+from .utils import MonitorUtils
+from .helpers import olakai_monitor
 
 __version__ = "0.1.0"
 
