@@ -1,6 +1,6 @@
 import json
 import traceback
-from typing import Any, Callable, Optional, Dict
+from typing import Any, Callable, Optional, Dict, Union
 import asyncio
 from .types import MonitorOptions
 from dataclasses import dataclass
@@ -54,10 +54,11 @@ class MonitorUtils:
     capture_output = MonitorOptions(capture=capture_output_f)
 
 
-def olakai_monitor(options: Optional[Dict[str, Any]] = None, logger: Optional[logging.Logger] = None):
+def olakai_monitor(options: Optional[Union[Dict[str, Any], MonitorOptions]] = None, logger: Optional[logging.Logger] = None):
     if options is None:
         options = MonitorUtils.capture_all
-    
+    elif isinstance(options, MonitorOptions):
+        pass
     else:
         # If it's a dictionary, create MonitorOptions from it
         for key, _ in options.items():
