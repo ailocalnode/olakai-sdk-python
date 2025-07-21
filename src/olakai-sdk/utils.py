@@ -16,6 +16,8 @@ def to_api_string(data: Any) -> str:
 
 async def execute_func(f:Callable, *args, **kwargs) -> None:
     """Execute a function with arguments and return None."""
+    if "potential_result" in kwargs:
+        return kwargs["potential_result"]
     try:
         if asyncio.iscoroutinefunction(f):
             await f(*args, **kwargs)

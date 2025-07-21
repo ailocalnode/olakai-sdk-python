@@ -235,7 +235,7 @@ def olakai_monitor(options: MonitorOptions, logger: logging.Logger):
                             prompt=await toStringApi(prompt),
                             response=await toStringApi(response),
                             chatId=chatId if chatId else "anonymous",
-                            userId=email if email else "anonymous@olakai.ai",
+                            email=email if email else "anonymous@olakai.ai",
                             tokens=0,
                             requestTime=int(time.time() * 1000 - start),
                             errorMessage=None
@@ -275,7 +275,7 @@ def olakai_monitor(options: MonitorOptions, logger: logging.Logger):
                 try:
                     result = f(*args, **kwargs)
                 except Exception as error:
-                    function_error = error
+                    raise error
                 
                 # Fire off async monitoring in background (don't wait for it)
                 def fire_and_forget_monitoring():
@@ -284,7 +284,7 @@ def olakai_monitor(options: MonitorOptions, logger: logging.Logger):
                         try:
                             loop = asyncio.get_running_loop()
                             # If there's a running loop, schedule the monitoring as a task
-                            asyncio.create_task(async_wrapped_f(*args, **kwargs))
+                            asyncio.create_task(async_wrapped_f(*args, **kwargs, potential_result=result))
                         except RuntimeError:
                             # No running loop, create a new one for monitoring
                             # Run in a separate thread to avoid blocking the sync function
