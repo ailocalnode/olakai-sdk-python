@@ -50,6 +50,7 @@ class MonitorOptions:
     priority: str = "normal"
     email: Optional[Union[str, Callable]] = "anonymous@olakai.ai"
     chatId: Optional[Union[str, Callable]] = "123"
+    shouldScore: bool = False
 
 @dataclass 
 class Middleware:
