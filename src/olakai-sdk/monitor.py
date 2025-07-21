@@ -269,8 +269,6 @@ def olakai_monitor(options: MonitorOptions, logger: logging.Logger):
         else:
             # For sync functions, create a sync wrapper that fires off monitoring in background
             def sync_wrapped_f(*args, **kwargs):
-                # Execute the original function first
-                function_error = None
                 
                 try:
                     result = f(*args, **kwargs)
