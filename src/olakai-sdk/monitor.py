@@ -290,7 +290,7 @@ def olakai_monitor(options: MonitorOptions, logger: logging.Logger):
                             # Run in a separate thread to avoid blocking the sync function
                             import threading
                             def run_monitoring():
-                                asyncio.run(async_wrapped_f(*args, **kwargs))
+                                asyncio.run(async_wrapped_f(*args, **kwargs, potential_result=result))
                             
                             thread = threading.Thread(target=run_monitoring, daemon=True)
                             thread.start()
