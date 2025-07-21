@@ -1,9 +1,12 @@
 import json
-from typing import Any, Callable, List
+from typing import Any, Callable, Optional, Dict
 import asyncio
 from .types import MonitorOptions
 from dataclasses import dataclass
-
+from .logger import get_default_logger, safe_log
+from .monitor import monitor
+from .types import MonitorOptions
+import logging
 
 def to_api_string(data: Any) -> str:
     """Convert data to API string format."""
@@ -49,6 +52,16 @@ class MonitorUtils:
         }
     capture_output = MonitorOptions(capture=capture_output_f)
 
+
+def olakai_monitor(options: Optional[Dict[str, Any]] = None, logger: Optional[logging.Logger] = None):
+    if options is None:
+        options = MonitorUtils.capture_all
+    else:
+        options = MonitorOptions(**options)
+
+    return monitor(options, logger)
+
+
 async def toStringApi(data: Any) -> str:
     """Convert data to API string format."""
     if data is None or data == "" or data == "None" or data == "null" or data == "Null":
@@ -80,3 +93,24 @@ async def toStringApi(data: Any) -> str:
         return json.dumps(data, default=str)
     except Exception:
         return str(data)
+
+
+async def create_error_info(error: Exception, logger: Optional[logging.Logger] = None) -> Dict[str, Any]:
+    """
+    Create error information dictionary from an exception.
+    
+    Args:
+        error: The exception to process
+        
+    Returns:
+        Dictionary containing error message and stack trace
+    """
+    if logger is None:
+        logger = await get_default_logger()
+    
+    await safe_log(logger, 'debug', f"Creating error info: {error}")
+    
+    return {
+        "error_message": str(error),
+        "stack_trace": traceback.format_exc() if isinstance(error, Exception) else None
+    }

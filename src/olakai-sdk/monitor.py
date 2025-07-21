@@ -69,28 +69,8 @@ async def sanitize_data(data: Any, patterns: Optional[List[re.Pattern]] = None, 
             c = safe_log(logger, 'debug', "Data failed to sanitize")
         return "[SANITIZED]"
 
-async def create_error_info(error: Exception, logger: Optional[logging.Logger] = None) -> Dict[str, Any]:
-    """
-    Create error information dictionary from an exception.
-    
-    Args:
-        error: The exception to process
-        
-    Returns:
-        Dictionary containing error message and stack trace
-    """
-    if logger is None:
-        logger = await get_default_logger()
-    
-    config = await get_config()
-    if config.debug:
-        c = safe_log(logger, 'debug', f"Creating error info: {error}")
-    return {
-        "error_message": str(error),
-        "stack_trace": traceback.format_exc() if isinstance(error, Exception) else None
-    }
 
-def olakai_monitor(options: MonitorOptions, logger: logging.Logger):
+def monitor(options: MonitorOptions, logger: logging.Logger):
     """
     Monitor a function with the given options.
     
