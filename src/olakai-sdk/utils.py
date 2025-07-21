@@ -65,6 +65,8 @@ def olakai_monitor(options: Optional[Union[Dict[str, Any], MonitorOptions]] = No
             if key not in MonitorOptions.__dataclass_fields__:
                 safe_log(logger, 'debug', f"Invalid option: {key}")
                 del options[key]
+        if "capture" not in options:
+            options["capture"] = MonitorUtils.capture_all_f
         options = MonitorOptions(**options)
 
     return monitor(options, logger)
