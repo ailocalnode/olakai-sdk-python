@@ -51,6 +51,9 @@ class MonitorUtils:
 
 async def toStringApi(data: Any) -> str:
     """Convert data to API string format."""
+    if data is None or data == "" or data == "None" or data == "null" or data == "Null":
+        return "Empty data"
+
     if isinstance(data, str):
         return data
     if isinstance(data, tuple):
