@@ -10,7 +10,7 @@ import re
 
 from .client import send_to_api, get_config
 from .types import MonitorOptions, Middleware, MonitorPayload
-from .utils import to_api_string, execute_func, toStringApi
+from .utils import to_api_string, execute_func, toStringApi, create_error_info
 from .logger import get_default_logger, safe_log
 
 # Type variables for generic functions
