@@ -109,17 +109,16 @@ async def make_api_call(payload: Union[MonitorPayload, List[MonitorPayload]], lo
         raise Exception("[Olakai SDK] API URL is not set")
 
     headers = {"x-api-key": config.apiKey}
-    data = {"batch": payload} if isinstance(payload, list) else payload
-    data_dict = asdict(data) if isinstance(data, MonitorPayload) else data
-
-    if "errorMessage" in data_dict and data_dict["errorMessage"] is None:
-        del data_dict["errorMessage"]
+    data_dicts = payload.map(lambda x: asdict(x)) if isinstance(payload, list) else [asdict(payload)]
+    for data_dict in data_dicts:
+        if "errorMessage" in data_dict and data_dict["errorMessage"] is None:
+            del data_dict["errorMessage"]
 
     try:
         response = requests.post(
             config.apiUrl,
             headers=headers,
-            json=json.dumps(data_dict),
+            json=data_dicts,
             timeout=config.timeout / 1000,
         )
         await safe_log(logger, 'info', f"[Olakai SDK] Payload: {data_dict}")

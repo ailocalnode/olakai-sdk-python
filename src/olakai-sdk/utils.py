@@ -20,9 +20,9 @@ async def execute_func(f:Callable, *args, **kwargs) -> None:
         return kwargs["potential_result"]
     try:
         if asyncio.iscoroutinefunction(f):
-            await f(*args, **kwargs)
+            return await f(*args, **kwargs)
         else:
-            f(*args, **kwargs)
+            return f(*args, **kwargs)
     except Exception as e:
         raise e
 
