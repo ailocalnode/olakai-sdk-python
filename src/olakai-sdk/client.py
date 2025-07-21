@@ -44,8 +44,7 @@ async def init_client(api_key: str, domain: str = "app.olakai.ai", sdk_config: O
         for field_name, value in sdk_config.__dict__.items():
             setattr(config, field_name, value)
     
-    if config.verbose:
-        c = safe_log(logger, 'info', f"Config: {config}")
+    await safe_log(logger, 'info', f"Initialized Olakai SDK client with config: {config}")
     
     # Load persisted queue
     if config.enableLocalStorage:
@@ -55,14 +54,11 @@ async def init_client(api_key: str, domain: str = "app.olakai.ai", sdk_config: O
                     parsed_queue = json.load(f)
                     for item in parsed_queue:
                         batchQueue.append(BatchRequest(**item))
-                if config.debug:
-                    c = safe_log(logger, 'debug', f"Loaded {len(parsed_queue)} items from file")
+                await safe_log(logger, 'debug', f"Loaded {len(parsed_queue)} items from file")
         except Exception as err:
-            if config.debug:
-                c = safe_log(logger, 'debug', f"Failed to load from file: {err}")
+            await safe_log(logger, 'debug', f"Failed to load from file: {err}")
     if batchQueue and isOnline:
-        if config.verbose:
-            c = safe_log(logger, 'info', "Starting batch processing")
+        await safe_log(logger, 'info', "Starting batch processing")
         await process_batch_queue(logger=logger)
 
 async def get_config() -> SDKConfig:
@@ -114,9 +110,11 @@ async def make_api_call(payload: Union[MonitorPayload, List[MonitorPayload]], lo
         raise Exception("[Olakai SDK] API key is not set")
     if not config.apiUrl:
         raise Exception("[Olakai SDK] API URL is not set")
+
     headers = {"x-api-key": config.apiKey}
     data = {"batch": payload} if isinstance(payload, list) else payload
     data_dict = asdict(data) if isinstance(data, MonitorPayload) else data
+
     if "errorMessage" in data_dict and data_dict["errorMessage"] is None:
         del data_dict["errorMessage"]
 
@@ -132,11 +130,13 @@ async def make_api_call(payload: Union[MonitorPayload, List[MonitorPayload]], lo
         response.raise_for_status()
         result = response.json()
         return APIResponse(success=True, data=result)
+
     except Exception as err:
         raise err
 
 async def send_with_retry(payload: Union[MonitorPayload, List[MonitorPayload]], logger: Optional[logging.Logger] = None) -> bool:
     """Send payload with retry logic and optional logging."""
+
     if logger is None:
         logger = await get_default_logger()
         
@@ -145,6 +145,7 @@ async def send_with_retry(payload: Union[MonitorPayload, List[MonitorPayload]], 
     else:
         max_retries = config.retries
     last_error = None
+
     for attempt in range(config.retries + 1):
         try:
             await make_api_call(payload, logger=logger)
