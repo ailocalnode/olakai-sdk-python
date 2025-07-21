@@ -90,57 +90,6 @@ async def create_error_info(error: Exception, logger: Optional[logging.Logger] =
         "stack_trace": traceback.format_exc() if isinstance(error, Exception) else None
     }
 
-async def safe_monitoring_operation(operation: Callable[[], Any], context: str, logger: Optional[logging.Logger] = None) -> None:
-    """
-    Safely execute monitoring operations without affecting the original function.
-    
-    Args:
-        operation: The monitoring operation to execute
-        context: Context information for debugging
-    """
-    if logger is None:
-        logger = await get_default_logger()
-    config = await get_config()
-        
-    try:
-        result = operation()
-        # Handle async operations
-        if asyncio.iscoroutine(result):
-            async def handle_async():
-                try:
-                    await result
-                except Exception as error:
-                    if config.debug:
-                        c = safe_log(logger, 'debug', f"Monitoring operation failed ({context}): {error}")
-                    if config.onError:
-                        try:
-                            config.onError(error)
-                        except Exception as handler_error:
-                            if config.debug:
-                                c = safe_log(logger, 'debug', f"Error handler itself failed: {handler_error}")
-            
-            # Schedule the async operation
-            try:
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    asyncio.create_task(handle_async())
-                else:
-                    loop.run_until_complete(handle_async())
-            except RuntimeError:
-                # No event loop running
-                asyncio.run(handle_async())
-                
-    except Exception as error:
-        if config.debug:
-            c = safe_log(logger, 'debug', f"Monitoring operation failed ({context}): {error}")
-        if config.onError:
-            try:
-                config.onError(error)
-            except Exception as handler_error:
-                if config.debug:
-                    c = safe_log(logger, 'debug', f"Error handler itself failed: {handler_error}")
-
-
 def olakai_monitor(options: MonitorOptions, logger: logging.Logger):
     """
     Monitor a function with the given options.
@@ -202,7 +151,7 @@ def olakai_monitor(options: MonitorOptions, logger: logging.Logger):
                                     response="",
                                     errorMessage=to_api_string(error_info["error_message"]) + to_api_string(error_result),
                                     chatId="123",
-                                    userId="anonymous",
+                                    email="anonymous@olakai.ai",
                                     tokens=0,
                                     requestTime=int(time.time() * 1000 - start)
                                 )
@@ -256,7 +205,7 @@ def olakai_monitor(options: MonitorOptions, logger: logging.Logger):
                         await safe_log(logger, 'info', f"Sanitized prompt: {prompt}")
                         # Handle chatId and userId
                         chatId = "anonymous"
-                        userId = "anonymous"
+                        email = "anonymous@olakai.ai"
                         
                         if hasattr(options, 'chatId'):
                             if callable(options.chatId):
@@ -270,25 +219,26 @@ def olakai_monitor(options: MonitorOptions, logger: logging.Logger):
                             else:
                                 chatId = options.chatId
                                 
-                        if hasattr(options, 'userId'):
-                            if callable(options.userId):
+                        if hasattr(options, 'email'):
+                            if callable(options.email):
                                 try:
-                                    userId = options.userId()
-                                    if not isinstance(userId, str):
-                                        userId = str(userId)
+                                    email = options.email()
+                                    if not isinstance(email, str):
+                                        email = str(email)
                                 except Exception:
-                                    userId = "anonymous"
-                                    await safe_log(logger, 'debug', f"Error getting userId")
+                                    email = "anonymous@olakai.ai"
+                                    await safe_log(logger, 'debug', f"Error getting email")
                             else:
-                                userId = options.userId
+                                email = options.email
 
                         payload = MonitorPayload(
                             prompt=await toStringApi(prompt),
                             response=await toStringApi(response),
                             chatId=chatId if chatId else "anonymous",
-                            userId=userId if userId else "anonymous",
+                            userId=email if email else "anonymous@olakai.ai",
                             tokens=0,
-                            requestTime=int(time.time() * 1000 - start)
+                            requestTime=int(time.time() * 1000 - start),
+                            errorMessage=None
                         )
 
                         await safe_log(logger, 'info', f"Successfully defined payload: {payload}")
@@ -306,8 +256,9 @@ def olakai_monitor(options: MonitorOptions, logger: logging.Logger):
                 return result
                 
             except Exception as error:
-                await safe_monitoring_operation(lambda: None, "monitoring initialization", logger)
                 await safe_log(logger, 'error', f"Error: {error}")
+                if (function_error is not None):
+                    raise function_error
                 result = await execute_func(f, *args, **kwargs)
                 return result
         

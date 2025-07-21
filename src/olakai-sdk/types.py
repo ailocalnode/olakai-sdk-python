@@ -3,7 +3,7 @@ from typing import Optional, Callable, List, Dict, Any, Union
 
 @dataclass
 class MonitorPayload:
-    userId: str
+    email: str
     chatId: str
     prompt: str
     response: str
@@ -39,7 +39,6 @@ class SDKConfig:
     maxLocalStorageSize: int = 1000000  # 1MB
     debug: bool = False
     verbose: bool = False
-    onError: Optional[Callable[[Exception], None]] = None
     sanitize_patterns: Optional[List[Any]] = None
 
 @dataclass
@@ -48,7 +47,7 @@ class MonitorOptions:
     sanitize: bool = False
     on_error: Optional[Callable] = None
     priority: str = "normal"
-    userId: Optional[Union[str, Callable]] = "anonymous"
+    email: Optional[Union[str, Callable]] = "anonymous@olakai.ai"
     chatId: Optional[Union[str, Callable]] = "123"
 
 @dataclass 
