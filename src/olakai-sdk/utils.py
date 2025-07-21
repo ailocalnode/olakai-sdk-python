@@ -45,4 +45,33 @@ class MonitorUtils:
             "input": "Function called",
             "output": kwargs["result"]
         }
-    capture_output = MonitorOptions(capture=capture_output_f)    
+    capture_output = MonitorOptions(capture=capture_output_f)
+
+async def toStringApi(data: Any) -> str:
+    """Convert data to API string format."""
+    if isinstance(data, str):
+        return data
+    if isinstance(data, tuple):
+        returned = ""
+        for item in data:
+            try:
+                item = await toStringApi(item)
+                returned += item
+            except Exception:
+                item = str(item)
+                returned += item
+        return returned
+    if isinstance(data, list):
+        returned = ""
+        for item in data:
+            try:
+                item = await toStringApi(item)
+                returned += item
+            except Exception:
+                item = str(item)
+                returned += item
+        return returned
+    try:
+        return json.dumps(data, default=str)
+    except Exception:
+        return str(data)

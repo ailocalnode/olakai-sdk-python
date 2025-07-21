@@ -10,7 +10,7 @@ import re
 
 from .client import send_to_api, get_config
 from .types import MonitorOptions, Middleware, MonitorPayload
-from .utils import to_api_string, execute_func
+from .utils import to_api_string, execute_func, toStringApi
 from .logger import get_default_logger, safe_log
 
 # Type variables for generic functions
@@ -169,6 +169,7 @@ def olakai_monitor(options: MonitorOptions, logger: logging.Logger):
                         except Exception as middleware_error:
                             await safe_log(logger, 'debug', f"Middleware error: {middleware_error}")
                 await safe_log(logger, 'debug', f"Processed arguments: {processed_args}")
+
                 # Execute the function
                 function_error = None
                 result = None
@@ -211,8 +212,11 @@ def olakai_monitor(options: MonitorOptions, logger: logging.Logger):
                                 })
                             except Exception as capture_error:
                                 await safe_log(logger, 'debug', f"Error capture failed: {capture_error}")
-                            
-                    await safe_monitoring_operation(handle_error_monitoring, "error monitoring", logger)
+
+                    try:
+                        await handle_error_monitoring()
+                    except Exception as error:
+                        await safe_log(logger, 'debug', f"Error handling error monitoring: {error}")
                     raise function_error  # Re-raise the original error
                         
                 # Handle success monitoring
@@ -279,13 +283,12 @@ def olakai_monitor(options: MonitorOptions, logger: logging.Logger):
                                 userId = options.userId
 
                         payload = MonitorPayload(
-                            prompt=to_api_string(prompt),
-                            response=to_api_string(response),
+                            prompt=await toStringApi(prompt),
+                            response=await toStringApi(response),
                             chatId=chatId if chatId else "anonymous",
                             userId=userId if userId else "anonymous",
                             tokens=0,
-                            requestTime=int(time.time() * 1000 - start),
-                            errorMessage=None
+                            requestTime=int(time.time() * 1000 - start)
                         )
 
                         await safe_log(logger, 'info', f"Successfully defined payload: {payload}")
@@ -296,7 +299,10 @@ def olakai_monitor(options: MonitorOptions, logger: logging.Logger):
                         }, logger)
                         
                 if function_error is None:
-                    await safe_monitoring_operation(handle_success_monitoring, "success monitoring", logger)
+                    try:
+                        await handle_success_monitoring()
+                    except Exception as error:
+                        await safe_log(logger, 'debug', f"Error handling success monitoring: {error}")
                 return result
                 
             except Exception as error:
@@ -311,13 +317,12 @@ def olakai_monitor(options: MonitorOptions, logger: logging.Logger):
             return async_wrapped_f
         else:
             # For sync functions, create a sync wrapper that fires off monitoring in background
-            @wraps(f)
             def sync_wrapped_f(*args, **kwargs):
                 # Execute the original function first
                 function_error = None
                 
                 try:
-                    f(*args, **kwargs)
+                    result = f(*args, **kwargs)
                 except Exception as error:
                     function_error = error
                 
@@ -346,7 +351,7 @@ def olakai_monitor(options: MonitorOptions, logger: logging.Logger):
                 fire_and_forget_monitoring()
                 
                 # Return the original result or raise the original error
-            
+                return result
             
             return sync_wrapped_f
     

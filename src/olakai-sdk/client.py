@@ -117,6 +117,9 @@ async def make_api_call(payload: Union[MonitorPayload, List[MonitorPayload]], lo
     headers = {"x-api-key": config.apiKey}
     data = {"batch": payload} if isinstance(payload, list) else payload
     data_dict = asdict(data) if isinstance(data, MonitorPayload) else data
+    if "errorMessage" in data_dict and data_dict["errorMessage"] is None:
+        del data_dict["errorMessage"]
+
     try:
         response = requests.post(
             config.apiUrl,
@@ -124,6 +127,7 @@ async def make_api_call(payload: Union[MonitorPayload, List[MonitorPayload]], lo
             json=json.dumps(data_dict),
             timeout=config.timeout / 1000,
         )
+        await safe_log(logger, 'info', f"[Olakai SDK] Payload: {data_dict}")
         await safe_log(logger, 'debug', f"[Olakai SDK] API response: {response}")
         response.raise_for_status()
         result = response.json()
