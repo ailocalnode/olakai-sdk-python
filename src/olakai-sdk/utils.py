@@ -18,7 +18,7 @@ def to_api_string(data: Any) -> str:
     except Exception:
         return str(data)
 
-async def execute_func(f:Callable, *args, **kwargs) -> None:
+async def execute_func(f:Callable, *args, **kwargs) -> Any:
     """Execute a function with arguments and return None."""
     if "potential_result" in kwargs:
         return kwargs["potential_result"]
