@@ -87,18 +87,15 @@ async def persist_queue(logger: Optional[logging.Logger] = None):
                 batchQueue.pop(0)
         with open(QUEUE_FILE, "w") as f:
             json.dump([b.__dict__ for b in batchQueue], f)
-        if config.verbose:
-            c = safe_log(logger, 'info', "Persisted queue to file")
+        await safe_log(logger, 'info', "Persisted queue to file")
     except Exception as err:
-        if config.debug:
-            c = safe_log(logger, 'debug', f"Failed to persist queue: {err}")
+        await safe_log(logger, 'debug', f"Failed to persist queue: {err}")
 
 async def sleep(ms: int, logger: Optional[logging.Logger] = None):
     """Sleep for specified milliseconds with optional logging."""
     if logger is None:
         logger = await get_default_logger()
-    if config.verbose:
-        c = safe_log(logger, 'debug', f"[Olakai SDK] Sleeping for {ms} ms")
+    await safe_log(logger, 'info', f"[Olakai SDK] Sleeping for {ms} ms")
     time.sleep(ms / 1000)
 
 async def make_api_call(payload: Union[MonitorPayload, List[MonitorPayload]], logger: Optional[logging.Logger] = None) -> APIResponse:
@@ -152,15 +149,13 @@ async def send_with_retry(payload: Union[MonitorPayload, List[MonitorPayload]], 
             return True
         except Exception as err:
             last_error = err
-            if config.debug:
-                c = safe_log(logger, 'debug', f"[Olakai SDK] Attempt {attempt+1}/{max_retries+1} failed: {err}")
+            await safe_log(logger, 'debug', f"[Olakai SDK] Attempt {attempt+1}/{max_retries+1} failed: {err}")
             if attempt < max_retries:
                 delay = min(1000 * (2 ** attempt), 30000)
                 await sleep(delay, logger=logger)
     if config.onError and last_error:
         config.onError(last_error)
-    if config.debug:
-        c = safe_log(logger, 'debug', f"[Olakai SDK] All retry attempts failed: {last_error}")
+    await safe_log(logger, 'debug', f"[Olakai SDK] All retry attempts failed: {last_error}")
     return False
 
 async def schedule_batch_processing(logger: Optional[logging.Logger] = None):
@@ -198,11 +193,9 @@ async def process_batch_queue(logger: Optional[logging.Logger] = None):
             success = send_with_retry(payloads, logger=logger)
             if success:
                 successful_batches.add(batch_index)
-                if config.verbose:
-                    c = safe_log(logger, 'debug', f"[Olakai SDK] Successfully sent batch of {len(batch)} items")
+                await safe_log(logger, 'debug', f"[Olakai SDK] Successfully sent batch of {len(batch)} items")
         except Exception as err:
-            if config.debug:
-                c = safe_log(logger, 'debug', f"[Olakai SDK] Batch {batch_index} failed: {err}")
+            await safe_log(logger, 'debug', f"[Olakai SDK] Batch {batch_index} failed: {err}")
     # Remove successfully sent items
     remove_count = 0
     for i in range(len(batches)):
@@ -222,8 +215,7 @@ async def send_to_api(payload: MonitorPayload, options: dict = {}, logger: Optio
         logger = await get_default_logger()
         
     if not config.apiKey:
-        if config.debug:
-            c = safe_log(logger, 'debug', "[Olakai SDK] API key is not set.")
+        await safe_log(logger, 'debug', "[Olakai SDK] API key is not set.")
         return
     if isBatchingEnabled:
         batch_item = BatchRequest(
@@ -254,14 +246,12 @@ async def clear_queue(logger: Optional[logging.Logger] = None):
     batchQueue = []
     if config.enableLocalStorage and os.path.exists(QUEUE_FILE):
         os.remove(QUEUE_FILE)
-        if config.verbose:
-            c = safe_log(logger, 'info', "[Olakai SDK] Cleared queue from file")
+        await safe_log(logger, 'info', "[Olakai SDK] Cleared queue from file")
 
 async def flush_queue(logger: Optional[logging.Logger] = None):
     """Flush the queue with optional logging."""
     if logger is None:
         logger = await get_default_logger()
         
-    if config.verbose:
-        c = safe_log(logger, 'info', "[Olakai SDK] Flushing queue")
+    await safe_log(logger, 'info', "[Olakai SDK] Flushing queue")
     await process_batch_queue(logger=logger) 
