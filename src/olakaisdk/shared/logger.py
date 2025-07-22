@@ -17,7 +17,7 @@ def get_default_logger() -> logging.Logger:
     logger = config.logger
     
     # Only configure if not already configured
-    if logger.name == '[OlakaiSDK]' and not logger.handlers:
+    if logger.name == 'OlakaiSDK' and not logger.handlers:
         handler = logging.StreamHandler()
         formatter = logging.Formatter('[%(name)s] %(levelname)s: %(message)s')
         handler.setFormatter(formatter)
@@ -39,7 +39,7 @@ def safe_log(level: str, message: str) -> None:
     logger = get_default_logger()
     
     try:
-        if logger.name == '[OlakaiSDK]':
+        if logger.name == 'OlakaiSDK':
             getattr(logger, level.lower())(message)
         else:
             getattr(logger, level.lower())(f"[OlakaiSDK]: {message}")

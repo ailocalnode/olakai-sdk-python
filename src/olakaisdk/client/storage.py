@@ -2,8 +2,7 @@
 Local storage management for the Olakai SDK.
 """
 import json
-import logging
-from typing import Optional, List
+from typing import List
 from .types import BatchRequest
 from ..shared.logger import get_default_logger, safe_log
 # Import config function to avoid circular dependency
@@ -74,3 +73,9 @@ def clear_batch_queue():
     batchQueue = [] 
     logger = get_default_logger()
     safe_log(logger, 'info', "Batch queue cleared")
+
+def add_to_batch_queue(batch_item: BatchRequest):
+    """Add an item to the batch queue."""
+    global batchQueue
+    batchQueue.append(batch_item)
+    persist_queue()

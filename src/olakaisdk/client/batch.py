@@ -6,7 +6,6 @@ import threading
 from typing import Optional
 from .storage import get_batch_queue, clear_batch_queue, persist_queue
 from .config import get_config
-from .api import send_with_retry
 from ..shared.logger import safe_log
 
 # Global state
@@ -92,3 +91,6 @@ async def process_batch_queue():
     # Schedule next batch if queue is not empty
     if batch_queue:
         await schedule_batch_processing() 
+
+
+from .api import send_with_retry

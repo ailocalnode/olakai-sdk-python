@@ -23,7 +23,7 @@ class MonitorPayload:
 class ControlPayload:
     """Payload for control data sent to API."""
     email: Optional[str] = "anonymous@olakai.ai"
-    prompt: str
+    prompt: str = ""
     askedOverrides: Optional[List[str]] = None
 
 @dataclass
