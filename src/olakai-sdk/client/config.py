@@ -4,7 +4,7 @@ Configuration management for the Olakai SDK client.
 import logging
 from typing import Optional
 from .types import SDKConfig
-from ..shared.logger import get_default_logger, safe_log
+from ..shared.logger import safe_log
 
 # Global configuration
 config = SDKConfig(

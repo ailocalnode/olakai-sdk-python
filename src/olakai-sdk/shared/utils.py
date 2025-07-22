@@ -5,7 +5,7 @@ import json
 import time
 import traceback
 import asyncio
-from typing import Any, Callable, Optional, Dict
+from typing import Any, Callable, Dict
 from .logger import safe_log
 
 
