@@ -10,7 +10,8 @@ authors = [
     { name="Olakai", email="support@olakai.ai" }
 ]
 readme = "README.md"
-license = { file = "LICENSE" }
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.7"
 classifiers = [
     "Development Status :: 3 - Alpha",
