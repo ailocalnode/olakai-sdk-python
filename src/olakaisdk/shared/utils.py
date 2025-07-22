@@ -2,11 +2,11 @@
 Common utility functions used across the SDK.
 """
 import json
+import time
 import traceback
 import asyncio
-from typing import Any, Callable, Optional, Dict
-import logging
-from .logger import get_default_logger, safe_log
+from typing import Any, Callable, Dict
+from .logger import safe_log
 
 
 async def to_string_api(data: Any) -> str:
@@ -48,7 +48,7 @@ async def execute_func(f: Callable, *args, **kwargs) -> Any:
         raise e
 
 
-async def create_error_info(error: Exception, logger: Optional[logging.Logger] = None) -> Dict[str, Any]:
+async def create_error_info(error: Exception) -> Dict[str, Any]:
     """
     Create error information dictionary from an exception.
     
@@ -59,12 +59,15 @@ async def create_error_info(error: Exception, logger: Optional[logging.Logger] =
     Returns:
         Dictionary containing error message and stack trace
     """
-    if logger is None:
-        logger = await get_default_logger()
-    
-    safe_log(logger, 'debug', f"Creating error info: {error}")
+    safe_log('debug', f"Creating error info: {error}")
     
     return {
         "error_message": str(error),
         "stack_trace": traceback.format_exc() if isinstance(error, Exception) else None
     } 
+
+
+async def sleep(ms: int):
+    """Sleep for specified milliseconds with logging."""
+    safe_log('debug', f"Sleeping for {ms}ms")
+    time.sleep(ms / 1000)

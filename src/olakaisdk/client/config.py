@@ -4,7 +4,7 @@ Configuration management for the Olakai SDK client.
 import logging
 from typing import Optional
 from .types import SDKConfig
-from ..shared.logger import get_default_logger, safe_log
+from ..shared.logger import safe_log
 
 # Global configuration
 config = SDKConfig(
@@ -30,7 +30,9 @@ async def init_client(
     """
     global config
     if logger is None:
-        logger = get_default_logger()
+        config.logger = logging.getLogger('[OlakaiSDK]')
+    else:
+        config.logger = logger
     
     config.apiKey = api_key
     config.apiUrl = f"{domain}/api/monitoring/prompt" if domain else "https://staging.app.olakai.ai/api/monitoring/prompt"
@@ -39,14 +41,14 @@ async def init_client(
         for field_name, value in sdk_config.__dict__.items():
             setattr(config, field_name, value)
     
-    safe_log(logger, 'info', f"Initialized Olakai SDK client with config: {config}")
+    safe_log('info', f"Initialized Olakai SDK client with config: {config}")
     
     # Load persisted queue (import here to avoid circular dependency)
     if config.enableLocalStorage:
         from .storage import load_persisted_queue
-        await load_persisted_queue(logger)
+        await load_persisted_queue()
 
 
-async def get_config() -> SDKConfig:
+def get_config() -> SDKConfig:
     """Get the current SDK configuration."""
     return config 
