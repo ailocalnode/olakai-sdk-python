@@ -60,7 +60,7 @@ async def create_error_info(error: Exception, logger: Optional[logging.Logger] =
         Dictionary containing error message and stack trace
     """
     if logger is None:
-        logger = await get_default_logger()
+        logger = get_default_logger()
     
     safe_log(logger, 'debug', f"Creating error info: {error}")
     
