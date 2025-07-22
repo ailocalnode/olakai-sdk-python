@@ -1,9 +1,9 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="olakai-sdk",
+    name="olakaisdk",
     version="0.1.0",
-    description="Olakai SDK",
+    description="Olakai SDK for enable monitoring across apps, tools and AI agents",
     author="Olakai",
     author_email="support@olakai.ai",
     packages=find_packages(where="src"),

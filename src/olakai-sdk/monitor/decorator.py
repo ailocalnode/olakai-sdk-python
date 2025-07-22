@@ -14,7 +14,7 @@ from ..shared.utils import execute_func, create_error_info, to_string_api
 from ..shared.logger import safe_log
 
 
-def monitor(options: Optional[MonitorOptions] = None):
+def olakai_monitor(options: Optional[MonitorOptions] = None):
     """
     Monitor a function with the given options.
     
