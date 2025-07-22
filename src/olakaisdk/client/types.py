@@ -40,7 +40,8 @@ class BatchRequest:
 class SDKConfig:
     """Configuration for the SDK."""
     apiKey: str = ""
-    apiUrl: Optional[str] = None
+    monitoringUrl: Optional[str] = None
+    controlUrl: Optional[str] = None
     batchSize: int = 10
     batchTimeout: int = 5000  # milliseconds
     retries: int = 3

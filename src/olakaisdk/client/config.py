@@ -8,7 +8,8 @@ from .types import SDKConfig
 # Global configuration
 config = SDKConfig(
     apiKey="",
-    apiUrl="",
+    monitoringUrl="",
+    controlUrl="",
 )
 
 
@@ -34,7 +35,8 @@ async def init_client(
         config.logger = logger
     
     config.apiKey = api_key
-    config.apiUrl = f"{domain}/api/monitoring/prompt" if domain else "https://staging.app.olakai.ai/api/monitoring/prompt"
+    config.monitoringUrl = f"{domain}/api/monitoring/prompt" if domain else "https://staging.app.olakai.ai/api/monitoring/prompt"
+    config.controlUrl = f"{domain}/api/monitoring/control" if domain else "https://staging.app.olakai.ai/api/monitoring/control"
     
     from ..shared.logger import safe_log
     for key, value in kwargs.items():
