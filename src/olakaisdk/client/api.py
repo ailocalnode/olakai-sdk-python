@@ -6,15 +6,9 @@ from dataclasses import asdict
 from typing import List, Union
 
 import requests
-
+from .storage import add_to_batch_queue, get_batch_queue
 from .types import MonitorPayload, ControlPayload, BatchRequest
 from .config import get_config
-from .batch import (
-    batchQueue,
-    persist_queue,
-    process_batch_queue,
-    schedule_batch_processing
-)
 from ..shared.types import APIResponse, ControlResponse
 from ..shared.logger import safe_log
 from ..shared.utils import sleep
@@ -94,11 +88,9 @@ async def send_with_retry(
 
 async def send_to_api(
     payload: MonitorPayload, 
-    options: dict = None, 
+    options: dict = {}, 
 ):
     """Send payload to API with optional logging."""
-    if options is None:
-        options = {}
 
     config = get_config()
 
@@ -114,9 +106,8 @@ async def send_to_api(
             retries=0,
             priority=options.get("priority", "normal"),
         )
-        batchQueue.append(batch_item)
-        await persist_queue()
-        if (len(batchQueue) >= config.batchSize or 
+        add_to_batch_queue(batch_item)
+        if (len(get_batch_queue()) >= config.batchSize or 
             options.get("priority") == "high"):
             await process_batch_queue()
         else:
@@ -157,3 +148,9 @@ async def call_control_api(
         return ControlResponse(success=True, data=result)
     except Exception as err:
         raise err
+    
+
+from .batch import (
+    process_batch_queue,
+    schedule_batch_processing
+)

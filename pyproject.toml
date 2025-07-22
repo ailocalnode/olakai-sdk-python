@@ -38,7 +38,6 @@ Homepage = "https://olakai.ai"
 Documentation = "https://app.olakai.ai/docs/getting-started/getting-started"
 Repository = "https://github.com/ailocalnode/py-sdk"
 "Bug Tracker" = "https://github.com/ailocalnode/py-sdk/issues"
-Support = "mailto:support@olakai.ai"
 
 [project.optional-dependencies]
 dev = [
