@@ -1,0 +1,78 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "olakaisdk"
+version = "0.1.0"
+description = "A Python SDK for monitoring function calls and controlling execution with real-time API decisions"
+authors = [
+    { name="Olakai", email="support@olakai.ai" }
+]
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.7"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Monitoring",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+]
+keywords = ["monitoring", "ai", "ml", "api", "sdk", "olakai"]
+dependencies = [
+    "requests>=2.25.0",
+    "typing-extensions>=3.7.4; python_version<'3.8'",
+]
+
+[project.urls]
+Homepage = "https://olakai.ai"
+Documentation = "https://app.olakai.ai/docs/getting-started/getting-started"
+Repository = "https://github.com/ailocalnode/py-sdk"
+"Bug Tracker" = "https://github.com/ailocalnode/py-sdk/issues"
+Support = "mailto:support@olakai.ai"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "pytest-cov>=2.0",
+    "pytest-asyncio>=0.18.0",
+    "black>=22.0",
+    "flake8>=4.0",
+    "mypy>=0.900",
+    "build>=0.7.0",
+    "twine>=3.0.0",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.dynamic]
+version = {attr = "olakaisdk.__version__"}
+
+[tool.black]
+line-length = 88
+target-version = ['py37']
+
+[tool.mypy]
+python_version = "3.7"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --cov=olakaisdk --cov-report=term-missing"
