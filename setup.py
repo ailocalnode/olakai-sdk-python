@@ -5,7 +5,7 @@ setup(
     version="0.1.0",
     description="Olakai SDK",
     author="Olakai",
-    author_email="support@olakai.com",
+    author_email="support@olakai.ai",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     install_requires=[
