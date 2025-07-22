@@ -10,9 +10,9 @@ from .client import (
     flush_queue
 )
 from .monitor import add_middleware, remove_middleware
-from .types import SDKConfig, MonitorOptions, Middleware
-from .logger import get_default_logger, safe_log
-from .utils import MonitorUtils
+from .client.types import SDKConfig
+from .monitor.types import MonitorOptions, Middleware, MonitorUtils
+from .shared.logger import get_default_logger, safe_log
 from .helpers import olakai_monitor
 
 __version__ = "0.1.0"
