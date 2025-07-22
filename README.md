@@ -9,13 +9,13 @@ A Python SDK for monitoring function calls and controlling execution with real-t
 ## Installation
 
 ```bash
-pip install olakai-sdk
+pip install olakaisdk
 ```
 
 ## Quick Start - The Easy & Fast Way
 
 ```python
-from olakai_sdk import init_client, olakai_monitor
+from olakaisdk import init_client, olakai_monitor
 
 # 1. Initialize once
 init_client("your-olakai-api-key", "https://your-olakai-domain.ai")
@@ -63,7 +63,7 @@ response = generate_response("Explain quantum computing")
 
 ```python
 import openai
-from olakai_sdk import init_client, olakai_monitor
+from olakaisdk import init_client, olakai_monitor
 
 # Initialize Olakai SDK
 init_client("your-olakai-api-key", "https://your-olakai-domain.ai")
@@ -96,7 +96,7 @@ response = generate_response("Explain quantum computing")
 
 ```python
 import openai
-from olakai_sdk import init_client, olakai_monitor
+from olakaisdk import init_client, olakai_monitor
 
 init_client("your-olakai-api-key", "https://your-olakai-domain.ai")
 
@@ -149,8 +149,8 @@ Built-in error handling, retries, and offline support
 ### Monitor Any Function
 
 ```python
-from olakai_sdk import olakai_monitor
-from olakai_sdk.types import MonitorOptions
+from olakaisdk import olakai_monitor
+from olakaisdk.types import MonitorOptions
 
 # Works with any function
 @olakai_monitor(MonitorOptions(
@@ -169,8 +169,8 @@ result = process_order("order-123")
 ### Track Users (For Multi-User Apps)
 
 ```python
-from olakai_sdk import olakai_monitor
-from olakai_sdk.types import MonitorOptions
+from olakaisdk import olakai_monitor
+from olakaisdk.types import MonitorOptions
 
 @olakai_monitor(MonitorOptions(
     task="Customer service",
@@ -190,8 +190,8 @@ result = process_order("order-123")
 ### Obtain Scoring of the Prompt
 
 ```python
-from olakai_sdk import olakai_monitor
-from olakai_sdk.types import MonitorOptions
+from olakaisdk import olakai_monitor
+from olakaisdk.types import MonitorOptions
 
 @olakai_monitor(MonitorOptions(
     task="Customer service",
@@ -214,8 +214,8 @@ result = process_order("order-123")
 ### Capture Only What You Need
 
 ```python
-from olakai_sdk import olakai_monitor
-from olakai_sdk.types import MonitorOptions
+from olakaisdk import olakai_monitor
+from olakaisdk.types import MonitorOptions
 
 # Custom capture logic
 @olakai_monitor(MonitorOptions(
@@ -232,8 +232,8 @@ def my_function(email: str, password: str) -> dict:
 ### Error Handling Made Easy
 
 ```python
-from olakai_sdk import olakai_monitor
-from olakai_sdk.types import MonitorOptions
+from olakaisdk import olakai_monitor
+from olakaisdk.types import MonitorOptions
 
 @olakai_monitor(MonitorOptions(
     task="risky-operation",
@@ -258,8 +258,8 @@ def risky_operation(data: dict) -> dict:
 Sometimes you need fine-grained control. Use the full `MonitorOptions` for complete customization:
 
 ```python
-from olakai_sdk import olakai_monitor
-from olakai_sdk.types import MonitorOptions
+from olakaisdk import olakai_monitor
+from olakaisdk.types import MonitorOptions
 
 @olakai_monitor(MonitorOptions(
     task="Authentication",
@@ -293,7 +293,7 @@ Works seamlessly with async functions:
 
 ```python
 import asyncio
-from olakai_sdk import olakai_monitor
+from olakaisdk import olakai_monitor
 
 @olakai_monitor()
 async def async_ai_call(prompt: str) -> str:
@@ -312,7 +312,7 @@ result = await async_ai_call("Hello async world!")
 ### Setup
 
 ```python
-from olakai_sdk import init_client
+from olakaisdk import init_client
 
 init_client("your-olakai-api-key", "https://your-olakai-domain.ai")
 ```
@@ -320,8 +320,8 @@ init_client("your-olakai-api-key", "https://your-olakai-domain.ai")
 ### Advanced Configuration
 
 ```python
-from olakai_sdk import init_client
-from olakai_sdk.types import SDKConfig
+from olakai_dk import init_client
+from olakai_dk.types import SDKConfig
 
 init_client(SDKConfig(
     apiKey="your-olakai-api-key",
@@ -334,8 +334,8 @@ init_client(SDKConfig(
 ### Advanced Debug Mode
 
 ```python
-from olakai_sdk import init_client
-from olakai_sdk.types import SDKConfig
+from olakaisdk import init_client
+from olakaisdk.types import SDKConfig
 
 init_client(SDKConfig(
     apiKey="your-key",
@@ -398,24 +398,21 @@ This will log detailed information about what the SDK is doing.
 
 ### Monitor Options (MonitorOptions)
 
-| Option        | Type                | Description                      |
-| ------------- | ------------------- | -------------------------------- |
-| `email`       | `str` or `Callable` | User email for tracking          |
-| `chatId`      | `str` or `Callable` | Chat/session ID                  |
-| `task`        | `str`               | Task category                    |
-| `subTask`     | `str`               | Specific task                    |
-| `shouldScore` | `bool`              | Enable prompt scoring            |
-| `sanitize`    | `bool`              | Remove sensitive data            |
-| `priority`    | `str`               | Queue priority (low/normal/high) |
-| `capture`     | `Callable`          | Custom data capture function     |
-| `on_error`    | `Callable`          | Error handling function          |
+| Option                   | Type                | Description                                                        |
+| ------------------------ | ------------------- | ------------------------------------------------------------------ |
+| `email`                  | `str` or `Callable` | User email for tracking                                            |
+| `chatId`                 | `str` or `Callable` | Chat/session ID                                                    |
+| `task`                   | `str`               | Task category                                                      |
+| `subTask`                | `str`               | Specific task                                                      |
+| `shouldScore`            | `bool`              | Enable prompt scoring                                              |
+| `sanitize`               | `bool`              | Remove sensitive data                                              |
+| `priority`               | `str`               | Queue priority (low/normal/high)                                   |
+| `capture`                | `Callable`          | Custom data capture function                                       |
+| `send_on_function_error` | `bool`              | Enable send to Olakai UNO when the monitored function has an error |
 
 ### Utilities
 
 - `get_config()` - Get current SDK configuration
-- `get_queue_size()` - Check request queue size
-- `clear_queue()` - Clear pending requests
-- `flush_queue()` - Send all queued requests immediately
 
 ---
 
@@ -431,7 +428,7 @@ This will log detailed information about what the SDK is doing.
 
 **"Import errors"**
 
-- Make sure you installed with `pip install olakai-sdk`
+- Make sure you installed with `pip install olakaisdk`
 - Check Python version (3.7+ required)
 
 **"Monitoring seems slow"**
