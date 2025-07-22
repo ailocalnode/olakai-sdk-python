@@ -11,11 +11,11 @@ from .middleware import get_middlewares
 from .processor import process_capture_result, extract_user_info
 from ..client.types import MonitorPayload
 from ..client.api import send_to_api
-from ..shared.utils import execute_func, create_error_info, to_string_api, to_api_string
+from ..shared.utils import execute_func, create_error_info, to_string_api
 from ..shared.logger import get_default_logger, safe_log
 
 
-def monitor(options: MonitorOptions, logger: Optional[logging.Logger] = None):
+def monitor(options: Optional[MonitorOptions] = None, logger: Optional[logging.Logger] = None):
     """
     Monitor a function with the given options.
     
@@ -26,6 +26,9 @@ def monitor(options: MonitorOptions, logger: Optional[logging.Logger] = None):
     Returns:
         Decorator function
     """
+    if options is None:
+        options = MonitorOptions()
+    
     def wrap(f: Callable) -> Callable:
         async def async_wrapped_f(*args, **kwargs):
             if logger is None:
@@ -150,7 +153,7 @@ async def handle_error_monitoring(error: Exception, processed_args: tuple, optio
             payload = MonitorPayload(
                 prompt="",
                 response="",
-                errorMessage=to_api_string(error_info["error_message"]) + to_api_string(error_result),
+                errorMessage=await to_string_api(error_info["error_message"]) + await to_string_api(error_result),
                 chatId=chatId,
                 email=email,
                 shouldScore=getattr(options, 'shouldScore', False),

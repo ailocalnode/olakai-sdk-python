@@ -4,21 +4,6 @@ Types specific to monitoring functionality.
 from dataclasses import dataclass
 from typing import Optional, Callable, Union
 
-
-@dataclass
-class MonitorOptions:
-    """Options for monitoring functions."""
-    capture: Optional[Callable] = None  # Will be set to default in helpers.py
-    sanitize: bool = False
-    on_error: Optional[Callable] = None
-    priority: str = "normal"
-    email: Optional[Union[str, Callable]] = "anonymous@olakai.ai"
-    chatId: Optional[Union[str, Callable]] = "123"
-    shouldScore: bool = False
-    task: Optional[str] = None
-    subTask: Optional[str] = None
-
-
 @dataclass 
 class Middleware:
     """Middleware for monitoring functions."""
@@ -27,7 +12,7 @@ class Middleware:
     after_call: Optional[Callable] = None
     on_error: Optional[Callable] = None
 
-
+@dataclass
 class MonitorUtils:
     """Utility functions for data capture in monitoring."""
     
@@ -54,3 +39,16 @@ class MonitorUtils:
             "input": "Function called",
             "output": kwargs["result"]
         } 
+
+@dataclass
+class MonitorOptions:
+    """Options for monitoring functions."""
+    capture: Optional[Callable] = MonitorUtils.capture_all_f  # Will be set to default in helpers.py
+    sanitize: bool = False
+    on_error: Optional[Callable] = None
+    priority: str = "normal"
+    email: Optional[Union[str, Callable]] = "anonymous@olakai.ai"
+    chatId: Optional[Union[str, Callable]] = "123"
+    shouldScore: bool = False
+    task: Optional[str] = None
+    subTask: Optional[str] = None
