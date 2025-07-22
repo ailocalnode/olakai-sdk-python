@@ -66,7 +66,8 @@ async def create_error_info(error: Exception) -> Dict[str, Any]:
         "stack_trace": traceback.format_exc() if isinstance(error, Exception) else None
     } 
 
+
 async def sleep(ms: int):
-    """Sleep for specified milliseconds with optional logging."""
+    """Sleep for specified milliseconds with logging."""
     safe_log('debug', f"Sleeping for {ms}ms")
     time.sleep(ms / 1000)
