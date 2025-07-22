@@ -62,7 +62,7 @@ async def create_error_info(error: Exception, logger: Optional[logging.Logger] =
     if logger is None:
         logger = await get_default_logger()
     
-    await safe_log(logger, 'debug', f"Creating error info: {error}")
+    safe_log(logger, 'debug', f"Creating error info: {error}")
     
     return {
         "error_message": str(error),

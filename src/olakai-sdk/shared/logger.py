@@ -6,14 +6,14 @@ import logging
 from typing import Optional
 
 
-async def get_default_logger() -> logging.Logger:
+def get_default_logger() -> logging.Logger:
     """
     Get a default logger for the SDK if none is provided.
     
     Returns:
         A configured logger instance
     """
-    logger = logging.getLogger('olakai-sdk')
+    logger = logging.getLogger('[OlakaiSDK]')
     
     # Only configure if not already configured
     if not logger.handlers:
@@ -26,7 +26,7 @@ async def get_default_logger() -> logging.Logger:
     return logger
 
 
-async def safe_log(logger: Optional[logging.Logger], level: str, message: str) -> None:
+def safe_log(logger: Optional[logging.Logger], level: str, message: str) -> None:
     """
     Safely log a message with fallback to print if logger is None or fails.
     

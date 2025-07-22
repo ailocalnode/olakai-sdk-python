@@ -50,7 +50,7 @@ async def process_batch_queue(logger: Optional[logging.Logger] = None):
     """Process the current batch queue with optional logging."""
     global batchTimer
     if logger is None:
-        logger = await get_default_logger()
+        logger = get_default_logger()
         
     if batchTimer:
         batchTimer.cancel()
@@ -79,17 +79,17 @@ async def process_batch_queue(logger: Optional[logging.Logger] = None):
                 # Remove successful items from queue
                 for _ in range(len(current_batch)):
                     batch_queue.pop(0)
-                await safe_log(logger, 'info', f"Successfully sent batch of {len(current_batch)} items")
+                safe_log(logger, 'info', f"Successfully sent batch of {len(current_batch)} items")
             else:
                 # Increment retry count for failed items
                 for req in current_batch:
                     req.retries += 1
                     if req.retries >= config.retries:
                         batch_queue.remove(req)
-                        await safe_log(logger, 'debug', f"Dropped request after {config.retries} failed attempts")
+                        safe_log(logger, 'debug', f"Dropped request after {config.retries} failed attempts")
                         
         except Exception as error:
-            await safe_log(logger, 'error', f"Batch processing failed: {error}")
+            safe_log(logger, 'error', f"Batch processing failed: {error}")
     
     # Persist updated queue
     await persist_queue(logger)

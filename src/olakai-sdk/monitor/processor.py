@@ -22,7 +22,7 @@ async def sanitize_data(data: Any, patterns: Optional[List[re.Pattern]] = None, 
         The sanitized data
     """
     if logger is None:
-        logger = await get_default_logger()
+        logger = get_default_logger()
         
     if not patterns:
         return data
@@ -36,10 +36,10 @@ async def sanitize_data(data: Any, patterns: Optional[List[re.Pattern]] = None, 
         
         parsed = json.loads(serialized)
 
-        await safe_log(logger, 'info', "Data successfully sanitized")
+        safe_log(logger, 'info', "Data successfully sanitized")
         return parsed
     except Exception:
-        await safe_log(logger, 'debug', "Data failed to sanitize")
+        safe_log(logger, 'debug', "Data failed to sanitize")
         return "[SANITIZED]"
 
 
@@ -56,12 +56,12 @@ async def process_capture_result(capture_result: dict, options, logger: Optional
         Processed prompt and response strings
     """
     if logger is None:
-        logger = await get_default_logger()
+        logger = get_default_logger()
     
     prompt = capture_result.get("input", "")
     response = capture_result.get("output", "")
 
-    await safe_log(logger, 'info', f"Prompt: {prompt}")
+    safe_log(logger, 'info', f"Prompt: {prompt}")
 
     if getattr(options, 'sanitize', False):
         config = await get_config()
@@ -69,7 +69,7 @@ async def process_capture_result(capture_result: dict, options, logger: Optional
         prompt = await sanitize_data(prompt, sanitize_patterns, logger)
         response = await sanitize_data(response, sanitize_patterns, logger)
 
-    await safe_log(logger, 'info', f"Sanitized prompt: {prompt}")
+    safe_log(logger, 'info', f"Sanitized prompt: {prompt}")
     
     return prompt, response
 
@@ -86,7 +86,7 @@ async def extract_user_info(options, logger: Optional[logging.Logger] = None):
         Tuple of (chatId, email)
     """
     if logger is None:
-        logger = await get_default_logger()
+        logger = get_default_logger()
     
     chatId = "anonymous"
     email = "anonymous@olakai.ai"
@@ -99,7 +99,7 @@ async def extract_user_info(options, logger: Optional[logging.Logger] = None):
                     chatId = str(chatId)
             except Exception:
                 chatId = "anonymous"
-                await safe_log(logger, 'debug', f"Error getting chatId")
+                safe_log(logger, 'debug', f"Error getting chatId")
         else:
             chatId = options.chatId
             
@@ -111,7 +111,7 @@ async def extract_user_info(options, logger: Optional[logging.Logger] = None):
                     email = str(email)
             except Exception:
                 email = "anonymous@olakai.ai"
-                await safe_log(logger, 'debug', f"Error getting email")
+                safe_log(logger, 'debug', f"Error getting email")
         else:
             email = options.email
 

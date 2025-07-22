@@ -13,18 +13,18 @@ middlewares: List[Middleware] = []
 async def add_middleware(middleware: Middleware, logger: Optional[logging.Logger] = None) -> None:
     """Add middleware to the global middleware registry."""
     if logger is None:
-        logger = await get_default_logger()
+        logger = get_default_logger()
     middlewares.append(middleware)
-    await safe_log(logger, 'info', f"Added middleware: {middleware.name}")
+    safe_log(logger, 'info', f"Added middleware: {middleware.name}")
 
 
 async def remove_middleware(name: str, logger: Optional[logging.Logger] = None) -> None:
     """Remove middleware from the global middleware registry."""
     if logger is None:
-        logger = await get_default_logger()
+        logger = get_default_logger()
     global middlewares
     middlewares = [m for m in middlewares if m.name != name]
-    await safe_log(logger, 'info', f"Removed middleware: {name}")
+    safe_log(logger, 'info', f"Removed middleware: {name}")
 
 
 def get_middlewares() -> List[Middleware]:

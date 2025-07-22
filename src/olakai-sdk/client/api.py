@@ -18,15 +18,15 @@ isBatchingEnabled = False
 async def sleep(ms: int, logger: Optional[logging.Logger] = None):
     """Sleep for specified milliseconds with optional logging."""
     if logger is None:
-        logger = await get_default_logger()
-    await safe_log(logger, 'debug', f"Sleeping for {ms}ms")
+        logger = get_default_logger()
+    safe_log(logger, 'debug', f"Sleeping for {ms}ms")
     time.sleep(ms / 1000)
 
 
 async def make_api_call(payload: Union[MonitorPayload, List[MonitorPayload]], logger: Optional[logging.Logger] = None) -> APIResponse:
     """Make API call with optional logging."""
     if logger is None:
-        logger = await get_default_logger()
+        logger = get_default_logger()
         
     config = await get_config()
     
@@ -54,8 +54,8 @@ async def make_api_call(payload: Union[MonitorPayload, List[MonitorPayload]], lo
             headers=headers,
             timeout=config.timeout / 1000
         )
-        await safe_log(logger, 'info', f"[Olakai SDK] Payload: {data_dicts}")
-        await safe_log(logger, 'debug', f"[Olakai SDK] API response: {response}")
+        safe_log(logger, 'info', f"[Olakai SDK] Payload: {data_dicts}")
+        safe_log(logger, 'debug', f"[Olakai SDK] API response: {response}")
         response.raise_for_status()
         result = response.json()
         return APIResponse(success=True, data=result)
@@ -67,7 +67,7 @@ async def make_api_call(payload: Union[MonitorPayload, List[MonitorPayload]], lo
 async def send_with_retry(payload: Union[MonitorPayload, List[MonitorPayload]], logger: Optional[logging.Logger] = None) -> bool:
     """Send payload with retry logic and optional logging."""
     if logger is None:
-        logger = await get_default_logger()
+        logger = get_default_logger()
         
     config = await get_config()
     max_retries = config.retries if config.retries > 0 else 0
@@ -79,24 +79,24 @@ async def send_with_retry(payload: Union[MonitorPayload, List[MonitorPayload]], 
             return True
         except Exception as err:
             last_error = err
-            await safe_log(logger, 'debug', f"[Olakai SDK] Attempt {attempt+1}/{max_retries+1} failed: {err}")
+            safe_log(logger, 'debug', f"[Olakai SDK] Attempt {attempt+1}/{max_retries+1} failed: {err}")
             if attempt < max_retries:
                 delay = min(1000 * (2 ** attempt), 30000)
                 await sleep(delay, logger=logger)
     
-    await safe_log(logger, 'debug', f"[Olakai SDK] All retry attempts failed: {last_error}")
+    safe_log(logger, 'debug', f"[Olakai SDK] All retry attempts failed: {last_error}")
     return False
 
 
 async def send_to_api(payload: MonitorPayload, options: dict = {}, logger: Optional[logging.Logger] = None):
     """Send payload to API with optional logging."""
     if logger is None:
-        logger = await get_default_logger()
+        logger = get_default_logger()
 
     config = await get_config()
 
     if not config.apiKey:
-        await safe_log(logger, 'debug', "[Olakai SDK] API key is not set.")
+        safe_log(logger, 'debug', "[Olakai SDK] API key is not set.")
         return
     if isBatchingEnabled:
         batch_item = BatchRequest(

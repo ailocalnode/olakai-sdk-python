@@ -26,17 +26,17 @@ async def load_persisted_queue(logger: Optional[logging.Logger] = None):
     """
     global batchQueue
     if logger is None:
-        logger = await get_default_logger()
+        logger = get_default_logger()
     
     try:
         with open(QUEUE_FILE, "r") as f:
             data = json.load(f)
         batchQueue = [BatchRequest(**item) for item in data]
-        await safe_log(logger, 'info', f"Loaded {len(batchQueue)} items from persisted queue")
+        safe_log(logger, 'info', f"Loaded {len(batchQueue)} items from persisted queue")
     except FileNotFoundError:
-        await safe_log(logger, 'info', "No persisted queue found, starting fresh")
+        safe_log(logger, 'info', "No persisted queue found, starting fresh")
     except Exception as err:
-        await safe_log(logger, 'debug', f"Failed to load persisted queue: {err}")
+        safe_log(logger, 'debug', f"Failed to load persisted queue: {err}")
 
 
 async def persist_queue(logger: Optional[logging.Logger] = None):
@@ -53,7 +53,7 @@ async def persist_queue(logger: Optional[logging.Logger] = None):
         return
     
     if logger is None:
-        logger = await get_default_logger()
+        logger = get_default_logger()
     
     try:
         serialized = json.dumps([b.__dict__ for b in batchQueue])
@@ -64,9 +64,9 @@ async def persist_queue(logger: Optional[logging.Logger] = None):
         
         with open(QUEUE_FILE, "w") as f:
             json.dump([b.__dict__ for b in batchQueue], f)
-        await safe_log(logger, 'info', "Persisted queue to file")
+        safe_log(logger, 'info', "Persisted queue to file")
     except Exception as err:
-        await safe_log(logger, 'debug', f"Failed to persist queue: {err}")
+        safe_log(logger, 'debug', f"Failed to persist queue: {err}")
 
 
 def get_batch_queue() -> List[BatchRequest]:
@@ -78,3 +78,5 @@ def clear_batch_queue():
     """Clear the batch queue."""
     global batchQueue
     batchQueue = [] 
+    logger = get_default_logger()
+    safe_log(logger, 'info', "Batch queue cleared")

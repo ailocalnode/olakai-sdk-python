@@ -30,7 +30,7 @@ async def init_client(
     """
     global config
     if logger is None:
-        logger = await get_default_logger()
+        logger = get_default_logger()
     
     config.apiKey = api_key
     config.apiUrl = f"{domain}/api/monitoring/prompt" if domain else "https://staging.app.olakai.ai/api/monitoring/prompt"
@@ -39,7 +39,7 @@ async def init_client(
         for field_name, value in sdk_config.__dict__.items():
             setattr(config, field_name, value)
     
-    await safe_log(logger, 'info', f"Initialized Olakai SDK client with config: {config}")
+    safe_log(logger, 'info', f"Initialized Olakai SDK client with config: {config}")
     
     # Load persisted queue (import here to avoid circular dependency)
     if config.enableLocalStorage:
