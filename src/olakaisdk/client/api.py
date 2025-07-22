@@ -104,7 +104,7 @@ async def send_with_retry(
 
 
 async def send_to_api(
-    payload: MonitorPayload, 
+    payload: Union[MonitorPayload, ControlPayload], 
     options: dict = {}, 
 ):
     """Send payload to API with optional logging."""
@@ -115,22 +115,26 @@ async def send_to_api(
         safe_log('debug', "API key is not set.")
         return
     
-    if isBatchingEnabled:
-        batch_item = BatchRequest(
-            id=f"{int(time.time() * 1000)}",
-            payload=payload,
-            timestamp=int(time.time() * 1000),
-            retries=0,
-            priority=options.get("priority", "normal"),
-        )
-        add_to_batch_queue(batch_item)
-        if (len(get_batch_queue()) >= config.batchSize or 
-            options.get("priority") == "high"):
-            await process_batch_queue()
+    if isinstance(payload, MonitorPayload):
+        if isBatchingEnabled:
+            batch_item = BatchRequest(
+                id=f"{int(time.time() * 1000)}",
+                payload=payload,
+                timestamp=int(time.time() * 1000),
+                retries=0,
+                priority=options.get("priority", "normal"),
+            )
+            add_to_batch_queue(batch_item)
+            if (len(get_batch_queue()) >= config.batchSize or 
+                options.get("priority") == "high"):
+                await process_batch_queue()
+            else:
+                await schedule_batch_processing()
         else:
-            await schedule_batch_processing()
+            await make_api_call(payload, "monitoring")
+    
     else:
-        await make_api_call(payload, "monitoring")
+        await send_with_retry(payload, "control")
 
 
 from .batch import (
