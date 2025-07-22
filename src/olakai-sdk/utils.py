@@ -2,10 +2,8 @@ import json
 import traceback
 from typing import Any, Callable, Optional, Dict
 import asyncio
-from .types import MonitorOptions
 from dataclasses import dataclass
 from .logger import get_default_logger, safe_log
-from .types import MonitorOptions
 import logging
 
 def to_api_string(data: Any) -> str:
@@ -36,21 +34,18 @@ class MonitorUtils:
             "input": kwargs["args"],
             "output": kwargs["result"]
         }
-    capture_all = MonitorOptions(capture=capture_all_f)
     
     def capture_input_f(**kwargs):
         return {
             "input": kwargs["args"],
             "output": "Function executed successfully"
         }
-    capture_input = MonitorOptions(capture=capture_input_f)
 
     def capture_output_f(**kwargs):
         return {
             "input": "Function called",
             "output": kwargs["result"]
         }
-    capture_output = MonitorOptions(capture=capture_output_f)
 
 
 

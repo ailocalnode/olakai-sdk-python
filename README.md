@@ -1,16 +1,10 @@
 # Olakai SDK
 
-A Python SDK for monitoring and tracking external AI/ML model interactions. Enable reporting and control through the Olakai UNO product.
+A Python SDK for monitoring function calls and controlling execution with real-time API decisions.
 
-## Features
-
-- 🚀 **Easy Integration**: Simple decorators and function calls to monitor your AI models
-- 📊 **Batch Processing**: Efficient batching system for high-throughput applications
-- 🔄 **Retry Logic**: Built-in retry mechanism with exponential backoff
-- 💾 **Local Storage**: Persistent queue storage for offline scenarios
-- 🎯 **Flexible Configuration**: Extensive configuration options for different use cases
-- 🔧 **Middleware Support**: Extensible middleware system for custom processing
-- ⚡ **Async Support**: Full support for both sync and async functions
+[![PyPI version](https://badge.fury.io/py/olakai-sdk.svg)](https://badge.fury.io/py/olakai-sdk)
+[![Python](https://img.shields.io/badge/Python-3.7+-blue?style=flat&logo=python&logoColor=white)](https://www.python.org/)
+[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
 
 ## Installation
 
@@ -18,279 +12,455 @@ A Python SDK for monitoring and tracking external AI/ML model interactions. Enab
 pip install olakai-sdk
 ```
 
-## Quick Start
-
-### 1. Initialize the SDK
+## Quick Start - The Easy & Fast Way
 
 ```python
-from olakai-sdk import init_client
+from olakai_sdk import init_client, olakai_monitor
 
-# Initialize with API key
-init_client("your-api-key-here", domain="your-domain-url-here")
+# 1. Initialize once
+init_client("your-olakai-api-key", "https://your-olakai-domain.ai")
 
-# Or with custom configuration
-from olakai-sdk.types import SDKConfig
+# 2. Wrap any function - that's it!
+@olakai_monitor()
+def say_hello(name: str) -> str:
+    return f"Hello, {name}!"
 
-config = SDKConfig(
-    apiKey="your-api-key-here",
-    batchSize=20,
-    timeout=30000,
-    debug=True
-)
-init_client(config)
+# 3. Use normally - monitoring happens automatically
+result = say_hello("World")
+print(result)  # "Hello, World!"
 ```
 
-### 2. Monitor Function Calls
+**That's it!** Your function calls are now being monitored automatically. No complex configuration needed.
+
+**What it does?** All inputs and outputs of the function are being sent to the API!
+
+**How?** The inputs will be displayed as the "prompt" and the return object as the "response". (in the UNO product)
+
+<details>
+<summary><strong>🤖 Real Example: OpenAI API Call (Click to expand)</strong></summary>
+
+See how easy it is to add monitoring to an existing OpenAI API call:
+
+**Before (without monitoring):**
 
 ```python
-from olakai-sdk import monitor
+import openai
 
-@monitor()
+openai.api_key = "your-openai-api-key"
+
 def generate_response(prompt: str) -> str:
-    # Your AI model logic here
-    response = "Generated response"
-    return response
+    response = openai.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.choices[0].message.content
 
-# Use the function normally
-result = generate_response("Hello, world!")
+# Usage
+response = generate_response("Explain quantum computing")
 ```
 
-### 3. Manual Monitoring
+**After (with monitoring):**
 
 ```python
-from olakai-sdk import send_to_api
-from olakai-sdk.types import MonitorPayload
+import openai
+from olakai_sdk import init_client, olakai_monitor
 
-payload = MonitorPayload(
-    userId="user123",
-    chatId="chat456",
-    prompt="What is the weather like?",
-    response="It's sunny today!",
-    tokens=50,
-    requestTime=1234567890
-)
+# Initialize Olakai SDK
+init_client("your-olakai-api-key", "https://your-olakai-domain.ai")
 
-send_to_api(payload)
+openai.api_key = "your-openai-api-key"
+
+# Just add the decorator - that's the only change!
+@olakai_monitor()
+def generate_response(prompt: str) -> str:
+    response = openai.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.choices[0].message.content
+
+# Usage (exactly the same)
+response = generate_response("Explain quantum computing")
 ```
 
-## Configuration
+**What you get:**
 
-### SDKConfig Options
+- ✅ Every prompt and response is automatically logged to Olakai
+- ✅ Token usage and response times are tracked
+- ✅ No changes to your existing code logic
+- ✅ If monitoring fails, your function still works perfectly
+</details>
 
-| Option                | Type       | Default        | Description                                  |
-| --------------------- | ---------- | -------------- | -------------------------------------------- |
-| `apiKey`              | `str`      | `""`           | Your Olakai API key                          |
-| `apiUrl`              | `str`      | Auto-generated | API endpoint URL                             |
-| `batchSize`           | `int`      | `10`           | Number of requests to batch together         |
-| `batchTimeout`        | `int`      | `5000`         | Timeout in milliseconds for batch processing |
-| `retries`             | `int`      | `3`            | Number of retry attempts for failed requests |
-| `timeout`             | `int`      | `20000`        | Request timeout in milliseconds              |
-| `enableLocalStorage`  | `bool`     | `True`         | Enable persistent queue storage              |
-| `maxLocalStorageSize` | `int`      | `1000000`      | Maximum size of local storage in bytes       |
-| `debug`               | `bool`     | `False`        | Enable debug logging                         |
-| `verbose`             | `bool`     | `False`        | Enable verbose logging                       |
-| `onError`             | `Callable` | `None`         | Error callback function                      |
-
-### Monitor Options
+<details>
+<summary><strong>Alternative: Monitor just the API call</strong></summary>
 
 ```python
-from olakai-sdk.types import MonitorOptions
+import openai
+from olakai_sdk import init_client, olakai_monitor
 
-@monitor(MonitorOptions(
-    enabled=True,
-    sample_rate=0.1,  # Monitor 10% of calls
-    priority="high",
-    sanitize=True
+init_client("your-olakai-api-key", "https://your-olakai-domain.ai")
+
+openai.api_key = "your-openai-api-key"
+
+# Create a monitored version of the API call
+@olakai_monitor()
+def monitored_completion(messages: list) -> dict:
+    return openai.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=messages
+    )
+
+def generate_response(prompt: str) -> str:
+    # Use the monitored API call
+    completion = monitored_completion([
+        {"role": "user", "content": prompt}
+    ])
+    return completion.choices[0].message.content
+```
+
+_This approach lets you monitor specific API calls while keeping your business logic separate._
+
+</details>
+
+---
+
+## 🚀 **Why Use Olakai SDK?**
+
+### ✅ **Zero Configuration Monitoring**
+
+Just add a decorator and start monitoring immediately
+
+### ✅ **Never Breaks Your Code**
+
+If monitoring fails, your functions still work perfectly
+
+### ✅ **Smart Type Support**
+
+Works seamlessly with Python type hints
+
+### ✅ **Production Ready**
+
+Built-in error handling, retries, and offline support
+
+---
+
+## Simple Examples
+
+### Monitor Any Function
+
+```python
+from olakai_sdk import olakai_monitor
+from olakai_sdk.types import MonitorOptions
+
+# Works with any function
+@olakai_monitor(MonitorOptions(
+    task="Customer service",     # Optional: give it a task
+    subTask="process-order"      # Optional: give it a subtask
 ))
-def my_function():
-    pass
+def process_order(order_id: str) -> dict:
+    # Your business logic
+    return {"success": True, "order_id": order_id}
+
+result = process_order("order-123")
 ```
 
-## Advanced Usage
+**What it does?** The difference here, is that you can pass additional options, like subtask and task if you want your Olakai's calls to be specific! This helps for analytics generation!
 
-### Middleware
-
-Add custom processing logic with middleware:
+### Track Users (For Multi-User Apps)
 
 ```python
-from olakai-sdk import add_middleware
-from olakai-sdk.types import Middleware
+from olakai_sdk import olakai_monitor
+from olakai_sdk.types import MonitorOptions
 
-def before_call(args, kwargs):
-    print(f"Function called with args: {args}")
+@olakai_monitor(MonitorOptions(
+    task="Customer service",
+    subTask="process-order",
+    email="example@olakai.ai",  # Or use a function: lambda args: get_user_email(args[0])
+    chatId="123"                # Or use a function: lambda args: get_session_id(args[0])
+))
+def process_order(order_id: str) -> dict:
+    # Your business logic
+    return {"success": True, "order_id": order_id}
 
-def after_call(result, args, kwargs):
-    print(f"Function returned: {result}")
+result = process_order("order-123")
+```
 
-middleware = Middleware(
-    name="logger",
-    before_call=before_call,
-    after_call=after_call
-)
+**What it does?** This feature lets you specify a user email, so our API can associate each call with a specific user. Instead of seeing "Anonymous user" in the UNO product's prompts panel, you'll see the actual user linked to each call. For now the matching is based on users' email.
 
-add_middleware(middleware)
+### Obtain Scoring of the Prompt
+
+```python
+from olakai_sdk import olakai_monitor
+from olakai_sdk.types import MonitorOptions
+
+@olakai_monitor(MonitorOptions(
+    task="Customer service",
+    subTask="process-order",
+    email="example@olakai.ai",
+    chatId="123",
+    shouldScore=True  # Enable prompt scoring
+))
+def process_order(order_id: str) -> dict:
+    # Your business logic
+    return {"success": True, "order_id": order_id}
+
+result = process_order("order-123")
+```
+
+**What it does?** This feature lets you specify if the "prompt" (so the args of the function you monitor), should get a "prompting score", the same way Olakai is doing it for standard prompts in the UNO product.
+
+## Common Patterns
+
+### Capture Only What You Need
+
+```python
+from olakai_sdk import olakai_monitor
+from olakai_sdk.types import MonitorOptions
+
+# Custom capture logic
+@olakai_monitor(MonitorOptions(
+    capture=lambda args, result: {
+        "input": {"email": args[0]},
+        "output": {"success": result.get("success")}
+    }
+))
+def my_function(email: str, password: str) -> dict:
+    # This will only capture email, not password
+    return {"success": True, "user_id": "123"}
+```
+
+### Error Handling Made Easy
+
+```python
+from olakai_sdk import olakai_monitor
+from olakai_sdk.types import MonitorOptions
+
+@olakai_monitor(MonitorOptions(
+    task="risky-operation",
+    on_error=lambda error, args: {
+        "input": args[0],
+        "output": {"error": str(error)}
+    }
+))
+def risky_operation(data: dict) -> dict:
+    # This might raise an exception
+    if not data.get("valid"):
+        raise ValueError("Invalid data")
+    return {"success": True}
+```
+
+---
+
+## When You Need More Control
+
+### Advanced Monitoring
+
+Sometimes you need fine-grained control. Use the full `MonitorOptions` for complete customization:
+
+```python
+from olakai_sdk import olakai_monitor
+from olakai_sdk.types import MonitorOptions
+
+@olakai_monitor(MonitorOptions(
+    task="Authentication",
+    subTask="user-login",
+    email=lambda args: args[0],  # Dynamic user email from first argument
+    chatId=lambda args: args[1], # Session tracking from second argument
+    shouldScore=True,
+    sanitize=True,               # Remove sensitive data
+    priority="high",             # Queue priority
+    capture=lambda args, result: {
+        "input": {
+            "email": args[0],
+            "request_time": int(time.time())
+        },
+        "output": {
+            "success": result.get("success"),
+            "user_id": result.get("user_id")
+        }
+    }
+))
+def login_user(email: str, session_id: str, password: str) -> dict:
+    # Your login logic (password won't be captured due to custom capture)
+    return {"success": True, "user_id": "123"}
+
+result = login_user("user@example.com", "session-123", "secret")
 ```
 
 ### Async Support
 
+Works seamlessly with async functions:
+
 ```python
 import asyncio
-from olakai-sdk import monitor
+from olakai_sdk import olakai_monitor
 
-@monitor()
-async def async_generate_response(prompt: str) -> str:
-    # Your async AI model logic here
+@olakai_monitor()
+async def async_ai_call(prompt: str) -> str:
+    # Your async AI logic
     await asyncio.sleep(0.1)
-    return "Async response"
+    return f"Async response to: {prompt}"
 
-# Use with asyncio
-result = await async_generate_response("Hello, async world!")
+# Use with await as normal
+result = await async_ai_call("Hello async world!")
 ```
 
-### Queue Management
+---
+
+## Configuration
+
+### Setup
 
 ```python
-from olakai-sdk import get_queue_size, flush_queue, clear_queue
+from olakai_sdk import init_client
 
-# Check queue size
-size = get_queue_size()
-print(f"Queue size: {size}")
-
-# Force process queue immediately
-flush_queue()
-
-# Clear all queued items
-clear_queue()
+init_client("your-olakai-api-key", "https://your-olakai-domain.ai")
 ```
 
-### Error Handling
+### Advanced Configuration
 
 ```python
-from olakai-sdk.types import SDKConfig
+from olakai_sdk import init_client
+from olakai_sdk.types import SDKConfig
 
-def error_handler(error: Exception):
-    print(f"SDK Error: {error}")
-    # Send to your logging system
+init_client(SDKConfig(
+    apiKey="your-olakai-api-key",
+    apiUrl="https://your-olakai-domain.ai",
+    debug=True,          # See what's happening
+    enableLocalStorage=True  # Offline support
+))
+```
 
-config = SDKConfig(
+### Advanced Debug Mode
+
+```python
+from olakai_sdk import init_client
+from olakai_sdk.types import SDKConfig
+
+init_client(SDKConfig(
     apiKey="your-key",
-    onError=error_handler
-)
+    apiUrl="https://your-olakai-domain.ai",
+    debug=True,
+    verbose=True
+))
 ```
+
+This will log detailed information about what the SDK is doing.
+
+---
+
+## Tips & Best Practices
+
+### ✅ **Do This**
+
+- Start with simple `@monitor()` decorator
+- Use descriptive task names
+- Monitor important business logic functions
+- Set up user tracking for multi-user apps
+
+### ❌ **Avoid This**
+
+- Don't monitor every tiny utility function
+- Don't put sensitive data in task names
+- Don't monitor authentication functions that handle passwords
+
+### 🔒 **Security Notes**
+
+- The SDK automatically sanitizes common sensitive patterns
+- User emails should match Olakai accounts
+- Enable `sanitize=True` for functions handling sensitive data
+- Use custom `capture` functions to exclude sensitive parameters
+
+---
 
 ## API Reference
 
 ### Core Functions
 
-- `init_client(key_or_config)` - Initialize the SDK
-- `monitor(options=None)` - Decorator for monitoring functions
-- `send_to_api(payload, options=None)` - Send data manually
-- `get_config()` - Get current configuration
-- `get_queue_size()` - Get current queue size
-- `flush_queue()` - Process queue immediately
-- `clear_queue()` - Clear all queued items
+| Function                | Description                        | Use Case             |
+| ----------------------- | ---------------------------------- | -------------------- |
+| `init_client(key, url)` | Initialize SDK with API key        | Required setup       |
+| `@monitor(options?)`    | Decorator for monitoring functions | Most common use case |
 
-### Middleware Functions
+### Configuration Options (SDKConfig)
 
-- `add_middleware(middleware)` - Add middleware
-- `remove_middleware(name)` - Remove middleware by name
+| Option               | Default | Description                |
+| -------------------- | ------- | -------------------------- |
+| `apiKey`             | `""`    | Your Olakai API key        |
+| `apiUrl`             | `None`  | API endpoint URL           |
+| `batchSize`          | `10`    | Requests to batch together |
+| `batchTimeout`       | `5000`  | Batch timeout (ms)         |
+| `retries`            | `3`     | Retry attempts             |
+| `timeout`            | `20000` | Request timeout (ms)       |
+| `enableLocalStorage` | `True`  | Offline queue support      |
+| `debug`              | `False` | Debug logging              |
+| `verbose`            | `False` | Verbose logging            |
 
-## Examples
+### Monitor Options (MonitorOptions)
 
-### Basic Chat Bot Monitoring
+| Option        | Type                | Description                      |
+| ------------- | ------------------- | -------------------------------- |
+| `email`       | `str` or `Callable` | User email for tracking          |
+| `chatId`      | `str` or `Callable` | Chat/session ID                  |
+| `task`        | `str`               | Task category                    |
+| `subTask`     | `str`               | Specific task                    |
+| `shouldScore` | `bool`              | Enable prompt scoring            |
+| `sanitize`    | `bool`              | Remove sensitive data            |
+| `priority`    | `str`               | Queue priority (low/normal/high) |
+| `capture`     | `Callable`          | Custom data capture function     |
+| `on_error`    | `Callable`          | Error handling function          |
 
-```python
-from olakai-sdk import init_client, monitor
-from olakai-sdk.types import MonitorOptions
+### Utilities
 
-init_client("your-api-key")
+- `get_config()` - Get current SDK configuration
+- `get_queue_size()` - Check request queue size
+- `clear_queue()` - Clear pending requests
+- `flush_queue()` - Send all queued requests immediately
 
-@monitor(MonitorOptions(priority="high"))
-def chat_completion(user_id: str, message: str) -> str:
-    # Your chat completion logic
-    response = f"Response to: {message}"
-    return response
+---
 
-# Usage
-response = chat_completion("user123", "Hello!")
-```
+## Troubleshooting
 
-### Batch Processing Example
+### Common Issues
 
-```python
-from olakai-sdk import init_client
-from olakai-sdk.types import SDKConfig
+**"Function not being monitored"**
 
-# Configure for high-throughput
-config = SDKConfig(
-    apiKey="your-key",
-    batchSize=50,
-    batchTimeout=1000,  # 1 second
-    enableLocalStorage=True
-)
+- Check that `init_client()` was called first
+- Verify your API key and domain URL
+- Check console for errors (if debug=True)
 
-init_client(config)
-```
+**"Import errors"**
 
-## Development
+- Make sure you installed with `pip install olakai-sdk`
+- Check Python version (3.7+ required)
 
-### Local Development
+**"Monitoring seems slow"**
 
-```bash
-# Clone the repository
-git clone https://github.com/your-org/olakai-sdk
-cd olakai-sdk
+- Monitoring happens asynchronously and shouldn't affect performance
+- Use `priority="low"` for non-critical functions
+- Check network connectivity
 
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+---
 
-# Install dependencies
-pip install -e .
-pip install -r requirements-dev.txt
+## Examples Repository
 
-# Run tests
-pytest
-```
+Check out our [examples repository](https://github.com/olakai/sdk-examples-python) for complete working examples:
 
-### Testing
+- Flask REST API
+- Django application
+- Database monitoring
+- Authentication flows
+- Error handling patterns
 
-```bash
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=olakai-sdk
-
-# Run specific test file (not implemented yet)
-pytest tests/test_client.py
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+---
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT © [Olakai](https://olakai.ai)
 
-## Support
+---
 
-- 📧 Email: support@olakai.ai
-- 📖 Documentation: https://docs.olakai.ai
-- 🐛 Issues: https://github.com/your-org/olakai-sdk/issues
+**Need help?**
 
-## Changelog
-
-### v0.1.0
-
-- Initial release
-- Basic monitoring functionality
-- Batch processing support
-- Local storage persistence
-- Middleware system
-- Async support
+- 📖 [Documentation](https://app.olakai.ai/docs/getting-started/getting-started)
+- 📧 [Support Email](mailto:support@olakai.ai)

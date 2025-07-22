@@ -7,7 +7,7 @@ import logging
 
 def olakai_monitor(options: Optional[Union[Dict[str, Any], MonitorOptions]] = None, logger: Optional[logging.Logger] = None):
     if options is None:
-        options = MonitorUtils.capture_all
+        options = MonitorOptions(capture=MonitorUtils.capture_all_f)
     elif isinstance(options, MonitorOptions):
         pass
     else:

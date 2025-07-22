@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Optional, Callable, List, Dict, Any, Union
+from .utils import MonitorUtils
 
 @dataclass
 class MonitorPayload:
@@ -46,7 +47,7 @@ class SDKConfig:
 
 @dataclass
 class MonitorOptions:
-    capture: Optional[Callable] = None
+    capture: Optional[Callable] = MonitorUtils.capture_all_f
     sanitize: bool = False
     on_error: Optional[Callable] = None
     priority: str = "normal"
