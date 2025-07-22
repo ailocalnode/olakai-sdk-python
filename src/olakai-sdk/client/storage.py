@@ -17,7 +17,7 @@ QUEUE_FILE = "olakai_sdk_queue.json"
 batchQueue: List[BatchRequest] = []
 
 
-async def load_persisted_queue(logger: Optional[logging.Logger] = None):
+async def load_persisted_queue():
     """
     Load the persisted queue from local storage.
     
@@ -25,21 +25,18 @@ async def load_persisted_queue(logger: Optional[logging.Logger] = None):
         logger: Optional logger instance
     """
     global batchQueue
-    if logger is None:
-        logger = get_default_logger()
-    
     try:
         with open(QUEUE_FILE, "r") as f:
             data = json.load(f)
         batchQueue = [BatchRequest(**item) for item in data]
-        safe_log(logger, 'info', f"Loaded {len(batchQueue)} items from persisted queue")
+        safe_log('info', f"Loaded {len(batchQueue)} items from persisted queue")
     except FileNotFoundError:
-        safe_log(logger, 'info', "No persisted queue found, starting fresh")
+        safe_log('info', "No persisted queue found, starting fresh")
     except Exception as err:
-        safe_log(logger, 'debug', f"Failed to load persisted queue: {err}")
+        safe_log('debug', f"Failed to load persisted queue: {err}")
 
 
-async def persist_queue(logger: Optional[logging.Logger] = None):
+async def persist_queue():
     """
     Persist the current queue to local storage.
     
@@ -47,13 +44,10 @@ async def persist_queue(logger: Optional[logging.Logger] = None):
         logger: Optional logger instance
     """
     from .config import get_config
-    config = await get_config()
+    config = get_config()
     
     if not config.enableLocalStorage:
         return
-    
-    if logger is None:
-        logger = get_default_logger()
     
     try:
         serialized = json.dumps([b.__dict__ for b in batchQueue])
@@ -64,9 +58,9 @@ async def persist_queue(logger: Optional[logging.Logger] = None):
         
         with open(QUEUE_FILE, "w") as f:
             json.dump([b.__dict__ for b in batchQueue], f)
-        safe_log(logger, 'info', "Persisted queue to file")
+        safe_log('info', "Persisted queue to file")
     except Exception as err:
-        safe_log(logger, 'debug', f"Failed to persist queue: {err}")
+        safe_log('debug', f"Failed to persist queue: {err}")
 
 
 def get_batch_queue() -> List[BatchRequest]:

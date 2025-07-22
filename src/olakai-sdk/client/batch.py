@@ -2,14 +2,12 @@
 Batch processing management for the Olakai SDK.
 """
 import threading
-import time
-import logging
-from typing import Optional, List
-from .types import BatchRequest, MonitorPayload
+
+from typing import Optional
 from .storage import get_batch_queue, clear_batch_queue, persist_queue
 from .config import get_config
 from .api import send_with_retry
-from ..shared.logger import get_default_logger, safe_log
+from ..shared.logger import safe_log
 
 # Global state
 batchTimer: Optional[threading.Timer] = None
@@ -26,32 +24,29 @@ async def clear_queue():
     clear_batch_queue()
 
 
-async def flush_queue(logger: Optional[logging.Logger] = None):
+async def flush_queue():
     """Force flush the batch queue."""
-    await process_batch_queue(logger)
+    await process_batch_queue()
 
 
-async def schedule_batch_processing(logger: Optional[logging.Logger] = None):
+async def schedule_batch_processing():
     """Schedule batch processing with optional logging."""
     global batchTimer
     if batchTimer:
         return
     
-    config = await get_config()
+    config = get_config()
     
     async def process_with_logger():
-        await process_batch_queue(logger=logger)
+        await process_batch_queue()
     
     batchTimer = threading.Timer(config.batchTimeout / 1000, process_with_logger)
     batchTimer.start()
 
 
-async def process_batch_queue(logger: Optional[logging.Logger] = None):
+async def process_batch_queue():
     """Process the current batch queue with optional logging."""
     global batchTimer
-    if logger is None:
-        logger = get_default_logger()
-        
     if batchTimer:
         batchTimer.cancel()
         batchTimer = None
@@ -60,7 +55,7 @@ async def process_batch_queue(logger: Optional[logging.Logger] = None):
     if not batch_queue or not isOnline:
         return
     
-    config = await get_config()
+    config = get_config()
     
     # Sort by priority (high > normal > low)
     priority_order = {"high": 3, "normal": 2, "low": 1}
@@ -73,27 +68,27 @@ async def process_batch_queue(logger: Optional[logging.Logger] = None):
     if current_batch:
         try:
             payloads = [req.payload for req in current_batch]
-            success = await send_with_retry(payloads, logger)
+            success = await send_with_retry(payloads)
             
             if success:
                 # Remove successful items from queue
                 for _ in range(len(current_batch)):
                     batch_queue.pop(0)
-                safe_log(logger, 'info', f"Successfully sent batch of {len(current_batch)} items")
+                safe_log('info', f"Successfully sent batch of {len(current_batch)} items")
             else:
                 # Increment retry count for failed items
                 for req in current_batch:
                     req.retries += 1
                     if req.retries >= config.retries:
                         batch_queue.remove(req)
-                        safe_log(logger, 'debug', f"Dropped request after {config.retries} failed attempts")
+                        safe_log('debug', f"Dropped request after {config.retries} failed attempts")
                         
         except Exception as error:
-            safe_log(logger, 'error', f"Batch processing failed: {error}")
+            safe_log('error', f"Batch processing failed: {error}")
     
     # Persist updated queue
-    await persist_queue(logger)
+    await persist_queue()
     
     # Schedule next batch if queue is not empty
     if batch_queue:
-        await schedule_batch_processing(logger) 
+        await schedule_batch_processing() 

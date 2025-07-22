@@ -3,7 +3,7 @@ Logging utilities for the Olakai SDK using Python's built-in logging module.
 """
 
 import logging
-from typing import Optional
+from ..client.config import get_config
 
 
 def get_default_logger() -> logging.Logger:
@@ -13,10 +13,11 @@ def get_default_logger() -> logging.Logger:
     Returns:
         A configured logger instance
     """
-    logger = logging.getLogger('[OlakaiSDK]')
+    config = get_config()
+    logger = config.logger
     
     # Only configure if not already configured
-    if not logger.handlers:
+    if logger.name == '[OlakaiSDK]' and not logger.handlers:
         handler = logging.StreamHandler()
         formatter = logging.Formatter('[%(name)s] %(levelname)s: %(message)s')
         handler.setFormatter(formatter)
@@ -26,7 +27,7 @@ def get_default_logger() -> logging.Logger:
     return logger
 
 
-def safe_log(logger: Optional[logging.Logger], level: str, message: str) -> None:
+def safe_log(level: str, message: str) -> None:
     """
     Safely log a message with fallback to print if logger is None or fails.
     
@@ -35,12 +36,13 @@ def safe_log(logger: Optional[logging.Logger], level: str, message: str) -> None
         level: Log level ('debug', 'info', 'warning', 'error')
         message: Message to log
     """
-    if logger is None:
-        print(message)
-        return
+    logger = get_default_logger()
     
     try:
-        getattr(logger, level.lower())(message)
+        if logger.name == '[OlakaiSDK]':
+            getattr(logger, level.lower())(message)
+        else:
+            getattr(logger, level.lower())(f"[OlakaiSDK]: {message}")
     except Exception:
         # Fallback to print if logging fails
         print(message) 

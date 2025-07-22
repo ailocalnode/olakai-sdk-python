@@ -3,7 +3,7 @@ Types specific to client functionality (API communication, batching, configurati
 """
 from dataclasses import dataclass
 from typing import Optional, List, Any
-
+import logging
 
 @dataclass
 class MonitorPayload:
@@ -19,6 +19,12 @@ class MonitorPayload:
     task: Optional[str]
     subTask: Optional[str]
 
+@dataclass
+class ControlPayload:
+    """Payload for control data sent to API."""
+    email: Optional[str] = "anonymous@olakai.ai"
+    prompt: str
+    askedOverrides: Optional[List[str]] = None
 
 @dataclass
 class BatchRequest:
@@ -44,4 +50,5 @@ class SDKConfig:
     maxLocalStorageSize: int = 1000000  # 1MB
     debug: bool = False
     verbose: bool = False
-    sanitize_patterns: Optional[List[Any]] = None 
+    sanitize_patterns: Optional[List[Any]] = None
+    logger: Optional[logging.Logger] = None

@@ -3,7 +3,6 @@ Core monitoring decorator functionality.
 """
 import asyncio
 import time
-import logging
 import threading
 from typing import Any, Callable, Optional
 from .types import MonitorOptions
@@ -12,10 +11,10 @@ from .processor import process_capture_result, extract_user_info
 from ..client.types import MonitorPayload
 from ..client.api import send_to_api
 from ..shared.utils import execute_func, create_error_info, to_string_api
-from ..shared.logger import get_default_logger, safe_log
+from ..shared.logger import safe_log
 
 
-def monitor(options: Optional[MonitorOptions] = None, logger: Optional[logging.Logger] = None):
+def monitor(options: Optional[MonitorOptions] = None):
     """
     Monitor a function with the given options.
     
@@ -31,13 +30,8 @@ def monitor(options: Optional[MonitorOptions] = None, logger: Optional[logging.L
     
     def wrap(f: Callable) -> Callable:
         async def async_wrapped_f(*args, **kwargs):
-            if logger is None:
-                current_logger = get_default_logger()
-            else:
-                current_logger = logger
-                
-            safe_log(current_logger, 'debug', f"Monitoring function: {f.__name__}")
-            safe_log(current_logger, 'debug', f"Arguments: {args}")
+            safe_log('debug', f"Monitoring function: {f.__name__}")
+            safe_log('debug', f"Arguments: {args}")
 
             try:
                 start = time.time() * 1000  # Convert to milliseconds
@@ -52,9 +46,9 @@ def monitor(options: Optional[MonitorOptions] = None, logger: Optional[logging.L
                             if middleware_result:
                                 processed_args = middleware_result
                         except Exception as middleware_error:
-                            safe_log(current_logger, 'debug', f"Middleware error: {middleware_error}")
+                            safe_log('debug', f"Middleware error: {middleware_error}")
                 
-                safe_log(current_logger, 'debug', f"Processed arguments: {processed_args}")
+                safe_log('debug', f"Processed arguments: {processed_args}")
 
                 # Execute the function
                 function_error = None
@@ -62,26 +56,26 @@ def monitor(options: Optional[MonitorOptions] = None, logger: Optional[logging.L
                         
                 try:
                     result = await execute_func(f, *processed_args, **kwargs)
-                    safe_log(current_logger, 'debug', f"Function executed successfully")
+                    safe_log('debug', f"Function executed successfully")
                 except Exception as error:
                     function_error = error
-                    safe_log(current_logger, 'debug', f"Function execution failed: {error}")
+                    safe_log('debug', f"Function execution failed: {error}")
                     
                     # Handle error monitoring
-                    await handle_error_monitoring(function_error, processed_args, options, start, current_logger)
+                    await handle_error_monitoring(function_error, processed_args, options, start)
                     raise function_error  # Re-raise the original error
                         
                 # Handle success monitoring
                 if function_error is None:
                     try:
-                        await handle_success_monitoring(result, processed_args, options, start, current_logger)
+                        await handle_success_monitoring(result, processed_args, options, start)
                     except Exception as error:
-                        safe_log(current_logger, 'debug', f"Error handling success monitoring: {error}")
+                        safe_log('debug', f"Error handling success monitoring: {error}")
                 
                 return result
                 
             except Exception as error:
-                safe_log(current_logger, 'error', f"Error: {error}")
+                safe_log('error', f"Error: {error}")
                 if function_error is not None:
                     raise function_error
                 result = await execute_func(f, *args, **kwargs)
@@ -130,7 +124,7 @@ def monitor(options: Optional[MonitorOptions] = None, logger: Optional[logging.L
     return wrap
 
 
-async def handle_error_monitoring(error: Exception, processed_args: tuple, options: MonitorOptions, start: float, logger: logging.Logger):
+async def handle_error_monitoring(error: Exception, processed_args: tuple, options: MonitorOptions, start: float):
     """Handle monitoring for function errors."""
     middlewares = get_middlewares()
     
@@ -140,14 +134,14 @@ async def handle_error_monitoring(error: Exception, processed_args: tuple, optio
             try:
                 middleware.on_error(error, processed_args)
             except Exception as middleware_error:
-                safe_log(logger, 'debug', f"Error middleware failed: {middleware_error}")
+                safe_log('debug', f"Error middleware failed: {middleware_error}")
                 
     # Capture error data if onError handler is provided
     if options.send_on_function_error:
         try:
-            error_info = await create_error_info(error, logger)
+            error_info = await create_error_info(error)
             
-            chatId, email = await extract_user_info(options, logger)
+            chatId, email = await extract_user_info(options)
                     
             payload = MonitorPayload(
                 prompt="",
@@ -164,12 +158,12 @@ async def handle_error_monitoring(error: Exception, processed_args: tuple, optio
                     
             await send_to_api(payload, {
                 "priority": "high"  # Errors always get high priority
-            }, logger)
+            })
         except Exception as capture_error:
-            safe_log(logger, 'debug', f"Error capture failed: {capture_error}")
+            safe_log('debug', f"Error capture failed: {capture_error}")
 
 
-async def handle_success_monitoring(result: Any, processed_args: tuple, options: MonitorOptions, start: float, logger: logging.Logger):
+async def handle_success_monitoring(result: Any, processed_args: tuple, options: MonitorOptions, start: float):
     """Handle monitoring for successful function execution."""
     middlewares = get_middlewares()
     
@@ -181,9 +175,9 @@ async def handle_success_monitoring(result: Any, processed_args: tuple, options:
                 if middleware_result:
                     result = middleware_result
             except Exception as middleware_error:
-                safe_log(logger, 'debug', f"After middleware failed: {middleware_error}")
+                safe_log('debug', f"After middleware failed: {middleware_error}")
 
-    safe_log(logger, 'info', f"Result: {result}")
+    safe_log('info', f"Result: {result}")
     
     # Capture success data
     if hasattr(options, 'capture') and options.capture:
@@ -193,10 +187,10 @@ async def handle_success_monitoring(result: Any, processed_args: tuple, options:
         )
         
         # Process capture result with sanitization
-        prompt, response = await process_capture_result(capture_result, options, logger)
+        prompt, response = await process_capture_result(capture_result, options)
         
         # Extract user information
-        chatId, email = await extract_user_info(options, logger)
+        chatId, email = await extract_user_info(options)
 
         payload = MonitorPayload(
             prompt=await to_string_api(prompt),
@@ -211,9 +205,9 @@ async def handle_success_monitoring(result: Any, processed_args: tuple, options:
             subTask=getattr(options, 'subTask', None)
         )
 
-        safe_log(logger, 'info', f"Successfully defined payload: {payload}")
+        safe_log('info', f"Successfully defined payload: {payload}")
                 
         # Send to API
         await send_to_api(payload, {
             "priority": getattr(options, 'priority', 'normal')
-        }, logger) 
+        }) 
