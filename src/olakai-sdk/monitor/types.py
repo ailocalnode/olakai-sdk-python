@@ -38,14 +38,14 @@ class MonitorUtils:
         return {
             "input": "Function called",
             "output": kwargs["result"]
-        } 
+        }
 
 @dataclass
 class MonitorOptions:
     """Options for monitoring functions."""
     capture: Optional[Callable] = MonitorUtils.capture_all_f  # Will be set to default in helpers.py
     sanitize: bool = False
-    on_error: Optional[Callable] = None
+    send_on_function_error: bool = True
     priority: str = "normal"
     email: Optional[Union[str, Callable]] = "anonymous@olakai.ai"
     chatId: Optional[Union[str, Callable]] = "123"

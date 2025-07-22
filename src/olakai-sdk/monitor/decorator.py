@@ -143,9 +143,8 @@ async def handle_error_monitoring(error: Exception, processed_args: tuple, optio
                 await safe_log(logger, 'debug', f"Error middleware failed: {middleware_error}")
                 
     # Capture error data if onError handler is provided
-    if hasattr(options, 'on_error') and options.on_error:
+    if options.send_on_function_error:
         try:
-            error_result = options.on_error(error, processed_args)
             error_info = await create_error_info(error, logger)
             
             chatId, email = await extract_user_info(options, logger)
@@ -153,7 +152,7 @@ async def handle_error_monitoring(error: Exception, processed_args: tuple, optio
             payload = MonitorPayload(
                 prompt="",
                 response="",
-                errorMessage=await to_string_api(error_info["error_message"]) + await to_string_api(error_result),
+                errorMessage=await to_string_api(error_info["error_message"]) + await to_string_api(error_info["stack_trace"]),
                 chatId=chatId,
                 email=email,
                 shouldScore=getattr(options, 'shouldScore', False),
