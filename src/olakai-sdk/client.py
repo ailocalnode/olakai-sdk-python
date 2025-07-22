@@ -24,7 +24,7 @@ isOnline = True  # No browser events; assume online
 
 QUEUE_FILE = "olakai_sdk_queue.json"
 
-async def init_client(api_key: str, domain: str = "app.olakai.ai", sdk_config: Optional[SDKConfig] = None, logger: Optional[logging.Logger] = None):
+async def init_client(api_key: str, domain: str = "https://app.olakai.ai", sdk_config: Optional[SDKConfig] = None, logger: Optional[logging.Logger] = None):
     """
     Initialize the Olakai SDK client.
     
