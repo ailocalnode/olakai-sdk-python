@@ -119,12 +119,7 @@ async def send_to_api(
                 retries=0,
                 priority=options.get("priority", "normal"),
             )
-            add_to_batch_queue(batch_item)
-            if (len(get_batch_queue()) >= config.batchSize or 
-                options.get("priority") == "high"):
-                await process_batch_queue()
-            else:
-                await schedule_batch_processing()
+            await add_to_queue(batch_item)
         else:
             response = await make_api_call([payload], "monitoring")
             # Log any batch-style response information if present
@@ -135,9 +130,3 @@ async def send_to_api(
     
     else:
         await send_with_retry(payload, "control")
-
-
-from .batch import (
-    process_batch_queue,
-    schedule_batch_processing
-)

@@ -246,8 +246,13 @@ class QueueManager:
             if result.success:
                 # All succeeded
                 safe_log('info', f"Batch of {len(current_batch.payload)} items sent successfully")
+                self._persist_queue()
             else:
                 # Handle partial failures
+                safe_log('warning', f"Batch of {len(current_batch.payload)} items failed to send in total")
+                
+            
+
                 new_batch = BatchRequest(
                     id=f"{int(time.time() * 1000)}-{hash(str(current_batch.id)) % 100000}",
                     payload=[],
@@ -259,6 +264,7 @@ class QueueManager:
                 if result.results:
                     for api_result in result.results:
                         if not api_result.success:
+                            safe_log('warning', f"Item {payloads[api_result.index]} failed to send")
                             new_batch.payload.append(payloads[api_result.index])
                 else:
                     # If no detailed results, retry all payloads
