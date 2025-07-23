@@ -13,9 +13,6 @@ from ..shared.types import APIResponse, ControlResponse
 from ..shared.logger import safe_log
 from ..shared.utils import sleep
 
-isBatchingEnabled = False
-
-
 async def make_api_call(
     payload: Union[List[MonitorPayload], ControlPayload],
     call_type: Literal["monitoring", "control"] = "monitoring",
@@ -114,7 +111,7 @@ async def send_to_api(
         return
     
     if isinstance(payload, MonitorPayload):
-        if isBatchingEnabled:
+        if config.isBatchingEnabled:
             batch_item = BatchRequest(
                 id=f"{int(time.time() * 1000)}",
                 payload=payload,

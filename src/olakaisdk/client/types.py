@@ -42,6 +42,7 @@ class SDKConfig:
     apiKey: str = ""
     monitoringUrl: Optional[str] = None
     controlUrl: Optional[str] = None
+    isBatchingEnabled: bool = False
     batchSize: int = 10
     batchTimeout: int = 5000  # milliseconds
     retries: int = 3
