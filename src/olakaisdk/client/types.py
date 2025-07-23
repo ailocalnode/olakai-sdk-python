@@ -4,6 +4,7 @@ Types specific to client functionality (API communication, batching, configurati
 from dataclasses import dataclass
 from typing import Optional, List, Any
 import logging
+from enum import Enum
 
 @dataclass
 class MonitorPayload:
@@ -35,6 +36,12 @@ class BatchRequest:
     retries: int = 0
     priority: str = "normal"  # 'low', 'normal', 'high'
 
+class StorageType(Enum):
+    """Type of storage to use."""
+    FILE = "file"
+    MEMORY = "memory"
+    AUTO = "auto"
+    DISABLED = "disabled"
 
 @dataclass
 class SDKConfig:
@@ -47,9 +54,10 @@ class SDKConfig:
     batchTimeout: int = 5000  # milliseconds
     retries: int = 3
     timeout: int = 20000  # milliseconds
-    enableLocalStorage: bool = True
-    localStorageKey: str = "olakai-sdk-queue"
-    maxLocalStorageSize: int = 1000000  # 1MB
+    enableStorage: bool = True
+    storageType: StorageType = StorageType.AUTO
+    maxStorageSize: int = 1000000  # 1MB
+    storageFilePath: Optional[str] = None
     debug: bool = False
     verbose: bool = False
     sanitize_patterns: Optional[List[Any]] = None

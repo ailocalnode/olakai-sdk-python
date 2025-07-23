@@ -4,7 +4,8 @@ Core monitoring decorator functionality.
 import asyncio
 import time
 import threading
-from typing import Any, Callable, Optional
+from dataclasses import fields
+from typing import Any, Callable
 from .types import MonitorOptions
 from .middleware import get_middlewares
 from .processor import process_capture_result, extract_user_info, should_block
@@ -14,31 +15,50 @@ from ..shared.utils import execute_func, create_error_info, to_string_api
 from ..shared.logger import safe_log
 
 
-def olakai_monitor(options: Optional[MonitorOptions] = None):
+def olakai_monitor(**kwargs):
     """
     Monitor a function with the given options.
     
-    Args:
-        options: Monitor options
-        logger: Optional logger instance
+    Kwargs:
+        possible options (must be kwargs):
+            capture: Callable
+            sanitize: bool
+            send_on_function_error: bool
+            priority: str
+            email: str
+            chatId: str
+            shouldScore: bool
+            task: str
+            subTask: str
+            controlOptions: ControlOptions
         
     Returns:
         Decorator function
     """
-    if options is None:
-        options = MonitorOptions()
-    
+    options = MonitorOptions()
+    if len(kwargs) > 0:
+        fields_names = [field.name for field in fields(MonitorOptions)]
+        for key, value in kwargs.items():
+            if key in fields_names:
+                try:
+                    setattr(options, key, value)
+                except Exception as e:
+                    safe_log('debug', f"Error setting attribute, check the type of the value: {e}")
+            else:
+                safe_log('debug', f"Invalid keyword argument: {key}")
+
     def wrap(f: Callable) -> Callable:
         async def async_wrapped_f(*args, **kwargs):
             safe_log('debug', f"Monitoring function: {f.__name__}")
             safe_log('debug', f"Arguments: {args}")
 
             try:
+                #TODO modify the del[potential_result] to behave well with shouldBlock
                 start = time.time() * 1000  # Convert to milliseconds
                 processed_args = args
                 processed_kwargs = kwargs
                 if "potential_result" in kwargs:
-                    del ["potential_result"]
+                    del kwargs["potential_result"]
                 
                 # Check if the function should be blocked
                 shouldBlock = await should_block(options, args, kwargs)

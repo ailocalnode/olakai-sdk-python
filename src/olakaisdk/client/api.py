@@ -6,7 +6,7 @@ from dataclasses import asdict
 from typing import List, Union, Literal
 
 import requests
-from .storage import add_to_batch_queue, get_batch_queue
+from ..queueManagerPackage import add_to_queue, get_queue_size
 from .types import MonitorPayload, ControlPayload, BatchRequest
 from .config import get_config
 from ..shared.types import APIResponse, ControlResponse
@@ -24,7 +24,7 @@ async def make_api_call(
         raise Exception("[Olakai SDK] API key is not set")
     
     if call_type == "monitoring":
-        assert isinstance(payload, MonitorPayload) or isinstance(payload, List[MonitorPayload])
+        assert not isinstance(payload, ControlPayload)
         if not config.monitoringUrl:
             raise Exception("[Olakai SDK] Monitoring URL is not set")
     else:
@@ -62,9 +62,9 @@ async def make_api_call(
         result = response.json()
 
         if call_type == "monitoring":
-            return APIResponse(result)
+            return APIResponse(**result)
         else:
-            return ControlResponse(result)
+            return ControlResponse(**result)
 
     except Exception as err:
         raise err
@@ -99,7 +99,6 @@ async def send_with_retry(
 
 
 async def send_to_api(
-
     payload: Union[MonitorPayload, ControlPayload], 
     options: dict = {}, 
 ):
@@ -111,23 +110,10 @@ async def send_to_api(
         safe_log('debug', "API key is not set.")
         return
     
-
     if isinstance(payload, MonitorPayload):
         if config.isBatchingEnabled:
-            batch_item = BatchRequest(
-                id=f"{int(time.time() * 1000)}",
-                payload=payload,
-                timestamp=int(time.time() * 1000),
-                retries=0,
-                priority=options.get("priority", "normal"),
-            )
-            add_to_batch_queue(batch_item)
-            if (len(get_batch_queue()) >= config.batchSize or 
-                options.get("priority") == "high"):
-                await process_batch_queue()
-            else:
-                await schedule_batch_processing()
-
+            options = {"priority": options.get("priority", "normal"), "retries": options.get("retries", 0)}
+            await add_to_queue(payload, **options)
         else:
             response = await make_api_call([payload], "monitoring")
             # Log any batch-style response information if present
@@ -138,29 +124,3 @@ async def send_to_api(
     
     else:
         await send_with_retry(payload, "control")
-
-    if ("askedOverrides" in data_dict and 
-        data_dict["askedOverrides"] is None):
-        del data_dict["askedOverrides"]
-
-    try:
-        response = requests.post(
-            config.apiUrl,
-            json=data_dict,
-            headers=headers,
-            timeout=config.timeout / 1000
-        )
-        safe_log('info', f"Payload: {data_dict}")
-        safe_log('debug', f"API response: {response}")
-        response.raise_for_status()
-        result = response.json()
-        return ControlResponse(success=True, data=result)
-    except Exception as err:
-        raise err
-    
-
-
-from .batch import (
-    process_batch_queue,
-    schedule_batch_processing
-)
