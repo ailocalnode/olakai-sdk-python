@@ -48,8 +48,8 @@ async def init_client(
     
     # Load persisted queue (import here to avoid circular dependency)
     if config.enableStorage:
-        from ..queueManagerPackage import init_queue_manager
-        await init_queue_manager(config)
+        from ..queueManagerPackage import init_queue_manager, QueueDependencies
+        await init_queue_manager(QueueDependencies(config))
     if config.debug:
         config.logger.setLevel(logging.INFO)
     if config.verbose:

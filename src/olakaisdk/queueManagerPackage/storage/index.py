@@ -99,12 +99,12 @@ def get_storage() -> StorageAdapter:
 
 def is_storage_enabled(config: SDKConfig) -> bool:
     """Check if storage is enabled in the configuration."""
-    return config.enableLocalStorage
+    return config.enableStorage
 
 def get_storage_key(config: SDKConfig) -> str:
     """Get the storage key from configuration."""
-    return config.localStorageKey
+    return config.storageFilePath
 
 def get_max_storage_size(config: SDKConfig) -> int:
     """Get the maximum storage size from configuration."""
-    return config.maxLocalStorageSize 
+    return config.maxStorageSize 

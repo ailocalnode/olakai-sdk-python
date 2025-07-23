@@ -53,11 +53,12 @@ def olakai_monitor(**kwargs):
             safe_log('debug', f"Arguments: {args}")
 
             try:
+                #TODO modify the del[potential_result] to behave well with shouldBlock
                 start = time.time() * 1000  # Convert to milliseconds
                 processed_args = args
                 processed_kwargs = kwargs
                 if "potential_result" in kwargs:
-                    del ["potential_result"]
+                    del kwargs["potential_result"]
                 
                 # Check if the function should be blocked
                 shouldBlock = await should_block(options, args, kwargs)

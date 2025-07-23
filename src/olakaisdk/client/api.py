@@ -112,14 +112,8 @@ async def send_to_api(
     
     if isinstance(payload, MonitorPayload):
         if config.isBatchingEnabled:
-            batch_item = BatchRequest(
-                id=f"{int(time.time() * 1000)}",
-                payload=payload,
-                timestamp=int(time.time() * 1000),
-                retries=0,
-                priority=options.get("priority", "normal"),
-            )
-            await add_to_queue(batch_item)
+            options = {"priority": options.get("priority", "normal"), "retries": options.get("retries", 0)}
+            await add_to_queue(payload, **options)
         else:
             response = await make_api_call([payload], "monitoring")
             # Log any batch-style response information if present

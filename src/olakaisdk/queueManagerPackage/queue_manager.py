@@ -346,7 +346,6 @@ async def flush_queue() -> None:
 async def add_to_queue(
     payload: MonitorPayload,
     retries: int = 0,
-    timeout: Optional[int] = None,
     priority: str = "normal"
 ) -> None:
     """
@@ -355,9 +354,8 @@ async def add_to_queue(
     Args:
         payload: The payload to add
         retries: Number of retries for this payload
-        timeout: Timeout for this payload
         priority: Priority level ('low', 'normal', 'high')
     """
-    return await get_queue_manager().add_to_queue(payload, retries, timeout, priority) 
+    return await get_queue_manager().add_to_queue(payload, retries, priority) 
 
 from .types import QueueDependencies

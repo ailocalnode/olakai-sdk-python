@@ -1,7 +1,6 @@
 """
 Types specific to the storage system.
 """
-from enum import Enum
 from dataclasses import dataclass
 from typing import List, Protocol, Optional, Union
 from ..shared.types import APIResponse, ControlResponse
@@ -19,9 +18,12 @@ class StorageConfig:
 class QueueDependencies(Protocol):
     """Dependencies that the queue manager needs from the client."""
     
+    def __init__(self, config: SDKConfig):
+        self.config = config
+
     def get_config(self) -> SDKConfig:
         """Get the current SDK configuration."""
-        ...
+        return self.config
     
     def is_online(self) -> bool:
         """Check if the client is online."""
