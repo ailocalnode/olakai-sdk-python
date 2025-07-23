@@ -49,7 +49,8 @@ async def init_client(
     # Load persisted queue (import here to avoid circular dependency)
     if config.enableStorage:
         from ..queueManagerPackage import init_queue_manager, QueueDependencies
-        await init_queue_manager(QueueDependencies(config))
+        from ..client.api import send_with_retry
+        await init_queue_manager(QueueDependencies(config, send_with_retry))
     if config.debug:
         config.logger.setLevel(logging.INFO)
     if config.verbose:
