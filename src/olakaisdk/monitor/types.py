@@ -2,7 +2,8 @@
 Types specific to monitoring functionality.
 """
 from dataclasses import dataclass
-from typing import Optional, Callable, Union
+from typing import Optional, Callable, Union, List
+import json
 
 @dataclass 
 class Middleware:
@@ -20,7 +21,7 @@ class MonitorUtils:
     def capture_all_f(**kwargs):
         """Capture all input and output data."""
         return {
-            "input": kwargs["args"],
+            "input": str(kwargs["args"]) + json.dumps(kwargs["kwargs"]),
             "output": kwargs["result"]
         }
     
@@ -28,7 +29,7 @@ class MonitorUtils:
     def capture_input_f(**kwargs):
         """Capture only input data."""
         return {
-            "input": kwargs["args"],
+            "input": str(kwargs["args"]) + json.dumps(kwargs["kwargs"]),
             "output": "Function executed successfully"
         }
 
@@ -39,6 +40,11 @@ class MonitorUtils:
             "input": "Function called",
             "output": kwargs["result"]
         }
+
+@dataclass
+class ControlOptions:
+    """Options for control functions."""
+    askedOverrides: Optional[List[str]] = None
 
 @dataclass
 class MonitorOptions:
@@ -52,3 +58,4 @@ class MonitorOptions:
     shouldScore: bool = False
     task: Optional[str] = None
     subTask: Optional[str] = None
+    controlOptions: Optional[ControlOptions] = None
