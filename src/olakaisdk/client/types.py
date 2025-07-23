@@ -50,7 +50,6 @@ class SDKConfig:
     timeout: int = 20000  # milliseconds
     enableStorage: bool = True
     storageType: StorageType = StorageType.AUTO
-    storageKey: str = "olakai-sdk-queue"
     maxStorageSize: int = 1000000  # 1MB
     storageFilePath: Optional[str] = None
     debug: bool = False

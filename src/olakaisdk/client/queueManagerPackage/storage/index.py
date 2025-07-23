@@ -1,7 +1,7 @@
 import os
 from abc import ABC, abstractmethod
 from typing import Optional
-from ...types import StorageType
+from ...types import StorageType, SDKConfig
 from ....shared.logger import safe_log
 
 
@@ -96,3 +96,15 @@ def get_storage() -> StorageAdapter:
     if _storage_instance is None:
         init_storage(StorageType.AUTO)
     return _storage_instance
+
+def is_storage_enabled(config: SDKConfig) -> bool:
+    """Check if storage is enabled in the configuration."""
+    return config.enableLocalStorage
+
+def get_storage_key(config: SDKConfig) -> str:
+    """Get the storage key from configuration."""
+    return config.localStorageKey
+
+def get_max_storage_size(config: SDKConfig) -> int:
+    """Get the maximum storage size from configuration."""
+    return config.maxLocalStorageSize 
