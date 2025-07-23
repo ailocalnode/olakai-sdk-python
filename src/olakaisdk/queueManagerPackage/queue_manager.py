@@ -9,8 +9,8 @@ import time
 from typing import List, Optional
 from .types import BatchRequest, QueueDependencies
 from .storage.index import get_storage, is_storage_enabled, get_storage_key, get_max_storage_size
-from ..types import MonitorPayload
-from ...shared.logger import safe_log
+from ..client.types import MonitorPayload
+from ..shared.logger import safe_log
 
 class QueueManager:
     """Queue Manager - Handles all queue operations and state."""
