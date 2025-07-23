@@ -3,7 +3,7 @@ Types specific to the storage system.
 """
 from enum import Enum
 from dataclasses import dataclass
-from typing import List, Protocol, Callable, Any, Optional
+from typing import List, Protocol, Optional
 from ..client.types import MonitorPayload, SDKConfig
 
 @dataclass

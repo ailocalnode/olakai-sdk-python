@@ -4,7 +4,7 @@ Batch processing management for the Olakai SDK.
 import threading
 
 from typing import Optional
-from .storage import get_batch_queue, clear_batch_queue, persist_queue
+from ..queueManagerPackage import get_queue_size, clear_queue, flush_queue
 from .config import get_config
 from ..shared.logger import safe_log
 

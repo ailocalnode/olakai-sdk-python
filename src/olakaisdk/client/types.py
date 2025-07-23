@@ -4,7 +4,7 @@ Types specific to client functionality (API communication, batching, configurati
 from dataclasses import dataclass
 from typing import Optional, List, Any
 import logging
-from .queueManager.types import StorageType
+from ..queueManagerPackage.types import StorageType
 
 @dataclass
 class MonitorPayload:
