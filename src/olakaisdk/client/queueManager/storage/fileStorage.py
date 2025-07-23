@@ -19,7 +19,7 @@ class FileStorageService(StorageAdapter):
         Args:
             base_path: Base directory for storage files. Defaults to current directory.
         """
-        self.base_path = Path(base_path or os.getcwd())
+        self.base_path = Path(base_path if base_path else os.getcwd())
         self.base_path.mkdir(parents=True, exist_ok=True)
         
     def get_item(self, key: str) -> Optional[str]:
