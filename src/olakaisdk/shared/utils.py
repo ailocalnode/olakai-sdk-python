@@ -4,8 +4,7 @@ Common utility functions used across the SDK.
 import json
 import time
 import traceback
-import asyncio
-from typing import Any, Callable, Dict
+from typing import Any, Dict
 from .logger import safe_log
 
 

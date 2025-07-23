@@ -6,8 +6,8 @@ from dataclasses import asdict
 from typing import List, Union, Literal
 
 import requests
-from ..queueManagerPackage import add_to_queue, get_queue_size
-from .types import MonitorPayload, ControlPayload, BatchRequest
+from ..queueManagerPackage import add_to_queue
+from .types import MonitorPayload, ControlPayload
 from .config import get_config
 from ..shared.types import APIResponse, ControlResponse
 from ..shared.logger import safe_log

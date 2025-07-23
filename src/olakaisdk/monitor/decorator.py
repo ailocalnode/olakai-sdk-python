@@ -11,7 +11,7 @@ from .middleware import get_middlewares
 from .processor import process_capture_result, extract_user_info, should_block
 from ..client.types import MonitorPayload
 from ..client.api import send_to_api
-from ..shared.utils import execute_func, create_error_info, to_string_api
+from ..shared.utils import create_error_info, to_string_api
 from ..shared.logger import safe_log
 
 
