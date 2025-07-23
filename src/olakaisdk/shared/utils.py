@@ -33,21 +33,6 @@ async def to_string_api(data: Any) -> str:
     except Exception:
         return str(data)
 
-
-async def execute_func(f: Callable, *args, **kwargs) -> Any:
-    """Execute a function with arguments, handling both sync and async functions."""
-    if "potential_result" in kwargs:
-        return kwargs["potential_result"]
-    
-    try:
-        if asyncio.iscoroutinefunction(f):
-            return await f(*args, **kwargs)
-        else:
-            return f(*args, **kwargs)
-    except Exception as e:
-        raise e
-
-
 async def create_error_info(error: Exception) -> Dict[str, Any]:
     """
     Create error information dictionary from an exception.

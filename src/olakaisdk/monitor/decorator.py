@@ -64,37 +64,29 @@ def olakai_monitor(**kwargs):
                 #shouldBlock = await should_block(options, args, kwargs)
 
                 # Apply before middleware
-                middlewares = get_middlewares()
-                for middleware in middlewares:
-                    if hasattr(middleware, 'before_call') and middleware.before_call:
-                        try:
-                            middleware_result = middleware.before_call(processed_args)
-                            if middleware_result:
-                                processed_args = middleware_result
-                        except Exception as middleware_error:
-                            safe_log('debug', f"Middleware error: {middleware_error}")
+                processed_args, processed_kwargs = apply_before_middleware(processed_args, processed_kwargs)
                 
-                safe_log('debug', f"Processed arguments: {processed_args}")
+                safe_log('debug', f"Processed arguments: {processed_args}, \n Processed kwargs: {processed_kwargs}")
 
                 # Execute the function
                 function_error = None
                 result = None
                         
                 try:
-                    result = await execute_func(f, *processed_args, **processed_kwargs)
+                    result = await f(*processed_args, **processed_kwargs)
                     safe_log('debug', f"Function executed successfully")
                 except Exception as error:
                     function_error = error
                     safe_log('debug', f"Function execution failed: {error}")
                     
                     # Handle error monitoring
-                    await handle_error_monitoring(function_error, processed_args, processed_kwargs, options, start)
+                    handle_error_monitoring(function_error, processed_args, processed_kwargs, options, start)
                     raise function_error  # Re-raise the original error
                         
                 # Handle success monitoring
                 if function_error is None:
                     try:
-                        await handle_success_monitoring(result, processed_args, processed_kwargs, options, start)
+                        handle_success_monitoring(result, processed_args, processed_kwargs, options, start)
                     except Exception as error:
                         safe_log('debug', f"Error handling success monitoring: {error}")
                 
@@ -104,50 +96,86 @@ def olakai_monitor(**kwargs):
                 safe_log('error', f"Error: {error}")
                 if function_error is not None:
                     raise function_error
-                result = await execute_func(f, *args, **kwargs)
+                result = await f(*args, **kwargs)
                 return result
         
+        def sync_wrapped_f(*args, **kwargs):
+            safe_log('debug', f"Monitoring sync function: {f.__name__}")
+            safe_log('info', f"Arguments: {args}, \n Kwargs: {kwargs}")
+            try:
+                loop = asyncio.get_running_loop()
+                return asyncio.create_task(should_block(options, args, kwargs))
+            except RuntimeError:
+                # No running loop, create a new one for monitoring
+                # Run in a separate thread to avoid blocking the sync function
+                def run_monitoring():
+                    return asyncio.run(should_block(options, args, kwargs))
+                            
+                thread = threading.Thread(target=run_monitoring, daemon=True)
+                thread.start()
+            except Exception:
+                pass
+
+
+            try:
+                result = f(*args, **kwargs)
+            except Exception as error:
+                raise error
+                
+                # Background monitoring for sync functions
+            def fire_and_forget_monitoring():
+                        # Check if there's already an event loop running
+                try:
+                    loop = asyncio.get_running_loop()
+                            # If there's a running loop, schedule the monitoring as a task
+                    asyncio.create_task(async_wrapped_f(*args, **kwargs, potential_result=result))
+                except RuntimeError:
+                            # No running loop, create a new one for monitoring
+                            # Run in a separate thread to avoid blocking the sync function
+                    def run_monitoring():
+                        asyncio.run(async_wrapped_f(*args, **kwargs, potential_result=result))
+                            
+                    thread = threading.Thread(target=run_monitoring, daemon=True)
+                    thread.start()
+                except Exception:
+                        # If monitoring fails, don't affect the original function
+                    pass
+                
+                # Start background monitoring
+            fire_and_forget_monitoring()
+                
+                # Return the original result
+            return result
+
+            
+
         # Check if the decorated function is async or sync
         if asyncio.iscoroutinefunction(f):
             # For async functions, return the async wrapper directly
             return async_wrapped_f
         else:
             # For sync functions, create a sync wrapper that fires off monitoring in background
-            def sync_wrapped_f(*args, **kwargs):
-                try:
-                    result = f(*args, **kwargs)
-                except Exception as error:
-                    raise error
-                
-                # Background monitoring for sync functions
-                def fire_and_forget_monitoring():
-                    try:
-                        # Check if there's already an event loop running
-                        try:
-                            loop = asyncio.get_running_loop()
-                            # If there's a running loop, schedule the monitoring as a task
-                            asyncio.create_task(async_wrapped_f(*args, **kwargs, potential_result=result))
-                        except RuntimeError:
-                            # No running loop, create a new one for monitoring
-                            # Run in a separate thread to avoid blocking the sync function
-                            def run_monitoring():
-                                asyncio.run(async_wrapped_f(*args, **kwargs, potential_result=result))
-                            
-                            thread = threading.Thread(target=run_monitoring, daemon=True)
-                            thread.start()
-                    except Exception:
-                        # If monitoring fails, don't affect the original function
-                        pass
-                
-                # Start background monitoring
-                fire_and_forget_monitoring()
-                
-                # Return the original result
-                return result
-            
             return sync_wrapped_f
     
     return wrap
+
+def apply_before_middleware(args: tuple, kwargs: dict):
+    """Apply before middleware to the function."""
+    safe_log('debug', f"Applying before middleware to the function")
+    processed_args = args
+    processed_kwargs = kwargs
+    middlewares = get_middlewares()
+    for middleware in middlewares:
+        if hasattr(middleware, 'before_call') and middleware.before_call:
+            try:
+                safe_log('info', f"Applying before middleware: {middleware.__class__.__name__}")
+                processed_args, processed_kwargs = middleware.before_call(args, kwargs)
+                safe_log('info', f"Processed arguments: {processed_args}")
+                safe_log('info', f"Processed kwargs: {processed_kwargs}")
+            except Exception as middleware_error:
+                safe_log('debug', f"Before middleware failed: {middleware_error}")
+    safe_log('info', f"Exiting apply_before_middleware")
+    return processed_args, processed_kwargs
 
 
 async def handle_error_monitoring(error: Exception, processed_args: tuple, processed_kwargs: dict, options: MonitorOptions, start: float):
