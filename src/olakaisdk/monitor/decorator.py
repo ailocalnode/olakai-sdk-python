@@ -37,6 +37,8 @@ def olakai_monitor(options: Optional[MonitorOptions] = None):
                 start = time.time() * 1000  # Convert to milliseconds
                 processed_args = args
                 processed_kwargs = kwargs
+                if "potential_result" in kwargs:
+                    del ["potential_result"]
                 
                 # Check if the function should be blocked
                 shouldBlock = await should_block(options, args, kwargs)

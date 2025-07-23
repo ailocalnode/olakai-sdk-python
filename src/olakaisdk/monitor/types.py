@@ -21,7 +21,7 @@ class MonitorUtils:
     def capture_all_f(**kwargs):
         """Capture all input and output data."""
         return {
-            "input": kwargs["args"] + json.dumps(kwargs["kwargs"]),
+            "input": str(kwargs["args"]) + json.dumps(kwargs["kwargs"]),
             "output": kwargs["result"]
         }
     
@@ -29,7 +29,7 @@ class MonitorUtils:
     def capture_input_f(**kwargs):
         """Capture only input data."""
         return {
-            "input": kwargs["args"] + json.dumps(kwargs["kwargs"]),
+            "input": str(kwargs["args"]) + json.dumps(kwargs["kwargs"]),
             "output": "Function executed successfully"
         }
 
