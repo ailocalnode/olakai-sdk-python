@@ -17,7 +17,7 @@ isBatchingEnabled = False
 
 
 async def make_api_call(
-    payload: Union[MonitorPayload, List[MonitorPayload], ControlPayload],
+    payload: Union[List[MonitorPayload], ControlPayload],
     call_type: Literal["monitoring", "control"] = "monitoring",
 ) -> Union[APIResponse, ControlResponse]:
     """Make API call with optional logging."""
@@ -36,11 +36,7 @@ async def make_api_call(
             raise Exception("[Olakai SDK] Control URL is not set")
 
     headers = {"x-api-key": config.apiKey}
-    data_dicts = (
-        [asdict(x) for x in payload] 
-        if isinstance(payload, list) 
-        else [asdict(payload)]
-    ) if call_type == "monitoring" else asdict(payload)
+    data_dicts = [asdict(x) for x in payload] if call_type == "monitoring" else asdict(payload)
     
     if call_type == "monitoring":
         # Clean up None values
@@ -67,19 +63,20 @@ async def make_api_call(
         safe_log('debug', f"Call type: {call_type}, API response: {response}")
         response.raise_for_status()
         result = response.json()
+
         if call_type == "monitoring":
-            return APIResponse(success=True, data=result)
+            return APIResponse(result)
         else:
-            return ControlResponse(success=True, data=result)
+            return ControlResponse(result)
 
     except Exception as err:
         raise err
 
 
 async def send_with_retry(
-    payload: Union[MonitorPayload, List[MonitorPayload], ControlPayload],
+    payload: Union[List[MonitorPayload], ControlPayload],
     call_type: Literal["monitoring", "control"] = "monitoring",
-) -> bool:
+) -> Union[APIResponse, ControlResponse]:
     """Send payload with retry logic and optional logging."""
 
     config = get_config()
@@ -88,8 +85,9 @@ async def send_with_retry(
 
     for attempt in range(max_retries + 1):
         try:
-            await make_api_call(payload, call_type)
-            return True
+            result = await make_api_call(payload, call_type)
+            safe_log('debug', f"API call successful")
+            return result
         except Exception as err:
             last_error = err
 
@@ -100,7 +98,7 @@ async def send_with_retry(
                 await sleep(delay)
     
     safe_log('debug', f"All retry attempts failed: {last_error}")
-    return False
+    raise last_error
 
 
 async def send_to_api(
@@ -131,7 +129,12 @@ async def send_to_api(
             else:
                 await schedule_batch_processing()
         else:
-            await make_api_call(payload, "monitoring")
+            response = await make_api_call([payload], "monitoring")
+            # Log any batch-style response information if present
+            if (response.totalRequests != None and response.successCount != None):
+                safe_log('info', f"Direct API call result: {response.successCount}/{response.totalRequests} requests succeeded")
+                if response.failureCount and response.failureCount > 0:
+                    safe_log('warn', f"Direct API call result: {response.failureCount}/{response.totalRequests} requests failed")
     
     else:
         await send_with_retry(payload, "control")

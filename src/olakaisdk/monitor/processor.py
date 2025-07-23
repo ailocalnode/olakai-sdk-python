@@ -6,6 +6,9 @@ import re
 from typing import Any, Optional, List
 from ..shared.logger import safe_log
 from ..client.config import get_config
+from .types import MonitorOptions
+from ..client.types import ControlPayload
+from ..client.api import send_to_api
 
 
 async def sanitize_data(data: Any, patterns: Optional[List[re.Pattern]] = None) -> Any:
@@ -67,7 +70,7 @@ async def process_capture_result(capture_result: dict, options):
     return prompt, response
 
 
-async def extract_user_info(options):
+async def extract_user_info(options: MonitorOptions) -> tuple[str, str]:
     """
     Extract chatId and email from options, handling both static values and callable functions.
     
@@ -106,3 +109,28 @@ async def extract_user_info(options):
             email = options.email
 
     return chatId, email 
+
+async def should_block(options: MonitorOptions, args: tuple, kwargs: dict) -> bool:
+    """
+    Check if the function should be blocked.
+    
+    Args:
+        options: Monitor options
+        logger: Optional logger instance
+        
+    Returns:
+        True if the function should be blocked, False otherwise
+    """
+
+    chatId, email = await extract_user_info(options)
+
+    prompt = "Args: " + str(args) + "\n\n Kwargs: " + json.dumps(kwargs) + "\n\n Task: " + (options.task if options.task else "") + "\n\n SubTask: " + (options.subTask if options.subTask else "")
+
+    control_payload = ControlPayload(
+        email=email,
+        chatId=chatId,
+        prompt=prompt,
+        askedOverrides=options.controlOptions.askedOverrides
+    )
+
+    return await send_to_api(control_payload)

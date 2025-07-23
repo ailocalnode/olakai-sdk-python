@@ -7,7 +7,7 @@ import threading
 from typing import Any, Callable, Optional
 from .types import MonitorOptions
 from .middleware import get_middlewares
-from .processor import process_capture_result, extract_user_info
+from .processor import process_capture_result, extract_user_info, should_block
 from ..client.types import MonitorPayload
 from ..client.api import send_to_api
 from ..shared.utils import execute_func, create_error_info, to_string_api
@@ -36,7 +36,11 @@ def olakai_monitor(options: Optional[MonitorOptions] = None):
             try:
                 start = time.time() * 1000  # Convert to milliseconds
                 processed_args = args
+                processed_kwargs = kwargs
                 
+                # Check if the function should be blocked
+                shouldBlock = await should_block(options, args, kwargs)
+
                 # Apply before middleware
                 middlewares = get_middlewares()
                 for middleware in middlewares:
@@ -55,20 +59,20 @@ def olakai_monitor(options: Optional[MonitorOptions] = None):
                 result = None
                         
                 try:
-                    result = await execute_func(f, *processed_args, **kwargs)
+                    result = await execute_func(f, *processed_args, **processed_kwargs)
                     safe_log('debug', f"Function executed successfully")
                 except Exception as error:
                     function_error = error
                     safe_log('debug', f"Function execution failed: {error}")
                     
                     # Handle error monitoring
-                    await handle_error_monitoring(function_error, processed_args, options, start)
+                    await handle_error_monitoring(function_error, processed_args, processed_kwargs, options, start)
                     raise function_error  # Re-raise the original error
                         
                 # Handle success monitoring
                 if function_error is None:
                     try:
-                        await handle_success_monitoring(result, processed_args, options, start)
+                        await handle_success_monitoring(result, processed_args, processed_kwargs, options, start)
                     except Exception as error:
                         safe_log('debug', f"Error handling success monitoring: {error}")
                 
@@ -124,7 +128,7 @@ def olakai_monitor(options: Optional[MonitorOptions] = None):
     return wrap
 
 
-async def handle_error_monitoring(error: Exception, processed_args: tuple, options: MonitorOptions, start: float):
+async def handle_error_monitoring(error: Exception, processed_args: tuple, processed_kwargs: dict, options: MonitorOptions, start: float):
     """Handle monitoring for function errors."""
     middlewares = get_middlewares()
     
@@ -132,7 +136,7 @@ async def handle_error_monitoring(error: Exception, processed_args: tuple, optio
     for middleware in middlewares:
         if hasattr(middleware, 'on_error') and middleware.on_error:
             try:
-                middleware.on_error(error, processed_args)
+                middleware.on_error(error, processed_args, processed_kwargs)
             except Exception as middleware_error:
                 safe_log('debug', f"Error middleware failed: {middleware_error}")
                 
@@ -163,7 +167,7 @@ async def handle_error_monitoring(error: Exception, processed_args: tuple, optio
             safe_log('debug', f"Error capture failed: {capture_error}")
 
 
-async def handle_success_monitoring(result: Any, processed_args: tuple, options: MonitorOptions, start: float):
+async def handle_success_monitoring(result: Any, processed_args: tuple, processed_kwargs: dict, options: MonitorOptions, start: float):
     """Handle monitoring for successful function execution."""
     middlewares = get_middlewares()
     
@@ -183,6 +187,7 @@ async def handle_success_monitoring(result: Any, processed_args: tuple, options:
     if hasattr(options, 'capture') and options.capture:
         capture_result = options.capture(
             args=processed_args,
+            kwargs=processed_kwargs,
             result=result
         )
         
