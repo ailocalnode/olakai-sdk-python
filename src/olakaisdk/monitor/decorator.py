@@ -5,7 +5,7 @@ import asyncio
 import time
 import threading
 from dataclasses import fields
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 from .types import MonitorOptions
 from .middleware import get_middlewares
 from .processor import process_capture_result, extract_user_info, should_block
@@ -40,7 +40,10 @@ def olakai_monitor(**kwargs):
         fields_names = [field.name for field in fields(MonitorOptions)]
         for key, value in kwargs.items():
             if key in fields_names:
-                setattr(options, key, value)
+                try:
+                    setattr(options, key, value)
+                except Exception as e:
+                    safe_log('debug', f"Error setting attribute, check the type of the value: {e}")
             else:
                 safe_log('debug', f"Invalid keyword argument: {key}")
 
