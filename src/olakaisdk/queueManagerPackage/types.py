@@ -6,27 +6,6 @@ from dataclasses import dataclass
 from typing import List, Protocol, Optional, Union
 from ..shared.types import APIResponse, ControlResponse
 
-@dataclass
-class BatchRequest:
-    """A batch request that can contain multiple payloads."""
-    id: str
-    payload: List[MonitorPayload]
-    timestamp: int
-    retries: int = 0
-    priority: str = "normal"  # 'low', 'normal', 'high'
-
-@dataclass 
-class MonitoringAPIResponse:
-    """Response from the monitoring API."""
-    success: bool
-    results: Optional[List['APIResult']] = None
-
-@dataclass
-class APIResult:
-    """Individual result from API response."""
-    success: bool
-    index: int
-    error: Optional[str] = None
 
 @dataclass
 class StorageConfig:

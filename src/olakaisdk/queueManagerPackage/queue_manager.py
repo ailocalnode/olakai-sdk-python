@@ -7,9 +7,8 @@ import json
 import asyncio
 import time
 from typing import List, Optional
-from .types import BatchRequest, QueueDependencies
 from .storage.index import get_storage, is_storage_enabled, get_storage_key, get_max_storage_size
-from ..client.types import MonitorPayload
+from ..client.types import MonitorPayload, BatchRequest
 from ..shared.logger import safe_log
 
 class QueueManager:
@@ -360,3 +359,5 @@ async def add_to_queue(
         priority: Priority level ('low', 'normal', 'high')
     """
     return await get_queue_manager().add_to_queue(payload, retries, timeout, priority) 
+
+from .types import QueueDependencies
