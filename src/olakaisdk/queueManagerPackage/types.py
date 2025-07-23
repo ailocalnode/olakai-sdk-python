@@ -3,8 +3,8 @@ Types specific to the storage system.
 """
 from enum import Enum
 from dataclasses import dataclass
-from typing import List, Protocol, Optional
-from ..client.types import MonitorPayload, SDKConfig
+from typing import List, Protocol, Optional, Union
+from ..shared.types import APIResponse, ControlResponse
 
 @dataclass
 class BatchRequest:
@@ -54,6 +54,8 @@ class QueueDependencies(Protocol):
         """Check if the client is online."""
         ...
     
-    async def send_with_retry(self, payloads: List[MonitorPayload], max_retries: Optional[int] = None) -> MonitoringAPIResponse:
+    async def send_with_retry(self, payloads: List[MonitorPayload], max_retries: Optional[int] = None) -> Union[APIResponse, ControlResponse]:
         """Send payloads with retry logic."""
         ... 
+
+from ..client.types import MonitorPayload, SDKConfig
