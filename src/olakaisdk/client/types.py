@@ -4,6 +4,7 @@ Types specific to client functionality (API communication, batching, configurati
 from dataclasses import dataclass
 from typing import Optional, List, Any
 import logging
+from .queueManager.types import StorageType
 
 @dataclass
 class MonitorPayload:
@@ -47,9 +48,11 @@ class SDKConfig:
     batchTimeout: int = 5000  # milliseconds
     retries: int = 3
     timeout: int = 20000  # milliseconds
-    enableLocalStorage: bool = True
-    localStorageKey: str = "olakai-sdk-queue"
-    maxLocalStorageSize: int = 1000000  # 1MB
+    enableStorage: bool = True
+    storageType: StorageType = StorageType.AUTO
+    storageKey: str = "olakai-sdk-queue"
+    maxStorageSize: int = 1000000  # 1MB
+    storageFilePath: Optional[str] = None
     debug: bool = False
     verbose: bool = False
     sanitize_patterns: Optional[List[Any]] = None
