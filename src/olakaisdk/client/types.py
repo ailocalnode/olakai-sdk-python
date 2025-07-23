@@ -4,7 +4,7 @@ Types specific to client functionality (API communication, batching, configurati
 from dataclasses import dataclass
 from typing import Optional, List, Any
 import logging
-from ..queueManagerPackage.types import StorageType
+from enum import Enum
 
 @dataclass
 class MonitorPayload:
@@ -36,6 +36,12 @@ class BatchRequest:
     retries: int = 0
     priority: str = "normal"  # 'low', 'normal', 'high'
 
+class StorageType(Enum):
+    """Type of storage to use."""
+    FILE = "file"
+    MEMORY = "memory"
+    AUTO = "auto"
+    DISABLED = "disabled"
 
 @dataclass
 class SDKConfig:

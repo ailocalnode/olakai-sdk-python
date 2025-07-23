@@ -15,12 +15,6 @@ class StorageConfig:
     max_size: int = 1000000  # 1MB
     file_path: Optional[str] = None
 
-class StorageType(Enum):
-    """Type of storage to use."""
-    FILE = "file"
-    MEMORY = "memory"
-    AUTO = "auto"
-    DISABLED = "disabled"
 
 class QueueDependencies(Protocol):
     """Dependencies that the queue manager needs from the client."""
