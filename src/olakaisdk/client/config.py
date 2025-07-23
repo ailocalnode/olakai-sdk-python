@@ -44,6 +44,7 @@ async def init_client(
             setattr(config, key, value)
         except AttributeError:
             safe_log('warning', f"Invalid configuration parameter: {key}, continuing anyway...")
+
     safe_log('info', f"Initialized Olakai SDK client with config: {config}")
     
     # Load persisted queue (import here to avoid circular dependency)

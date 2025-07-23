@@ -99,6 +99,7 @@ async def send_with_retry(
 
 
 async def send_to_api(
+
     payload: Union[MonitorPayload, ControlPayload], 
     options: dict = {}, 
 ):
@@ -110,6 +111,7 @@ async def send_to_api(
         safe_log('debug', "API key is not set.")
         return
     
+
     if isinstance(payload, MonitorPayload):
         if config.isBatchingEnabled:
             batch_item = BatchRequest(
@@ -125,6 +127,7 @@ async def send_to_api(
                 await process_batch_queue()
             else:
                 await schedule_batch_processing()
+
         else:
             response = await make_api_call([payload], "monitoring")
             # Log any batch-style response information if present
@@ -135,6 +138,26 @@ async def send_to_api(
     
     else:
         await send_with_retry(payload, "control")
+
+    if ("askedOverrides" in data_dict and 
+        data_dict["askedOverrides"] is None):
+        del data_dict["askedOverrides"]
+
+    try:
+        response = requests.post(
+            config.apiUrl,
+            json=data_dict,
+            headers=headers,
+            timeout=config.timeout / 1000
+        )
+        safe_log('info', f"Payload: {data_dict}")
+        safe_log('debug', f"API response: {response}")
+        response.raise_for_status()
+        result = response.json()
+        return ControlResponse(success=True, data=result)
+    except Exception as err:
+        raise err
+    
 
 
 from .batch import (
