@@ -24,7 +24,7 @@ async def make_api_call(
         raise Exception("[Olakai SDK] API key is not set")
     
     if call_type == "monitoring":
-        assert isinstance(payload, MonitorPayload) or isinstance(payload, List[MonitorPayload])
+        assert not isinstance(payload, ControlPayload)
         if not config.monitoringUrl:
             raise Exception("[Olakai SDK] Monitoring URL is not set")
     else:
@@ -62,9 +62,9 @@ async def make_api_call(
         result = response.json()
 
         if call_type == "monitoring":
-            return APIResponse(result)
+            return APIResponse(**result)
         else:
-            return ControlResponse(result)
+            return ControlResponse(**result)
 
     except Exception as err:
         raise err
