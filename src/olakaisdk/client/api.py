@@ -131,7 +131,7 @@ async def send_to_api(
             if (response.totalRequests != None and response.successCount != None):
                 safe_log('info', f"Direct API call result: {response.successCount}/{response.totalRequests} requests succeeded")
                 if response.failureCount and response.failureCount > 0:
-                    safe_log('warn', f"Direct API call result: {response.failureCount}/{response.totalRequests} requests failed")
+                    safe_log('warning', f"Direct API call result: {response.failureCount}/{response.totalRequests} requests failed")
     
     else:
         await send_with_retry(payload, "control")
