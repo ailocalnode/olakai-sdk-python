@@ -1,7 +1,6 @@
 """
 API communication module for the Olakai SDK.
 """
-import time
 from dataclasses import asdict
 from typing import List, Union, Literal
 
