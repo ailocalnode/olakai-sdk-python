@@ -10,6 +10,7 @@ from typing import List, Optional
 from .storage.index import get_storage, is_storage_enabled, get_storage_key, get_max_storage_size
 from ..client.types import MonitorPayload, BatchRequest
 from ..shared.logger import safe_log
+from .types import QueueDependencies
 
 class QueueManager:
     """Queue Manager - Handles all queue operations and state."""
@@ -358,4 +359,3 @@ async def add_to_queue(
     """
     return await get_queue_manager().add_to_queue(payload, retries, priority) 
 
-from .types import QueueDependencies

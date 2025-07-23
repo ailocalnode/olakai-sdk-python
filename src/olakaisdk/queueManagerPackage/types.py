@@ -2,7 +2,7 @@
 Types specific to the storage system.
 """
 from dataclasses import dataclass
-from typing import List, Protocol, Optional, Union
+from typing import List, Optional, Union, Callable
 from ..shared.types import APIResponse, ControlResponse
 
 
@@ -14,12 +14,14 @@ class StorageConfig:
     max_size: int = 1000000  # 1MB
     file_path: Optional[str] = None
 
+from ..client.types import MonitorPayload, SDKConfig
 
-class QueueDependencies(Protocol):
+class QueueDependencies:
     """Dependencies that the queue manager needs from the client."""
     
-    def __init__(self, config: SDKConfig):
+    def __init__(self, config: SDKConfig, send_with_retry: Callable[[List[MonitorPayload], Optional[int]], Union[APIResponse, ControlResponse]]):
         self.config = config
+        self.send_with_retry = send_with_retry
 
     def get_config(self) -> SDKConfig:
         """Get the current SDK configuration."""
@@ -31,6 +33,5 @@ class QueueDependencies(Protocol):
     
     async def send_with_retry(self, payloads: List[MonitorPayload], max_retries: Optional[int] = None) -> Union[APIResponse, ControlResponse]:
         """Send payloads with retry logic."""
-        ... 
+        return self.send_with_retry(payloads, max_retries)
 
-from ..client.types import MonitorPayload, SDKConfig

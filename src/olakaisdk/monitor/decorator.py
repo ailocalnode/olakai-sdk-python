@@ -61,7 +61,7 @@ def olakai_monitor(**kwargs):
                     del kwargs["potential_result"]
                 
                 # Check if the function should be blocked
-                shouldBlock = await should_block(options, args, kwargs)
+                #shouldBlock = await should_block(options, args, kwargs)
 
                 # Apply before middleware
                 middlewares = get_middlewares()
