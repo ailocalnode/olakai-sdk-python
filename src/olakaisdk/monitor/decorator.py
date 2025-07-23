@@ -4,6 +4,7 @@ Core monitoring decorator functionality.
 import asyncio
 import time
 import threading
+from dataclasses import fields
 from typing import Any, Callable, Optional
 from .types import MonitorOptions
 from .middleware import get_middlewares
@@ -14,20 +15,35 @@ from ..shared.utils import execute_func, create_error_info, to_string_api
 from ..shared.logger import safe_log
 
 
-def olakai_monitor(options: Optional[MonitorOptions] = None):
+def olakai_monitor(**kwargs):
     """
     Monitor a function with the given options.
     
-    Args:
-        options: Monitor options
-        logger: Optional logger instance
+    Kwargs:
+        possible options (must be kwargs):
+            capture: Callable
+            sanitize: bool
+            send_on_function_error: bool
+            priority: str
+            email: str
+            chatId: str
+            shouldScore: bool
+            task: str
+            subTask: str
+            controlOptions: ControlOptions
         
     Returns:
         Decorator function
     """
-    if options is None:
-        options = MonitorOptions()
-    
+    options = MonitorOptions()
+    if len(kwargs) > 0:
+        fields_names = [field.name for field in fields(MonitorOptions)]
+        for key, value in kwargs.items():
+            if key in fields_names:
+                setattr(options, key, value)
+            else:
+                safe_log('debug', f"Invalid keyword argument: {key}")
+
     def wrap(f: Callable) -> Callable:
         async def async_wrapped_f(*args, **kwargs):
             safe_log('debug', f"Monitoring function: {f.__name__}")
