@@ -13,6 +13,8 @@ from ..client.types import MonitorPayload
 from ..client.api import send_to_api
 from ..shared.utils import create_error_info, to_string_api
 from ..shared.logger import safe_log
+from ..shared.exceptions import OlakaiFunctionBlocked, MiddlewareError
+
 
 
 def olakai_monitor(**kwargs):
@@ -61,12 +63,19 @@ def olakai_monitor(**kwargs):
                     del kwargs["potential_result"]
                 
                 # Check if the function should be blocked
-                #shouldBlock = await should_block(options, args, kwargs)
+
+                should_be_blocked = await should_block(options, args, kwargs)
+                if should_be_blocked:
+                    safe_log('warning', f"Function {f.__name__} was blocked")
+                    raise OlakaiFunctionBlocked("Function execution blocked by Olakai")
 
                 # Apply before middleware
-                processed_args, processed_kwargs = apply_before_middleware(processed_args, processed_kwargs)
+                try:
+                    processed_args, processed_kwargs = apply_before_middleware(processed_args, processed_kwargs)
+                except MiddlewareError:
+                    pass
                 
-                safe_log('debug', f"Processed arguments: {processed_args}, \n Processed kwargs: {processed_kwargs}")
+                safe_log('info', f"Processed arguments: {processed_args}, \n Processed kwargs: {processed_kwargs}")
 
                 # Execute the function
                 function_error = None
@@ -91,7 +100,11 @@ def olakai_monitor(**kwargs):
                         safe_log('debug', f"Error handling success monitoring: {error}")
                 
                 return result
-                
+            
+
+            except OlakaiFunctionBlocked:
+                # Re-raise blocking exceptions without modification
+                raise
             except Exception as error:
                 safe_log('error', f"Error: {error}")
                 if function_error is not None:
@@ -102,20 +115,34 @@ def olakai_monitor(**kwargs):
         def sync_wrapped_f(*args, **kwargs):
             safe_log('debug', f"Monitoring sync function: {f.__name__}")
             safe_log('info', f"Arguments: {args}, \n Kwargs: {kwargs}")
+            
+            # Check if the function should be blocked
+            should_be_blocked = False
             try:
                 loop = asyncio.get_running_loop()
-                return asyncio.create_task(should_block(options, args, kwargs))
-            except RuntimeError:
-                # No running loop, create a new one for monitoring
-                # Run in a separate thread to avoid blocking the sync function
-                def run_monitoring():
+                # If there's a running loop, we need to run should_block in a separate thread
+                # to avoid blocking the current thread
+                import concurrent.futures
+                
+                def run_should_block():
                     return asyncio.run(should_block(options, args, kwargs))
-                            
-                thread = threading.Thread(target=run_monitoring, daemon=True)
-                thread.start()
-            except Exception:
-                pass
-
+                
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(run_should_block)
+                    should_be_blocked = future.result()
+                    
+            except RuntimeError:
+                # No running loop, create a new one
+                should_be_blocked = asyncio.run(should_block(options, args, kwargs))
+            except Exception as e:
+                safe_log('debug', f"Error checking should_block: {e}")
+                # If checking fails, default to not blocking
+                should_be_blocked = False
+                
+            # If the function should be blocked, don't execute it
+            if should_be_blocked:
+                safe_log('warning', f"Function {f.__name__} was blocked")
+                raise OlakaiFunctionBlocked("Function execution blocked by Olakai")
 
             try:
                 result = f(*args, **kwargs)
@@ -124,10 +151,11 @@ def olakai_monitor(**kwargs):
                 
                 # Background monitoring for sync functions
             def fire_and_forget_monitoring():
-                        # Check if there's already an event loop running
+                        
                 try:
+                    # Check if there's already an event loop running
                     loop = asyncio.get_running_loop()
-                            # If there's a running loop, schedule the monitoring as a task
+                    # If there's a running loop, schedule the monitoring as a task
                     asyncio.create_task(async_wrapped_f(*args, **kwargs, potential_result=result))
                 except RuntimeError:
                             # No running loop, create a new one for monitoring
@@ -138,7 +166,8 @@ def olakai_monitor(**kwargs):
                     thread = threading.Thread(target=run_monitoring, daemon=True)
                     thread.start()
                 except Exception:
-                        # If monitoring fails, don't affect the original function
+                    # If monitoring fails, don't affect the original function
+                    safe_log('debug', f"Monitoring failed")
                     pass
                 
                 # Start background monitoring
@@ -172,8 +201,9 @@ def apply_before_middleware(args: tuple, kwargs: dict):
                 processed_args, processed_kwargs = middleware.before_call(args, kwargs)
                 safe_log('info', f"Processed arguments: {processed_args}")
                 safe_log('info', f"Processed kwargs: {processed_kwargs}")
-            except Exception as middleware_error:
-                safe_log('debug', f"Before middleware failed: {middleware_error}")
+            except MiddlewareError as e:
+                safe_log('debug', f"Middleware error: {e}")
+                raise e
     safe_log('info', f"Exiting apply_before_middleware")
     return processed_args, processed_kwargs
 
