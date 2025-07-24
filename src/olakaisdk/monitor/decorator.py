@@ -2,6 +2,8 @@
 Core monitoring decorator functionality.
 """
 import asyncio
+import socket
+import inspect
 import time
 import threading
 from dataclasses import fields
@@ -13,8 +15,9 @@ from ..client.types import MonitorPayload
 from ..client.api import send_to_api
 from ..shared.utils import create_error_info, to_string_api
 from ..shared.logger import safe_log
-from ..shared.exceptions import OlakaiFunctionBlocked, MiddlewareError
+from ..shared.exceptions import OlakaiFunctionBlocked, MiddlewareError, ControlServiceError
 
+externalLogic = False
 
 
 def olakai_monitor(**kwargs):
@@ -50,6 +53,8 @@ def olakai_monitor(**kwargs):
                 safe_log('debug', f"Invalid keyword argument: {key}")
 
     def wrap(f: Callable) -> Callable:
+
+        
         async def async_wrapped_f(*args, **kwargs):
             safe_log('debug', f"Monitoring function: {f.__name__}")
             safe_log('debug', f"Arguments: {args}")
@@ -134,6 +139,11 @@ def olakai_monitor(**kwargs):
             except RuntimeError:
                 # No running loop, create a new one
                 should_be_blocked = asyncio.run(should_block(options, args, kwargs))
+
+            except ControlServiceError:
+                safe_log('debug', f"Control service error")
+                should_be_blocked = False
+                
             except Exception as e:
                 safe_log('debug', f"Error checking should_block: {e}")
                 # If checking fails, default to not blocking
@@ -143,12 +153,54 @@ def olakai_monitor(**kwargs):
             if should_be_blocked:
                 safe_log('warning', f"Function {f.__name__} was blocked")
                 raise OlakaiFunctionBlocked("Function execution blocked by Olakai")
+            
+            def dump_stack_with_args(limit=20, filter=["/site-packages/", "\\site-packages\\", "asyncio"], sanitize_args=["api_key"]):
+                stack = inspect.stack()
+                call_info = []
+                for frame_info in stack[:limit]:
+                    frame = frame_info.frame
+                    filename = frame_info.filename
+                    if any(filter in filename for filter in filter):
+                        continue
+                    func = frame_info.function
+                    args, _, _, values = inspect.getargvalues(frame)
+                    arg_str = ", ".join(
+                        f"{a}={repr(values[a])[:50]}" if (a in values and a not in sanitize_args) else f"{a}=[REDACTED]"
+                        for a in args
+                    )
+                    call_info.append({
+                        "filename": filename.split('\\' if '\\' in filename else '/')[-1],
+                        "lineno": frame_info.lineno,
+                        "function": func,
+                        "args": arg_str
+                    })
+                return call_info
 
+            if externalLogic:
+                original_connect = socket.socket.connect
+                def monitored_connect(self, address):
+                    print(f"[NETWORK] Connecting to {address}")
+                    stack = dump_stack_with_args()
+                    nice_trace = ""
+                    for call in reversed(stack):
+                        nice_trace += f"{call['function']}({call['args']}) -> "
+                    nice_trace = nice_trace[:-4]
+                    nice_trace += "\n ===============================\n"
+                    print(nice_trace)
+                    print("stack trace:")
+                    for call in stack:
+                        print(f"{call['filename']}:{call['lineno']} {call['function']}({call['args']})")
+                    return original_connect(self, address)
+                
+                socket.socket.connect = monitored_connect
+                
             try:
                 result = f(*args, **kwargs)
             except Exception as error:
                 raise error
-                
+            finally:
+                if externalLogic:
+                    socket.socket.connect = original_connect
                 # Background monitoring for sync functions
             def fire_and_forget_monitoring():
                         

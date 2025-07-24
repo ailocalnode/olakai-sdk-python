@@ -134,7 +134,7 @@ async def should_block(options: MonitorOptions, args: tuple, kwargs: dict) -> bo
             email=email,
             chatId=chatId,
             prompt=prompt,
-            askedOverrides=options.controlOptions.askedOverrides
+            askedOverrides=options.controlOptions.askedOverrides if options.controlOptions else None
         )
 
         return await send_to_api(control_payload)
