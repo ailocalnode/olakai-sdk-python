@@ -134,10 +134,14 @@ async def should_block(options: MonitorOptions, args: tuple, kwargs: dict) -> bo
             email=email,
             chatId=chatId,
             prompt=prompt,
-            askedOverrides=options.controlOptions.askedOverrides if options.controlOptions else None
+            task=options.task,
+            subTask=options.subTask,
+            tokens=0,
+            overrideControlCriteria=options.controlOptions.askedOverrides if options.controlOptions else None
         )
 
-        return await send_to_api(control_payload)
+        response = await send_to_api(control_payload)
+        return response.allowed
     except Exception as e:
         safe_log('error', f"Control service failed: {str(e)}")
         raise ControlServiceError(f"Failed to check if function should be blocked: {str(e)}") from e

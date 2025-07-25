@@ -51,9 +51,13 @@ async def make_api_call(
             if "subTask" in data_dict and data_dict["subTask"] is None:
                 del data_dict["subTask"]
     else:
-        if ("askedOverrides" in data_dicts and 
-            data_dicts["askedOverrides"] is None):
-            del data_dicts["askedOverrides"]
+        if ("overrideControlCriteria" in data_dicts and 
+            data_dicts["overrideControlCriteria"] is None):
+            del data_dicts["overrideControlCriteria"]
+        if "task" in data_dicts and data_dicts["task"] is None:
+            del data_dicts["task"]
+        if "subTask" in data_dicts and data_dicts["subTask"] is None:
+            del data_dicts["subTask"]
 
     try:
         response = requests.post(
@@ -113,7 +117,7 @@ async def send_with_retry(
 async def send_to_api(
     payload: Union[MonitorPayload, ControlPayload], 
     options: dict = {}, 
-):
+) -> Union[APIResponse, ControlResponse]:
     """Send payload to API with optional logging."""
 
     config = get_config()
