@@ -23,9 +23,13 @@ class MonitorPayload:
 @dataclass
 class ControlPayload:
     """Payload for control data sent to API."""
-    email: Optional[str] = "anonymous@olakai.ai"
     prompt: str = ""
-    askedOverrides: Optional[List[str]] = None
+    email: Optional[str] = "anonymous@olakai.ai"
+    chatId: Optional[str] = "123"
+    task: Optional[str] = None
+    subTask: Optional[str] = None
+    tokens: Optional[int] = 0
+    overrideControlCriteria: Optional[List[str]] = None
 
 @dataclass
 class BatchRequest:

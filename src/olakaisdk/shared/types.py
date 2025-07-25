@@ -2,7 +2,7 @@
 Common types used across the SDK.
 """
 from dataclasses import dataclass
-from typing import Optional, Any, List
+from typing import Optional, List
 
 
 @dataclass
@@ -26,6 +26,5 @@ class APIResponse:
 @dataclass
 class ControlResponse:
     """Response from control API calls."""
-    success: bool
-    data: Optional[Any] = None
-    message: Optional[str] = None 
+    allowed: bool
+    message: Optional[str] = None

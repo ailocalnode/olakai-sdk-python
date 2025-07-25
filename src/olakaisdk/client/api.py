@@ -1,17 +1,23 @@
 """
 API communication module for the Olakai SDK.
 """
-import time
 from dataclasses import asdict
 from typing import List, Union, Literal
 
 import requests
-from ..queueManagerPackage import add_to_queue, get_queue_size
-from .types import MonitorPayload, ControlPayload, BatchRequest
+from ..queueManagerPackage import add_to_queue
+from .types import MonitorPayload, ControlPayload
 from .config import get_config
 from ..shared.types import APIResponse, ControlResponse
 from ..shared.logger import safe_log
 from ..shared.utils import sleep
+from ..shared.exceptions import (
+    APIKeyMissingError, 
+    URLConfigurationError, 
+    APITimeoutError, 
+    APIResponseError, 
+    RetryExhaustedError
+)
 
 async def make_api_call(
     payload: Union[List[MonitorPayload], ControlPayload],
@@ -21,16 +27,16 @@ async def make_api_call(
     config = get_config()
 
     if not config.apiKey:
-        raise Exception("[Olakai SDK] API key is not set")
+        raise APIKeyMissingError("[Olakai SDK] API key is not set")
     
     if call_type == "monitoring":
         assert not isinstance(payload, ControlPayload)
         if not config.monitoringUrl:
-            raise Exception("[Olakai SDK] Monitoring URL is not set")
+            raise URLConfigurationError("[Olakai SDK] Monitoring URL is not set")
     else:
         assert isinstance(payload, ControlPayload)
         if not config.controlUrl:
-            raise Exception("[Olakai SDK] Control URL is not set")
+            raise URLConfigurationError("[Olakai SDK] Control URL is not set")
 
     headers = {"x-api-key": config.apiKey}
     data_dicts = [asdict(x) for x in payload] if call_type == "monitoring" else asdict(payload)
@@ -45,9 +51,13 @@ async def make_api_call(
             if "subTask" in data_dict and data_dict["subTask"] is None:
                 del data_dict["subTask"]
     else:
-        if ("askedOverrides" in data_dicts and 
-            data_dicts["askedOverrides"] is None):
-            del data_dicts["askedOverrides"]
+        if ("overrideControlCriteria" in data_dicts and 
+            data_dicts["overrideControlCriteria"] is None):
+            del data_dicts["overrideControlCriteria"]
+        if "task" in data_dicts and data_dicts["task"] is None:
+            del data_dicts["task"]
+        if "subTask" in data_dicts and data_dicts["subTask"] is None:
+            del data_dicts["subTask"]
 
     try:
         response = requests.post(
@@ -66,8 +76,14 @@ async def make_api_call(
         else:
             return ControlResponse(**result)
 
+    except requests.exceptions.Timeout as err:
+        raise APITimeoutError(f"Request timed out after {config.timeout}ms") from err
+    except requests.exceptions.HTTPError as err:
+        raise APIResponseError(f"HTTP error: {err.response.status_code} - {err.response.text}") from err
+    except requests.exceptions.RequestException as err:
+        raise APIResponseError(f"Request failed: {str(err)}") from err
     except Exception as err:
-        raise err
+        raise APIResponseError(f"Unexpected error during API call: {str(err)}") from err
 
 
 async def send_with_retry(
@@ -85,7 +101,7 @@ async def send_with_retry(
             result = await make_api_call(payload, call_type)
             safe_log('debug', f"API call successful")
             return result
-        except Exception as err:
+        except (APITimeoutError, APIResponseError) as err:
             last_error = err
 
             safe_log('debug', f"Attempt {attempt+1}/{max_retries+1} failed: {err}")
@@ -95,20 +111,20 @@ async def send_with_retry(
                 await sleep(delay)
     
     safe_log('debug', f"All retry attempts failed: {last_error}")
-    raise last_error
+    raise RetryExhaustedError(f"All {max_retries + 1} retry attempts failed. Last error: {last_error}") from last_error
 
 
 async def send_to_api(
     payload: Union[MonitorPayload, ControlPayload], 
     options: dict = {}, 
-):
+) -> Union[APIResponse, ControlResponse]:
     """Send payload to API with optional logging."""
 
     config = get_config()
 
     if not config.apiKey:
         safe_log('debug', "API key is not set.")
-        return
+        raise APIKeyMissingError("[Olakai SDK] API key is not set")
     
     if isinstance(payload, MonitorPayload):
         if config.isBatchingEnabled:

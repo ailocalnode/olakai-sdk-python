@@ -4,8 +4,7 @@ Common utility functions used across the SDK.
 import json
 import time
 import traceback
-import asyncio
-from typing import Any, Callable, Dict
+from typing import Any, Dict
 from .logger import safe_log
 
 
@@ -32,21 +31,6 @@ async def to_string_api(data: Any) -> str:
         return json.dumps(data, default=str)
     except Exception:
         return str(data)
-
-
-async def execute_func(f: Callable, *args, **kwargs) -> Any:
-    """Execute a function with arguments, handling both sync and async functions."""
-    if "potential_result" in kwargs:
-        return kwargs["potential_result"]
-    
-    try:
-        if asyncio.iscoroutinefunction(f):
-            return await f(*args, **kwargs)
-        else:
-            return f(*args, **kwargs)
-    except Exception as e:
-        raise e
-
 
 async def create_error_info(error: Exception) -> Dict[str, Any]:
     """

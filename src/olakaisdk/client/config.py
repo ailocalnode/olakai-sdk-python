@@ -4,6 +4,7 @@ Configuration management for the Olakai SDK client.
 import logging
 from typing import Optional
 from .types import SDKConfig
+from ..shared.exceptions import InitializationError
 
 # Global configuration
 config = SDKConfig(
@@ -36,7 +37,7 @@ async def init_client(
     
     config.apiKey = api_key
     config.monitoringUrl = f"{domain}/api/monitoring/prompt" if domain else "https://staging.app.olakai.ai/api/monitoring/prompt"
-    config.controlUrl = f"{domain}/api/monitoring/control" if domain else "https://staging.app.olakai.ai/api/monitoring/control"
+    config.controlUrl = f"{domain}/api/control/prompt" if domain else "https://staging.app.olakai.ai/api/control/prompt"
     
     from ..shared.logger import safe_log
     for key, value in kwargs.items():
@@ -48,9 +49,12 @@ async def init_client(
     
     # Load persisted queue (import here to avoid circular dependency)
     if config.enableStorage:
-        from ..queueManagerPackage import init_queue_manager, QueueDependencies
-        from ..client.api import send_with_retry
-        await init_queue_manager(QueueDependencies(config, send_with_retry))
+        try:
+            from ..queueManagerPackage import init_queue_manager, QueueDependencies
+            from ..client.api import send_with_retry
+            await init_queue_manager(QueueDependencies(config, send_with_retry))
+        except Exception as e:
+            raise InitializationError(f"Failed to initialize queue manager: {str(e)}") from e
     if config.debug:
         config.logger.setLevel(logging.INFO)
     if config.verbose:

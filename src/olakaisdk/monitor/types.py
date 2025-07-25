@@ -42,11 +42,6 @@ class MonitorUtils:
         }
 
 @dataclass
-class ControlOptions:
-    """Options for control functions."""
-    askedOverrides: Optional[List[str]] = None
-
-@dataclass
 class MonitorOptions:
     """Options for monitoring functions."""
     capture: Optional[Callable] = MonitorUtils.capture_all_f  # Will be set to default in helpers.py
@@ -58,4 +53,9 @@ class MonitorOptions:
     shouldScore: bool = False
     task: Optional[str] = None
     subTask: Optional[str] = None
-    controlOptions: Optional[ControlOptions] = None
+    overrideControlCriteria: Optional[List[str]] = None
+
+class FunctionBlockedException(Exception):
+    """Exception raised when a function is blocked by Olakai monitoring."""
+    pass
+

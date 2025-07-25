@@ -9,6 +9,7 @@ from ..client.config import get_config
 from .types import MonitorOptions
 from ..client.types import ControlPayload
 from ..client.api import send_to_api
+from ..shared.exceptions import SanitizationError, ControlServiceError
 
 
 async def sanitize_data(data: Any, patterns: Optional[List[re.Pattern]] = None) -> Any:
@@ -26,8 +27,6 @@ async def sanitize_data(data: Any, patterns: Optional[List[re.Pattern]] = None) 
     if not patterns:
         return data
         
-    config = await get_config()
-    
     try:
         serialized = json.dumps(data, default=str)
         for pattern in patterns:
@@ -37,9 +36,9 @@ async def sanitize_data(data: Any, patterns: Optional[List[re.Pattern]] = None) 
 
         safe_log('info', "Data successfully sanitized")
         return parsed
-    except Exception:
-        safe_log('debug', "Data failed to sanitize")
-        return "[SANITIZED]"
+    except Exception as e:
+        safe_log('debug', f"Data failed to sanitize: {str(e)}")
+        raise SanitizationError(f"Failed to sanitize data: {str(e)}") from e
 
 
 async def process_capture_result(capture_result: dict, options):
@@ -62,9 +61,11 @@ async def process_capture_result(capture_result: dict, options):
     if getattr(options, 'sanitize', False):
         config = await get_config()
         sanitize_patterns = getattr(config, 'sanitize_patterns', None)
-        prompt = await sanitize_data(prompt, sanitize_patterns)
-        response = await sanitize_data(response, sanitize_patterns)
-
+        try:
+            prompt = await sanitize_data(prompt, sanitize_patterns)
+            response = await sanitize_data(response, sanitize_patterns)
+        except SanitizationError:
+            safe_log('info', f"Sanitization failed, continuing anyway...")
     safe_log('info', f"Sanitized prompt: {prompt}")
     
     return prompt, response
@@ -120,17 +121,27 @@ async def should_block(options: MonitorOptions, args: tuple, kwargs: dict) -> bo
         
     Returns:
         True if the function should be blocked, False otherwise
+        
+    Raises:
+        ControlServiceError: If control service communication fails
     """
+    try:
+        chatId, email = await extract_user_info(options)
 
-    chatId, email = await extract_user_info(options)
+        prompt = "Args: " + str(args) + "\n\n Kwargs: " + json.dumps(kwargs) + "\n\n Task: " + (options.task if options.task else "") + "\n\n SubTask: " + (options.subTask if options.subTask else "")
 
-    prompt = "Args: " + str(args) + "\n\n Kwargs: " + json.dumps(kwargs) + "\n\n Task: " + (options.task if options.task else "") + "\n\n SubTask: " + (options.subTask if options.subTask else "")
+        control_payload = ControlPayload(
+            email=email,
+            chatId=chatId,
+            prompt=prompt,
+            task=options.task,
+            subTask=options.subTask,
+            tokens=0,
+            overrideControlCriteria=options.overrideControlCriteria if options.overrideControlCriteria else []
+        )
 
-    control_payload = ControlPayload(
-        email=email,
-        chatId=chatId,
-        prompt=prompt,
-        askedOverrides=options.controlOptions.askedOverrides
-    )
-
-    return await send_to_api(control_payload)
+        response = await send_to_api(control_payload)
+        return response.allowed
+    except Exception as e:
+        safe_log('error', f"Control service failed: {str(e)}")
+        raise ControlServiceError(f"Failed to check if function should be blocked: {str(e)}") from e

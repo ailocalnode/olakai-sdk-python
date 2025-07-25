@@ -11,6 +11,8 @@ from .storage.index import get_storage, is_storage_enabled, get_storage_key, get
 from ..client.types import MonitorPayload, BatchRequest
 from ..shared.logger import safe_log
 from .types import QueueDependencies
+from ..shared.exceptions import QueueNotInitializedError
+
 
 class QueueManager:
     """Queue Manager - Handles all queue operations and state."""
@@ -325,10 +327,11 @@ def get_queue_manager() -> QueueManager:
         The queue manager instance
         
     Raises:
-        RuntimeError: If queue manager is not initialized
+        QueueNotInitializedError: If queue manager is not initialized
     """
     if not _queue_manager:
-        raise RuntimeError('[Olakai SDK] Queue manager not initialized. Call init_queue_manager first.')
+        safe_log('warning', '[Olakai SDK] Queue manager not initialized. Call init_queue_manager first.')
+        raise QueueNotInitializedError('[Olakai SDK] Queue manager not initialized. Call init_queue_manager first.')
     return _queue_manager
 
 # Public API functions that delegate to the queue manager
