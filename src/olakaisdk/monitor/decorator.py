@@ -107,9 +107,9 @@ def olakai_monitor(**kwargs):
                 return result
             
 
-            except OlakaiFunctionBlocked:
+            except OlakaiFunctionBlocked as e:
                 # Re-raise blocking exceptions without modification
-                raise
+                raise e
             except Exception as error:
                 safe_log('error', f"Error: {error}")
                 if function_error is not None:
@@ -142,12 +142,12 @@ def olakai_monitor(**kwargs):
 
             except ControlServiceError:
                 safe_log('debug', f"Control service error")
-                should_be_blocked = False
-                
+                should_be_blocked = True
+
             except Exception as e:
                 safe_log('debug', f"Error checking should_block: {e}")
-                # If checking fails, default to not blocking
-                should_be_blocked = False
+                # If checking fails, default to blocking
+                should_be_blocked = True
                 
             # If the function should be blocked, don't execute it
             if should_be_blocked:

@@ -29,7 +29,7 @@ class ControlPayload:
     task: Optional[str] = None
     subTask: Optional[str] = None
     tokens: Optional[int] = 0
-    overrideControlCriteria: Optional[List[str]] = []
+    overrideControlCriteria: Optional[List[str]] = None
 
 @dataclass
 class BatchRequest:

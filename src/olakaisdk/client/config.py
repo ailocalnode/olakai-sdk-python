@@ -37,7 +37,7 @@ async def init_client(
     
     config.apiKey = api_key
     config.monitoringUrl = f"{domain}/api/monitoring/prompt" if domain else "https://staging.app.olakai.ai/api/monitoring/prompt"
-    config.controlUrl = f"{domain}/api/monitoring/control" if domain else "https://staging.app.olakai.ai/api/monitoring/control"
+    config.controlUrl = f"{domain}/api/control/prompt" if domain else "https://staging.app.olakai.ai/api/control/prompt"
     
     from ..shared.logger import safe_log
     for key, value in kwargs.items():

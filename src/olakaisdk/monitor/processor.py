@@ -137,7 +137,7 @@ async def should_block(options: MonitorOptions, args: tuple, kwargs: dict) -> bo
             task=options.task,
             subTask=options.subTask,
             tokens=0,
-            overrideControlCriteria=options.controlOptions.askedOverrides if options.controlOptions else None
+            overrideControlCriteria=options.overrideControlCriteria if options.overrideControlCriteria else []
         )
 
         response = await send_to_api(control_payload)
