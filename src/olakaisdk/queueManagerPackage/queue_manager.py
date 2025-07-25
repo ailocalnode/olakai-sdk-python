@@ -13,6 +13,7 @@ from ..shared.logger import safe_log
 from .types import QueueDependencies
 from ..shared.exceptions import QueueNotInitializedError
 
+
 class QueueManager:
     """Queue Manager - Handles all queue operations and state."""
     

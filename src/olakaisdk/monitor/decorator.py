@@ -68,7 +68,6 @@ def olakai_monitor(**kwargs):
                     del kwargs["potential_result"]
                 
                 # Check if the function should be blocked
-
                 should_be_blocked = await should_block(options, args, kwargs)
                 if should_be_blocked:
                     safe_log('warning', f"Function {f.__name__} was blocked")
