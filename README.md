@@ -150,13 +150,12 @@ Built-in error handling, retries, and offline support
 
 ```python
 from olakaisdk import olakai_monitor
-from olakaisdk.types import MonitorOptions
 
 # Works with any function
-@olakai_monitor(MonitorOptions(
+@olakai_monitor(
     task="Customer service",     # Optional: give it a task
     subTask="process-order"      # Optional: give it a subtask
-))
+)
 def process_order(order_id: str) -> dict:
     # Your business logic
     return {"success": True, "order_id": order_id}
@@ -170,14 +169,13 @@ result = process_order("order-123")
 
 ```python
 from olakaisdk import olakai_monitor
-from olakaisdk.types import MonitorOptions
 
-@olakai_monitor(MonitorOptions(
+@olakai_monitor(
     task="Customer service",
     subTask="process-order",
     email="example@olakai.ai",  # Or use a function: lambda args: get_user_email(args[0])
     chatId="123"                # Or use a function: lambda args: get_session_id(args[0])
-))
+)
 def process_order(order_id: str) -> dict:
     # Your business logic
     return {"success": True, "order_id": order_id}
@@ -187,27 +185,6 @@ result = process_order("order-123")
 
 **What it does?** This feature lets you specify a user email, so our API can associate each call with a specific user. Instead of seeing "Anonymous user" in the UNO product's prompts panel, you'll see the actual user linked to each call. For now the matching is based on users' email.
 
-### Obtain Scoring of the Prompt
-
-```python
-from olakaisdk import olakai_monitor
-from olakaisdk.types import MonitorOptions
-
-@olakai_monitor(MonitorOptions(
-    task="Customer service",
-    subTask="process-order",
-    email="example@olakai.ai",
-    chatId="123",
-    shouldScore=True  # Enable prompt scoring
-))
-def process_order(order_id: str) -> dict:
-    # Your business logic
-    return {"success": True, "order_id": order_id}
-
-result = process_order("order-123")
-```
-
-**What it does?** This feature lets you specify if the "prompt" (so the args of the function you monitor), should get a "prompting score", the same way Olakai is doing it for standard prompts in the UNO product.
 
 ## Common Patterns
 
@@ -215,15 +192,14 @@ result = process_order("order-123")
 
 ```python
 from olakaisdk import olakai_monitor
-from olakaisdk.types import MonitorOptions
 
 # Custom capture logic
-@olakai_monitor(MonitorOptions(
+@olakai_monitor(
     capture=lambda args, result: {
         "input": {"email": args[0]},
         "output": {"success": result.get("success")}
     }
-))
+)
 def my_function(email: str, password: str) -> dict:
     # This will only capture email, not password
     return {"success": True, "user_id": "123"}
@@ -233,15 +209,14 @@ def my_function(email: str, password: str) -> dict:
 
 ```python
 from olakaisdk import olakai_monitor
-from olakaisdk.types import MonitorOptions
 
-@olakai_monitor(MonitorOptions(
+@olakai_monitor(
     task="risky-operation",
     on_error=lambda error, args: {
         "input": args[0],
         "output": {"error": str(error)}
     }
-))
+)
 def risky_operation(data: dict) -> dict:
     # This might raise an exception
     if not data.get("valid"):
@@ -259,14 +234,12 @@ Sometimes you need fine-grained control. Use the full `MonitorOptions` for compl
 
 ```python
 from olakaisdk import olakai_monitor
-from olakaisdk.types import MonitorOptions
 
-@olakai_monitor(MonitorOptions(
+@olakai_monitor(
     task="Authentication",
     subTask="user-login",
     email=lambda args: args[0],  # Dynamic user email from first argument
     chatId=lambda args: args[1], # Session tracking from second argument
-    shouldScore=True,
     sanitize=True,               # Remove sensitive data
     priority="high",             # Queue priority
     capture=lambda args, result: {
@@ -279,7 +252,7 @@ from olakaisdk.types import MonitorOptions
             "user_id": result.get("user_id")
         }
     }
-))
+)
 def login_user(email: str, session_id: str, password: str) -> dict:
     # Your login logic (password won't be captured due to custom capture)
     return {"success": True, "user_id": "123"}
@@ -321,13 +294,12 @@ init_client("your-olakai-api-key", "https://your-olakai-domain.ai")
 
 ```python
 from olakai_dk import init_client
-from olakai_dk.types import SDKConfig
 
-init_client(SDKConfig(
+init_client(
     apiKey="your-olakai-api-key",
     apiUrl="https://your-olakai-domain.ai",
     debug=True,          # See what's happening
-    enableLocalStorage=True  # Offline support
+enableLocalStorage=True  # Offline support
 ))
 ```
 
@@ -335,14 +307,13 @@ init_client(SDKConfig(
 
 ```python
 from olakaisdk import init_client
-from olakaisdk.types import SDKConfig
 
-init_client(SDKConfig(
+init_client(
     apiKey="your-key",
     apiUrl="https://your-olakai-domain.ai",
     debug=True,
     verbose=True
-))
+)
 ```
 
 This will log detailed information about what the SDK is doing.
@@ -396,15 +367,14 @@ This will log detailed information about what the SDK is doing.
 | `debug`              | `False` | Debug logging              |
 | `verbose`            | `False` | Verbose logging            |
 
-### Monitor Options (MonitorOptions)
+### Monitor Options 
 
 | Option                   | Type                | Description                                                        |
 | ------------------------ | ------------------- | ------------------------------------------------------------------ |
 | `email`                  | `str` or `Callable` | User email for tracking                                            |
 | `chatId`                 | `str` or `Callable` | Chat/session ID                                                    |
 | `task`                   | `str`               | Task category                                                      |
-| `subTask`                | `str`               | Specific task                                                      |
-| `shouldScore`            | `bool`              | Enable prompt scoring                                              |
+| `subTask`                | `str`               | Specific task                                                      |                                            |
 | `sanitize`               | `bool`              | Remove sensitive data                                              |
 | `priority`               | `str`               | Queue priority (low/normal/high)                                   |
 | `capture`                | `Callable`          | Custom data capture function                                       |
@@ -439,7 +409,7 @@ This will log detailed information about what the SDK is doing.
 
 ---
 
-## Examples Repository
+## Examples Repository (not up to date)
 
 Check out our [examples repository](https://github.com/olakai/sdk-examples-python) for complete working examples:
 
