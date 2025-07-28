@@ -140,6 +140,7 @@ def olakai_monitor(**kwargs):
             
             # Check if the function should be blocked
             is_allowed = False
+            start = time.time() * 1000
             try:
                 loop = asyncio.get_running_loop()
                 # If there's a running loop, we need to run should_block in a separate thread
@@ -225,12 +226,12 @@ def olakai_monitor(**kwargs):
                     # Check if there's already an event loop running
                     loop = asyncio.get_running_loop()
                     # If there's a running loop, schedule the monitoring as a task
-                    asyncio.create_task(async_wrapped_f(*args, **kwargs, potential_result=result))
+                    asyncio.create_task(handle_success_monitoring(result, args, kwargs, options, start))
                 except RuntimeError:
                             # No running loop, create a new one for monitoring
                             # Run in a separate thread to avoid blocking the sync function
                     def run_monitoring():
-                        asyncio.run(async_wrapped_f(*args, **kwargs, potential_result=result))
+                        asyncio.run(handle_success_monitoring(result, args, kwargs, options, start))
                             
                     thread = threading.Thread(target=run_monitoring, daemon=True)
                     thread.start()
