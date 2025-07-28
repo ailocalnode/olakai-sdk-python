@@ -67,8 +67,8 @@ def olakai_monitor(**kwargs):
                     del kwargs["potential_result"]
                 
                 # Check if the function should be blocked
-                should_be_blocked = await should_block(options, args, kwargs)
-                if should_be_blocked:
+                is_allowed = await should_block(options, args, kwargs)
+                if not is_allowed:
                     safe_log('warning', f"Function {f.__name__} was blocked")
 
                     chatId, email = await extract_user_info(options)
