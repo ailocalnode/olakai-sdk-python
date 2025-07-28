@@ -2,6 +2,7 @@
 Common utility functions used across the SDK.
 """
 import json
+import uuid
 import time
 import traceback
 from typing import Any, Dict
@@ -55,3 +56,7 @@ async def sleep(ms: int):
     """Sleep for specified milliseconds with logging."""
     safe_log('debug', f"Sleeping for {ms}ms")
     time.sleep(ms / 1000)
+
+def generate_random_id():
+    """Generate a random ID."""
+    return str(uuid.uuid4())
