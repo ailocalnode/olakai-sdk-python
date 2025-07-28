@@ -15,18 +15,29 @@ pip install olakaisdk
 ## Quick Start - The Easy & Fast Way
 
 ```python
+from openai import OpenAI
 from olakaisdk import init_client, olakai_monitor
 
 # 1. Initialize once
 init_client("your-olakai-api-key", "https://your-olakai-domain.ai")
 
+#Example for OpenAI API
+client = OpenAI(api_key="YOUR_OPENAI_API_KEY")
+
 # 2. Wrap any function - that's it!
 @olakai_monitor()
-def say_hello(name: str) -> str:
-    return f"Hello, {name}!"
+def complete_my_prompt(prompt: str):
+    response = client.chat.completions.create(
+        model="gpt-4o",  # Specify the model you want to use
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": prompt},
+        ],
+        max_tokens=100,  # Optional: Limit the length of the response
+    )
 
 # 3. Use normally - monitoring happens automatically
-result = say_hello("World")
+result = complete_my_prompt("Give me baby name ideas!")
 print(result)  # "Hello, World!"
 ```
 
@@ -36,60 +47,12 @@ print(result)  # "Hello, World!"
 
 **How?** The inputs will be displayed as the "prompt" and the return object as the "response". (in the UNO product)
 
-<details>
-<summary><strong>🤖 Real Example: OpenAI API Call (Click to expand)</strong></summary>
-
-See how easy it is to add monitoring to an existing OpenAI API call:
-
-**Before (without monitoring):**
-
-```python
-import openai
-
-openai.api_key = "your-openai-api-key"
-
-def generate_response(prompt: str) -> str:
-    response = openai.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}]
-    )
-    return response.choices[0].message.content
-
-# Usage
-response = generate_response("Explain quantum computing")
-```
-
-**After (with monitoring):**
-
-```python
-import openai
-from olakaisdk import init_client, olakai_monitor
-
-# Initialize Olakai SDK
-init_client("your-olakai-api-key", "https://your-olakai-domain.ai")
-
-openai.api_key = "your-openai-api-key"
-
-# Just add the decorator - that's the only change!
-@olakai_monitor()
-def generate_response(prompt: str) -> str:
-    response = openai.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}]
-    )
-    return response.choices[0].message.content
-
-# Usage (exactly the same)
-response = generate_response("Explain quantum computing")
-```
-
 **What you get:**
 
 - ✅ Every prompt and response is automatically logged to Olakai
 - ✅ Token usage and response times are tracked
 - ✅ No changes to your existing code logic
 - ✅ If monitoring fails, your function still works perfectly
-</details>
 
 <details>
 <summary><strong>Alternative: Monitor just the API call</strong></summary>
