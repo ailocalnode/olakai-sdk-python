@@ -15,18 +15,29 @@ pip install olakaisdk
 ## Quick Start - The Easy & Fast Way
 
 ```python
+from openai import OpenAI
 from olakaisdk import init_client, olakai_monitor
 
 # 1. Initialize once
 init_client("your-olakai-api-key", "https://your-olakai-domain.ai")
 
+#Example for OpenAI API
+client = OpenAI(api_key="YOUR_OPENAI_API_KEY")
+
 # 2. Wrap any function - that's it!
 @olakai_monitor()
-def say_hello(name: str) -> str:
-    return f"Hello, {name}!"
+def complete_my_prompt(prompt: str):
+    response = client.chat.completions.create(
+        model="gpt-4o",  # Specify the model you want to use
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": prompt},
+        ],
+        max_tokens=100,  # Optional: Limit the length of the response
+    )
 
 # 3. Use normally - monitoring happens automatically
-result = say_hello("World")
+result = complete_my_prompt("Give me baby name ideas!")
 print(result)  # "Hello, World!"
 ```
 
@@ -36,60 +47,12 @@ print(result)  # "Hello, World!"
 
 **How?** The inputs will be displayed as the "prompt" and the return object as the "response". (in the UNO product)
 
-<details>
-<summary><strong>🤖 Real Example: OpenAI API Call (Click to expand)</strong></summary>
-
-See how easy it is to add monitoring to an existing OpenAI API call:
-
-**Before (without monitoring):**
-
-```python
-import openai
-
-openai.api_key = "your-openai-api-key"
-
-def generate_response(prompt: str) -> str:
-    response = openai.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}]
-    )
-    return response.choices[0].message.content
-
-# Usage
-response = generate_response("Explain quantum computing")
-```
-
-**After (with monitoring):**
-
-```python
-import openai
-from olakaisdk import init_client, olakai_monitor
-
-# Initialize Olakai SDK
-init_client("your-olakai-api-key", "https://your-olakai-domain.ai")
-
-openai.api_key = "your-openai-api-key"
-
-# Just add the decorator - that's the only change!
-@olakai_monitor()
-def generate_response(prompt: str) -> str:
-    response = openai.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}]
-    )
-    return response.choices[0].message.content
-
-# Usage (exactly the same)
-response = generate_response("Explain quantum computing")
-```
-
 **What you get:**
 
 - ✅ Every prompt and response is automatically logged to Olakai
 - ✅ Token usage and response times are tracked
 - ✅ No changes to your existing code logic
 - ✅ If monitoring fails, your function still works perfectly
-</details>
 
 <details>
 <summary><strong>Alternative: Monitor just the API call</strong></summary>
@@ -205,25 +168,6 @@ def my_function(email: str, password: str) -> dict:
     return {"success": True, "user_id": "123"}
 ```
 
-### Error Handling Made Easy
-
-```python
-from olakaisdk import olakai_monitor
-
-@olakai_monitor(
-    task="risky-operation",
-    on_error=lambda error, args: {
-        "input": args[0],
-        "output": {"error": str(error)}
-    }
-)
-def risky_operation(data: dict) -> dict:
-    # This might raise an exception
-    if not data.get("valid"):
-        raise ValueError("Invalid data")
-    return {"success": True}
-```
-
 ---
 
 ## When You Need More Control
@@ -233,6 +177,8 @@ def risky_operation(data: dict) -> dict:
 Sometimes you need fine-grained control. Use the full `MonitorOptions` for complete customization:
 
 ```python
+import time
+import requests
 from olakaisdk import olakai_monitor
 
 @olakai_monitor(
@@ -249,16 +195,62 @@ from olakaisdk import olakai_monitor
         },
         "output": {
             "success": result.get("success"),
-            "user_id": result.get("user_id")
+            "user_id": result.get("user_id"),
+            "status_code": result.get("status_code")
         }
     }
 )
 def login_user(email: str, session_id: str, password: str) -> dict:
-    # Your login logic (password won't be captured due to custom capture)
-    return {"success": True, "user_id": "123"}
+    """
+    Authenticate user against external API
+    """
+    try:
+        # Call external authentication service
+        auth_response = requests.post(
+            "https://api.auth-service.com/v1/authenticate",
+            json={
+                "email": email,
+                "password": password,
+                "session_id": session_id
+            },
+            headers={"Content-Type": "application/json"},
+            timeout=10
+        )
+        
+        if auth_response.status_code == 200:
+            auth_data = auth_response.json()
+            return {
+                "success": True,
+                "user_id": auth_data.get("user_id"),
+                "access_token": auth_data.get("access_token"),
+                "status_code": 200
+            }
+        elif auth_response.status_code == 401:
+            return {
+                "success": False,
+                "error": "Invalid credentials",
+                "status_code": 401
+            }
+        else:
+            return {
+                "success": False,
+                "error": f"Authentication service error: {auth_response.status_code}",
+                "status_code": auth_response.status_code
+            }
+            
+    except requests.RequestException as e:
+        return {
+            "success": False,
+            "error": f"Network error: {str(e)}",
+            "status_code": 500
+        }
 
 result = login_user("user@example.com", "session-123", "secret")
 ```
+Here you choose precisely what field you are sending to Olakai, if you want to be sure not to divulge crucial information. 
+In all cases, you should keep in mind not to wrap such sensitive functions to avoid exposing confidential data.
+
+
 
 ### Async Support
 
@@ -324,7 +316,7 @@ This will log detailed information about what the SDK is doing.
 
 ### ✅ **Do This**
 
-- Start with simple `@monitor()` decorator
+- Start with simple `@olakai_monitor()` decorator
 - Use descriptive task names
 - Monitor important business logic functions
 - Set up user tracking for multi-user apps
@@ -337,7 +329,6 @@ This will log detailed information about what the SDK is doing.
 
 ### 🔒 **Security Notes**
 
-- The SDK automatically sanitizes common sensitive patterns
 - User emails should match Olakai accounts
 - Enable `sanitize=True` for functions handling sensitive data
 - Use custom `capture` functions to exclude sensitive parameters

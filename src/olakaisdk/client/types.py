@@ -13,12 +13,12 @@ class MonitorPayload:
     chatId: str
     prompt: str
     response: str
-    shouldScore: bool
     tokens: Optional[int]
     requestTime: Optional[int]
     errorMessage: Optional[str]
     task: Optional[str]
     subTask: Optional[str]
+    blocked: Optional[bool] = False
 
 @dataclass
 class ControlPayload:
@@ -35,7 +35,7 @@ class ControlPayload:
 class BatchRequest:
     """Request in the batch queue."""
     id: str
-    payload: MonitorPayload
+    payload: List[MonitorPayload]
     timestamp: int
     retries: int = 0
     priority: str = "normal"  # 'low', 'normal', 'high'

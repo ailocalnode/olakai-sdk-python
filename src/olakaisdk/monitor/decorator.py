@@ -32,10 +32,9 @@ def olakai_monitor(**kwargs):
             priority: str
             email: str
             chatId: str
-            shouldScore: bool
             task: str
             subTask: str
-            controlOptions: ControlOptions
+            overrideControlCriteria: List[str]
         
     Returns:
         Decorator function
@@ -71,6 +70,25 @@ def olakai_monitor(**kwargs):
                 should_be_blocked = await should_block(options, args, kwargs)
                 if should_be_blocked:
                     safe_log('warning', f"Function {f.__name__} was blocked")
+
+                    chatId, email = await extract_user_info(options)
+
+                    payload = MonitorPayload(
+                        prompt="",
+                        response="",
+                        errorMessage="Function execution blocked by Olakai",
+                        chatId=chatId,
+                        email=email,
+                        task=options.task,
+                        subTask=options.subTask,
+                        tokens=0,
+                        requestTime=int(time.time() * 1000 - start),
+                        blocked=True
+                    )
+
+                    await send_to_api(payload, {
+                        "priority": "high"
+                    })
                     raise OlakaiFunctionBlocked("Function execution blocked by Olakai")
 
                 # Apply before middleware
@@ -284,11 +302,11 @@ async def handle_error_monitoring(error: Exception, processed_args: tuple, proce
                 errorMessage=await to_string_api(error_info["error_message"]) + await to_string_api(error_info["stack_trace"]),
                 chatId=chatId,
                 email=email,
-                shouldScore=False,
                 tokens=0,
                 requestTime=int(time.time() * 1000 - start),
                 task=getattr(options, 'task', None),
-                subTask=getattr(options, 'subTask', None)
+                subTask=getattr(options, 'subTask', None),
+                blocked=False
             )
                     
             await send_to_api(payload, {
@@ -333,12 +351,12 @@ async def handle_success_monitoring(result: Any, processed_args: tuple, processe
             response=await to_string_api(response),
             chatId=chatId if chatId else "anonymous",
             email=email if email else "anonymous@olakai.ai",
-            shouldScore=getattr(options, 'shouldScore', False),
             tokens=0,
             requestTime=int(time.time() * 1000 - start),
             errorMessage=None,
             task=getattr(options, 'task', None),
-            subTask=getattr(options, 'subTask', None)
+            subTask=getattr(options, 'subTask', None),
+            blocked=False
         )
 
         safe_log('info', f"Successfully defined payload: {payload}")
