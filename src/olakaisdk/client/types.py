@@ -18,6 +18,7 @@ class MonitorPayload:
     errorMessage: Optional[str]
     task: Optional[str]
     subTask: Optional[str]
+    blocked: Optional[bool] = False
 
 @dataclass
 class ControlPayload:
