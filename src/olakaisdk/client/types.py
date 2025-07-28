@@ -34,7 +34,7 @@ class ControlPayload:
 class BatchRequest:
     """Request in the batch queue."""
     id: str
-    payload: MonitorPayload
+    payload: List[MonitorPayload]
     timestamp: int
     retries: int = 0
     priority: str = "normal"  # 'low', 'normal', 'high'

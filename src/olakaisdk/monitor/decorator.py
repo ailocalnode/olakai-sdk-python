@@ -283,7 +283,6 @@ async def handle_error_monitoring(error: Exception, processed_args: tuple, proce
                 errorMessage=await to_string_api(error_info["error_message"]) + await to_string_api(error_info["stack_trace"]),
                 chatId=chatId,
                 email=email,
-                shouldScore=False,
                 tokens=0,
                 requestTime=int(time.time() * 1000 - start),
                 task=getattr(options, 'task', None),

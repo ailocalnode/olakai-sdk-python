@@ -54,7 +54,4 @@ class MonitorOptions:
     subTask: Optional[str] = None
     overrideControlCriteria: Optional[List[str]] = None
 
-class FunctionBlockedException(Exception):
-    """Exception raised when a function is blocked by Olakai monitoring."""
-    pass
 
