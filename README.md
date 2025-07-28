@@ -168,25 +168,6 @@ def my_function(email: str, password: str) -> dict:
     return {"success": True, "user_id": "123"}
 ```
 
-### Error Handling Made Easy
-
-```python
-from olakaisdk import olakai_monitor
-
-@olakai_monitor(
-    task="risky-operation",
-    on_error=lambda error, args: {
-        "input": args[0],
-        "output": {"error": str(error)}
-    }
-)
-def risky_operation(data: dict) -> dict:
-    # This might raise an exception
-    if not data.get("valid"):
-        raise ValueError("Invalid data")
-    return {"success": True}
-```
-
 ---
 
 ## When You Need More Control
