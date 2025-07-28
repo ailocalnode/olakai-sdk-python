@@ -70,6 +70,7 @@ async def make_api_call(
         safe_log('debug', f"Call type: {call_type}, API response: {response}")
         response.raise_for_status()
         result = response.json()
+        safe_log('debug', f"API response: {result}")
 
         if call_type == "monitoring":
             return APIResponse(**result)
@@ -139,4 +140,4 @@ async def send_to_api(
                     safe_log('warning', f"Direct API call result: {response.failureCount}/{response.totalRequests} requests failed")
     
     else:
-        await send_with_retry(payload, "control")
+        return await send_with_retry(payload, "control")

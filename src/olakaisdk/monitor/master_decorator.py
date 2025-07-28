@@ -1,4 +1,4 @@
-from typing import Callable, List
+from typing import Callable, List, Optional
 from .decorator import olakai_monitor
 from ..shared.utils import generate_random_id
 from .types import MonitorOptions
@@ -7,8 +7,8 @@ from dataclasses import fields
 
 class OlakaiMasterDecorator:
     
-    def __init__(self, func: Callable, **kwargs):
-        self.func: Callable = func
+    def __init__(self, func: Optional[Callable] = None, **kwargs):
+        self.func: Optional[Callable] = func
         self.stack_track: List[str] = []
         self.chatId: str = kwargs.get("chatId", generate_random_id())
         self.monitor_options: MonitorOptions = MonitorOptions(chatId=self.chatId, **kwargs)
@@ -18,8 +18,7 @@ class OlakaiMasterDecorator:
         self.monitor_options.chatId = self.chatId
         return olakai_monitor(self.func, **self.monitor_options)
 
-    def sub_decorator(self, func: Callable, **kwargs):
-        self.stack_track.append(func.__name__)
+    def sub_decorator(self, **kwargs):
         
         # Combiner les paramètres globaux avec les paramètres locaux
         # Les paramètres locaux ont la priorité (override)
@@ -31,5 +30,5 @@ class OlakaiMasterDecorator:
         # Fusionner avec les paramètres locaux (kwargs ont la priorité)
         combined_params = {**global_params, **kwargs}
         
-        return olakai_monitor(func, **combined_params)
+        return olakai_monitor(**combined_params)
     
