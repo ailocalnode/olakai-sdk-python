@@ -32,10 +32,9 @@ def olakai_monitor(**kwargs):
             priority: str
             email: str
             chatId: str
-            shouldScore: bool
             task: str
             subTask: str
-            controlOptions: ControlOptions
+            overrideControlCriteria: List[str]
         
     Returns:
         Decorator function
@@ -333,7 +332,6 @@ async def handle_success_monitoring(result: Any, processed_args: tuple, processe
             response=await to_string_api(response),
             chatId=chatId if chatId else "anonymous",
             email=email if email else "anonymous@olakai.ai",
-            shouldScore=getattr(options, 'shouldScore', False),
             tokens=0,
             requestTime=int(time.time() * 1000 - start),
             errorMessage=None,
