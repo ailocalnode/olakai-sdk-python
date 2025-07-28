@@ -139,7 +139,7 @@ def olakai_monitor(**kwargs):
             safe_log('info', f"Arguments: {args}, \n Kwargs: {kwargs}")
             
             # Check if the function should be blocked
-            should_be_blocked = False
+            is_allowed = False
             try:
                 loop = asyncio.get_running_loop()
                 # If there's a running loop, we need to run should_block in a separate thread
@@ -151,23 +151,23 @@ def olakai_monitor(**kwargs):
                 
                 with concurrent.futures.ThreadPoolExecutor() as executor:
                     future = executor.submit(run_should_block)
-                    should_be_blocked = future.result()
+                    is_allowed = future.result()
                     
             except RuntimeError:
                 # No running loop, create a new one
-                should_be_blocked = asyncio.run(should_block(options, args, kwargs))
+                is_allowed = asyncio.run(should_block(options, args, kwargs))
 
             except ControlServiceError:
                 safe_log('debug', f"Control service error")
-                should_be_blocked = True
+                is_allowed = False
 
             except Exception as e:
                 safe_log('debug', f"Error checking should_block: {e}")
                 # If checking fails, default to blocking
-                should_be_blocked = True
+                is_allowed = False
                 
             # If the function should be blocked, don't execute it
-            if should_be_blocked:
+            if not is_allowed:
                 safe_log('warning', f"Function {f.__name__} was blocked")
                 raise OlakaiFunctionBlocked("Function execution blocked by Olakai")
             
