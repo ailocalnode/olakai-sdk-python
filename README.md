@@ -335,7 +335,7 @@ This will log detailed information about what the SDK is doing.
 
 ### ✅ **Do This**
 
-- Start with simple `@monitor()` decorator
+- Start with simple `@olakai_monitor()` decorator
 - Use descriptive task names
 - Monitor important business logic functions
 - Set up user tracking for multi-user apps
@@ -348,7 +348,6 @@ This will log detailed information about what the SDK is doing.
 
 ### 🔒 **Security Notes**
 
-- The SDK automatically sanitizes common sensitive patterns
 - User emails should match Olakai accounts
 - Enable `sanitize=True` for functions handling sensitive data
 - Use custom `capture` functions to exclude sensitive parameters
