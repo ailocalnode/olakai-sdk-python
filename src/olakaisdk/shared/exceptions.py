@@ -59,3 +59,7 @@ class QueueNotInitializedError(OlakaiSDKError):
     """Exception raised when queue manager is not initialized."""
     pass
 
+class ConfigNotInitializedError(OlakaiSDKError):
+    """Exception raised when configuration is not initialized."""
+    pass
+

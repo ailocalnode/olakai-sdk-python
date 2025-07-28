@@ -4,7 +4,7 @@ Configuration management for the Olakai SDK client.
 import logging
 from typing import Optional
 from .types import SDKConfig
-from ..shared.exceptions import InitializationError
+from ..shared.exceptions import InitializationError, ConfigNotInitializedError
 
 # Global configuration
 config = SDKConfig(
@@ -65,4 +65,6 @@ async def init_client(
 
 def get_config() -> SDKConfig:
     """Get the current SDK configuration."""
+    if config is None:
+        raise ConfigNotInitializedError("[Olakai SDK] Config is not initialized")
     return config 
