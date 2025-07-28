@@ -196,6 +196,8 @@ def risky_operation(data: dict) -> dict:
 Sometimes you need fine-grained control. Use the full `MonitorOptions` for complete customization:
 
 ```python
+import time
+import requests
 from olakaisdk import olakai_monitor
 
 @olakai_monitor(
@@ -212,16 +214,62 @@ from olakaisdk import olakai_monitor
         },
         "output": {
             "success": result.get("success"),
-            "user_id": result.get("user_id")
+            "user_id": result.get("user_id"),
+            "status_code": result.get("status_code")
         }
     }
 )
 def login_user(email: str, session_id: str, password: str) -> dict:
-    # Your login logic (password won't be captured due to custom capture)
-    return {"success": True, "user_id": "123"}
+    """
+    Authenticate user against external API
+    """
+    try:
+        # Call external authentication service
+        auth_response = requests.post(
+            "https://api.auth-service.com/v1/authenticate",
+            json={
+                "email": email,
+                "password": password,
+                "session_id": session_id
+            },
+            headers={"Content-Type": "application/json"},
+            timeout=10
+        )
+        
+        if auth_response.status_code == 200:
+            auth_data = auth_response.json()
+            return {
+                "success": True,
+                "user_id": auth_data.get("user_id"),
+                "access_token": auth_data.get("access_token"),
+                "status_code": 200
+            }
+        elif auth_response.status_code == 401:
+            return {
+                "success": False,
+                "error": "Invalid credentials",
+                "status_code": 401
+            }
+        else:
+            return {
+                "success": False,
+                "error": f"Authentication service error: {auth_response.status_code}",
+                "status_code": auth_response.status_code
+            }
+            
+    except requests.RequestException as e:
+        return {
+            "success": False,
+            "error": f"Network error: {str(e)}",
+            "status_code": 500
+        }
 
 result = login_user("user@example.com", "session-123", "secret")
 ```
+Here you choose precisely what field you are sending to Olakai, if you want to be sure not to divulge crucial information. 
+In all cases, you should keep in mind not to wrap such sensitive functions to avoid exposing confidential data.
+
+
 
 ### Async Support
 
