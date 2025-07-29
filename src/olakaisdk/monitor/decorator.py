@@ -16,7 +16,7 @@ from ..client.api import send_to_api
 from ..shared.utils import create_error_info, to_string_api
 from ..shared.logger import safe_log
 from ..shared.exceptions import OlakaiFunctionBlocked, MiddlewareError, ControlServiceError, OlakaiFirewallBlocked, OlakaiPersonaBlocked
-from ..shared.types import ControlResponse
+from ..shared.types import ControlResponse, ControlDetails
 
 externalLogic = False
 
@@ -76,8 +76,7 @@ def olakai_monitor(**kwargs):
 
                     payload = MonitorPayload(
                         prompt=f"Args: {args} \n Kwargs: {kwargs}",
-                        response="",
-                        errorMessage="Function execution blocked by Olakai",
+                        response="Function execution blocked by Olakai",
                         chatId=chatId,
                         email=email,
                         task=options.task,
@@ -114,9 +113,9 @@ def olakai_monitor(**kwargs):
                         # Start background monitoring
                     monitorBlocked(payload)
 
-                    if len(is_allowed.detectedSensitivity) > 0:
+                    if len(is_allowed.details.detectedSensitivity) > 0:
                         raise OlakaiFirewallBlocked("Function execution blocked by Olakai")
-                    elif not is_allowed.isAllowedPersona:
+                    elif not is_allowed.details.isAllowedPersona:
                         raise OlakaiPersonaBlocked("Function execution blocked by Olakai persona")
                     else:
                         raise OlakaiFunctionBlocked("Function execution blocked by Olakai")
@@ -190,12 +189,12 @@ def olakai_monitor(**kwargs):
 
             except ControlServiceError:
                 safe_log('debug', f"Control service error")
-                is_allowed = ControlResponse(allowed=False, detectedSensitivity=[], isAllowedPersona=False)
+                is_allowed = ControlResponse(allowed=False, details=ControlDetails(detectedSensitivity=[], isAllowedPersona=False))
 
             except Exception as e:
                 safe_log('debug', f"Error checking should_block: {e}")
                 # If checking fails, default to blocking
-                is_allowed = ControlResponse(allowed=False, detectedSensitivity=[], isAllowedPersona=False)
+                is_allowed = ControlResponse(allowed=False, details=ControlDetails(detectedSensitivity=[], isAllowedPersona=False))
                 
             # If the function should be blocked, don't execute it
             if not is_allowed.allowed:
@@ -205,16 +204,20 @@ def olakai_monitor(**kwargs):
 
                 payload = MonitorPayload(
                     prompt=f"Args: {args} \n Kwargs: {kwargs}",
-                    response="",
-                    errorMessage="Function execution blocked by Olakai",
+                    response="Function execution blocked by Olakai",
                     chatId=chatId,
                     email=email,
+                    task=options.task,
+                    subTask=options.subTask,
+                    tokens=0,
+                    requestTime=int(time.time() * 1000 - start),
+                    blocked=True
                 )
 
                 
-                if len(is_allowed.detectedSensitivity) > 0:
+                if len(is_allowed.details.detectedSensitivity) > 0:
                     raise OlakaiFirewallBlocked("Function execution blocked by Olakai")
-                elif not is_allowed.isAllowedPersona:
+                elif not is_allowed.details.isAllowedPersona:
                     raise OlakaiPersonaBlocked("Function execution blocked by Olakai persona")
                 else:
                     raise OlakaiFunctionBlocked("Function execution blocked by Olakai")

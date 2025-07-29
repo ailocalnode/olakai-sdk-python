@@ -24,9 +24,13 @@ class APIResponse:
     message: Optional[str] = None 
 
 @dataclass
+class ControlDetails:
+    detectedSensitivity: List[str]
+    isAllowedPersona: bool
+
+@dataclass
 class ControlResponse:
     """Response from control API calls."""
     allowed: bool
-    detectedSensitivity: List[str]
-    isAllowedPersona: bool
+    details: ControlDetails
     message: Optional[str] = None
