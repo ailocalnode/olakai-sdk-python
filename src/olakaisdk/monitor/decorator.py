@@ -87,9 +87,33 @@ def olakai_monitor(**kwargs):
                         blocked=True
                     )
 
-                    send_to_api(payload, {
-                        "priority": "high"
-                    })
+                    def monitorBlocked(payload: MonitorPayload):
+                        
+                        try:
+                            # Check if there's already an event loop running
+                            loop = asyncio.get_running_loop()
+                            # If there's a running loop, schedule the monitoring as a task
+                            asyncio.create_task(send_to_api(payload, {
+                                "priority": "high"
+                            }))
+                        except RuntimeError:
+                                    # No running loop, create a new one for monitoring
+                                    # Run in a separate thread to avoid blocking the sync function
+                            def run_monitoring():
+                                asyncio.run(send_to_api(payload, {
+                                    "priority": "high"
+                                }))
+                                    
+                            thread = threading.Thread(target=run_monitoring, daemon=True)
+                            thread.start()
+                        except Exception:
+                            # If monitoring fails, don't affect the original function
+                            safe_log('debug', f"Monitoring failed")
+                            pass
+                        
+                        # Start background monitoring
+                    monitorBlocked(payload)
+
                     if len(is_allowed.detectedSensitivity) > 0:
                         raise OlakaiFirewallBlocked("Function execution blocked by Olakai")
                     elif not is_allowed.isAllowedPersona:
@@ -187,6 +211,7 @@ def olakai_monitor(**kwargs):
                     email=email,
                 )
 
+                
                 if len(is_allowed.detectedSensitivity) > 0:
                     raise OlakaiFirewallBlocked("Function execution blocked by Olakai")
                 elif not is_allowed.isAllowedPersona:
