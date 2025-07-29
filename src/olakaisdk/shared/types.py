@@ -27,4 +27,6 @@ class APIResponse:
 class ControlResponse:
     """Response from control API calls."""
     allowed: bool
+    detectedSensitivity: List[str]
+    isAllowedPersona: bool
     message: Optional[str] = None

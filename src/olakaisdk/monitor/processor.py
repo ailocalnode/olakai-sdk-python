@@ -10,6 +10,7 @@ from .types import MonitorOptions
 from ..client.types import ControlPayload
 from ..client.api import send_to_api
 from ..shared.exceptions import SanitizationError, ControlServiceError
+from ..shared.types import ControlResponse
 
 
 async def sanitize_data(data: Any, patterns: Optional[List[re.Pattern]] = None) -> Any:
@@ -71,7 +72,7 @@ async def process_capture_result(capture_result: dict, options):
     return prompt, response
 
 
-async def extract_user_info(options: MonitorOptions) -> tuple[str, str]:
+def extract_user_info(options: MonitorOptions) -> tuple[str, str]:
     """
     Extract chatId and email from options, handling both static values and callable functions.
     
@@ -111,7 +112,7 @@ async def extract_user_info(options: MonitorOptions) -> tuple[str, str]:
 
     return chatId, email 
 
-async def should_block(options: MonitorOptions, args: tuple, kwargs: dict) -> bool:
+async def should_allow_call(options: MonitorOptions, args: tuple, kwargs: dict) -> ControlResponse:
     """
     Check if the function should be blocked.
     
@@ -126,7 +127,7 @@ async def should_block(options: MonitorOptions, args: tuple, kwargs: dict) -> bo
         ControlServiceError: If control service communication fails
     """
     try:
-        chatId, email = await extract_user_info(options)
+        chatId, email = extract_user_info(options)
 
         prompt = "Args: " + str(args) + "\n\n Kwargs: " + json.dumps(kwargs) + "\n\n Task: " + (options.task if options.task else "") + "\n\n SubTask: " + (options.subTask if options.subTask else "")
 
@@ -141,7 +142,7 @@ async def should_block(options: MonitorOptions, args: tuple, kwargs: dict) -> bo
         )
 
         response = await send_to_api(control_payload)
-        return response.allowed
+        return response
     except Exception as e:
         safe_log('error', f"Control service failed: {str(e)}")
         raise ControlServiceError(f"Failed to check if function should be blocked: {str(e)}") from e

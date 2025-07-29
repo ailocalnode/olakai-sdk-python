@@ -12,6 +12,14 @@ class OlakaiFunctionBlocked(OlakaiSDKError):
     """Exception raised when a function is blocked by Olakai monitoring."""
     pass
 
+class OlakaiFirewallBlocked(OlakaiFunctionBlocked):
+    """Exception raised when a function is blocked by Olakai firewall."""
+    pass
+
+class OlakaiPersonaBlocked(OlakaiFunctionBlocked):
+    """Exception raised when a function is blocked by Olakai persona."""
+    pass
+
 # API and Configuration exceptions
 class APIKeyMissingError(OlakaiSDKError):
     """Exception raised when API key is not configured."""

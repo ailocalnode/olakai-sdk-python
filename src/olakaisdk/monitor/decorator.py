@@ -10,12 +10,13 @@ from dataclasses import fields
 from typing import Any, Callable
 from .types import MonitorOptions
 from .middleware import get_middlewares
-from .processor import process_capture_result, extract_user_info, should_block
+from .processor import process_capture_result, extract_user_info, should_allow_call
 from ..client.types import MonitorPayload
 from ..client.api import send_to_api
 from ..shared.utils import create_error_info, to_string_api
 from ..shared.logger import safe_log
-from ..shared.exceptions import OlakaiFunctionBlocked, MiddlewareError, ControlServiceError
+from ..shared.exceptions import OlakaiFunctionBlocked, MiddlewareError, ControlServiceError, OlakaiFirewallBlocked, OlakaiPersonaBlocked
+from ..shared.types import ControlResponse
 
 externalLogic = False
 
@@ -67,11 +68,11 @@ def olakai_monitor(**kwargs):
                     del kwargs["potential_result"]
                 
                 # Check if the function should be blocked
-                is_allowed = await should_block(options, args, kwargs)
-                if not is_allowed:
+                is_allowed = await should_allow_call(options, args, kwargs)
+                if not is_allowed.allowed:
                     safe_log('warning', f"Function {f.__name__} was blocked")
 
-                    chatId, email = await extract_user_info(options)
+                    chatId, email = extract_user_info(options)
 
                     payload = MonitorPayload(
                         prompt="",
@@ -86,10 +87,15 @@ def olakai_monitor(**kwargs):
                         blocked=True
                     )
 
-                    await send_to_api(payload, {
+                    send_to_api(payload, {
                         "priority": "high"
                     })
-                    raise OlakaiFunctionBlocked("Function execution blocked by Olakai")
+                    if len(is_allowed.detectedSensitivity) > 0:
+                        raise OlakaiFirewallBlocked("Function execution blocked by Olakai")
+                    elif not is_allowed.isAllowedPersona:
+                        raise OlakaiPersonaBlocked("Function execution blocked by Olakai persona")
+                    else:
+                        raise OlakaiFunctionBlocked("Function execution blocked by Olakai")
 
                 # Apply before middleware
                 try:
@@ -148,7 +154,7 @@ def olakai_monitor(**kwargs):
                 import concurrent.futures
                 
                 def run_should_block():
-                    return asyncio.run(should_block(options, args, kwargs))
+                    return asyncio.run(should_allow_call(options, args, kwargs))
                 
                 with concurrent.futures.ThreadPoolExecutor() as executor:
                     future = executor.submit(run_should_block)
@@ -156,21 +162,37 @@ def olakai_monitor(**kwargs):
                     
             except RuntimeError:
                 # No running loop, create a new one
-                is_allowed = asyncio.run(should_block(options, args, kwargs))
+                is_allowed = asyncio.run(should_allow_call(options, args, kwargs))
 
             except ControlServiceError:
                 safe_log('debug', f"Control service error")
-                is_allowed = False
+                is_allowed = ControlResponse(allowed=False, detectedSensitivity=[], isAllowedPersona=False)
 
             except Exception as e:
                 safe_log('debug', f"Error checking should_block: {e}")
                 # If checking fails, default to blocking
-                is_allowed = False
+                is_allowed = ControlResponse(allowed=False, detectedSensitivity=[], isAllowedPersona=False)
                 
             # If the function should be blocked, don't execute it
-            if not is_allowed:
+            if not is_allowed.allowed:
                 safe_log('warning', f"Function {f.__name__} was blocked")
-                raise OlakaiFunctionBlocked("Function execution blocked by Olakai")
+
+                chatId, email = extract_user_info(options)
+
+                payload = MonitorPayload(
+                    prompt=f"Args: {args} \n Kwargs: {kwargs}",
+                    response="",
+                    errorMessage="Function execution blocked by Olakai",
+                    chatId=chatId,
+                    email=email,
+                )
+
+                if len(is_allowed.detectedSensitivity) > 0:
+                    raise OlakaiFirewallBlocked("Function execution blocked by Olakai")
+                elif not is_allowed.isAllowedPersona:
+                    raise OlakaiPersonaBlocked("Function execution blocked by Olakai persona")
+                else:
+                    raise OlakaiFunctionBlocked("Function execution blocked by Olakai")
             
             def dump_stack_with_args(limit=20, filter=["/site-packages/", "\\site-packages\\", "asyncio"], sanitize_args=["api_key"]):
                 stack = inspect.stack()
@@ -295,7 +317,7 @@ async def handle_error_monitoring(error: Exception, processed_args: tuple, proce
         try:
             error_info = await create_error_info(error)
             
-            chatId, email = await extract_user_info(options)
+            chatId, email = extract_user_info(options)
                     
             payload = MonitorPayload(
                 prompt="",
@@ -345,7 +367,7 @@ async def handle_success_monitoring(result: Any, processed_args: tuple, processe
         prompt, response = await process_capture_result(capture_result, options)
         
         # Extract user information
-        chatId, email = await extract_user_info(options)
+        chatId, email = extract_user_info(options)
 
         payload = MonitorPayload(
             prompt=await to_string_api(prompt),
