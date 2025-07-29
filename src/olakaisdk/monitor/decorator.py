@@ -15,7 +15,7 @@ from ..client.types import MonitorPayload
 from ..client.api import send_to_api
 from ..shared.utils import create_error_info, to_string_api
 from ..shared.logger import safe_log
-from ..shared.exceptions import OlakaiFunctionBlocked, MiddlewareError, ControlServiceError, OlakaiFirewallBlocked, OlakaiPersonaBlocked
+from ..shared.exceptions import OlakaiFunctionBlocked, MiddlewareError, ControlServiceError
 from ..shared.types import ControlResponse, ControlDetails
 
 externalLogic = False
@@ -113,12 +113,7 @@ def olakai_monitor(**kwargs):
                         # Start background monitoring
                     monitorBlocked(payload)
 
-                    if len(is_allowed.details.detectedSensitivity) > 0:
-                        raise OlakaiFirewallBlocked("Function execution blocked by Olakai")
-                    elif not is_allowed.details.isAllowedPersona:
-                        raise OlakaiPersonaBlocked("Function execution blocked by Olakai persona")
-                    else:
-                        raise OlakaiFunctionBlocked("Function execution blocked by Olakai")
+                    raise OlakaiFunctionBlocked("Function execution blocked by Olakai", is_allowed.details)
 
                 # Apply before middleware
                 try:
@@ -215,12 +210,7 @@ def olakai_monitor(**kwargs):
                 )
 
                 
-                if len(is_allowed.details.detectedSensitivity) > 0:
-                    raise OlakaiFirewallBlocked("Function execution blocked by Olakai")
-                elif not is_allowed.details.isAllowedPersona:
-                    raise OlakaiPersonaBlocked("Function execution blocked by Olakai persona")
-                else:
-                    raise OlakaiFunctionBlocked("Function execution blocked by Olakai")
+                raise OlakaiFunctionBlocked("Function execution blocked by Olakai", is_allowed.details)
             
             def dump_stack_with_args(limit=20, filter=["/site-packages/", "\\site-packages\\", "asyncio"], sanitize_args=["api_key"]):
                 stack = inspect.stack()
