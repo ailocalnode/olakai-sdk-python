@@ -75,7 +75,7 @@ def olakai_monitor(**kwargs):
                     chatId, email = extract_user_info(options)
 
                     payload = MonitorPayload(
-                        prompt="",
+                        prompt=f"Args: {args} \n Kwargs: {kwargs}",
                         response="",
                         errorMessage="Function execution blocked by Olakai",
                         chatId=chatId,
