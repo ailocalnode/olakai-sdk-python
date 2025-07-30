@@ -6,7 +6,7 @@ import socket
 import inspect
 import time
 import threading
-from dataclasses import fields
+from dataclasses import fields, asdict
 from typing import Any, Callable
 from .types import MonitorOptions
 from .middleware import get_middlewares
@@ -113,7 +113,7 @@ def olakai_monitor(**kwargs):
                         # Start background monitoring
                     monitorBlocked(payload)
 
-                    raise OlakaiFunctionBlocked("Function execution blocked by Olakai", is_allowed.details)
+                    raise OlakaiFunctionBlocked("Function execution blocked by Olakai", details=asdict(is_allowed.details))
 
                 # Apply before middleware
                 try:
@@ -195,7 +195,7 @@ def olakai_monitor(**kwargs):
                 )
 
                 
-                raise OlakaiFunctionBlocked("Function execution blocked by Olakai", is_allowed.details)
+                raise OlakaiFunctionBlocked("Function execution blocked by Olakai", details=asdict(is_allowed.details))
             
             def dump_stack_with_args(limit=20, filter=["/site-packages/", "\\site-packages\\", "asyncio"], sanitize_args=["api_key"]):
                 stack = inspect.stack()

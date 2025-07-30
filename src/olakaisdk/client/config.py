@@ -5,7 +5,7 @@ import logging
 from typing import Optional
 from .types import SDKConfig
 from ..shared.exceptions import InitializationError, ConfigNotInitializedError
-from ..shared.utils import run_async_in_sync
+
 
 # Global configuration
 config = SDKConfig(
@@ -15,7 +15,7 @@ config = SDKConfig(
 )
 
 
-async def init_client_async(
+def init_client(
     api_key: str, 
     domain: str = "https://app.olakai.ai", 
     logger: Optional[logging.Logger] = None,
@@ -53,7 +53,7 @@ async def init_client_async(
         try:
             from ..queueManagerPackage import init_queue_manager, QueueDependencies
             from ..client.api import send_with_retry
-            await init_queue_manager(QueueDependencies(config, send_with_retry))
+            init_queue_manager(QueueDependencies(config, send_with_retry))
         except Exception as e:
             raise InitializationError(f"Failed to initialize queue manager: {str(e)}") from e
     if config.debug:
@@ -62,24 +62,6 @@ async def init_client_async(
         config.logger.setLevel(logging.DEBUG)
     else:
         config.logger.setLevel(logging.WARNING)
-
-def init_client(
-    api_key: str, 
-    domain: str = "https://app.olakai.ai", 
-    logger: Optional[logging.Logger] = None,
-    **kwargs
-):
-    """
-    Initialize the Olakai SDK client.
-    
-    Args:
-        api_key: Your Olakai API key
-        domain: API domain (default: app.olakai.ai)
-        logger: Optional logger instance for logging SDK operations
-        **kwargs: Optional SDK configuration
-    """
-    return run_async_in_sync("sequential", init_client_async, api_key, domain, logger, **kwargs)
-
 
 def get_config() -> SDKConfig:
     """Get the current SDK configuration."""

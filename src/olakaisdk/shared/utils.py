@@ -83,14 +83,14 @@ def run_async_in_sync( thread: Literal["parallel", "sequential"], func: Callable
         except Exception as e:
             safe_log('error', f"Error running async function in sync: {e}")
             raise e
+        
     elif thread == "sequential":
         try:
             loop = asyncio.get_running_loop()
             if loop.is_running():
                 return asyncio.run_coroutine_threadsafe(func(*args, **kwargs), loop).result()
-            else:
-                return asyncio.run(func(*args, **kwargs))
-
+        except RuntimeError:
+            return asyncio.run(func(*args, **kwargs))
         except Exception as e:
             safe_log('error', f"Error running async function in sync: {e}")
             raise e
