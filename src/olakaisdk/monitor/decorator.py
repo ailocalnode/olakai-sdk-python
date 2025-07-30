@@ -240,12 +240,12 @@ def olakai_monitor(**kwargs):
             except Exception as error:
                 safe_log('debug', f"Error: {error}")
                 if options.send_on_function_error:
-                    run_async_in_sync("parallel", handle_error_monitoring, error, args, kwargs, options, start)
+                    fire_and_forget(handle_error_monitoring, error, args, kwargs, options, start)
                 raise error
             finally:
                 if externalLogic:
                     socket.socket.connect = original_connect
-                run_async_in_sync("parallel", handle_success_monitoring, result, args, kwargs, options, start)
+                fire_and_forget(handle_success_monitoring, result, args, kwargs, options, start)
             return result
 
             
