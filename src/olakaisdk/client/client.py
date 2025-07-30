@@ -52,7 +52,10 @@ class OlakaiClient:
         """Get the current SDK configuration."""
         return self.config
     
-    def monitor(self, *args, **kwargs) -> None:
-        return olakai_monitor(self.config, *args, **kwargs)
+    def monitor(self, **kwargs):
+        """Create a monitoring decorator bound to this client instance."""
+        def decorator(func):
+            return olakai_monitor(self.config, **kwargs)(func)
+        return decorator
 
     
