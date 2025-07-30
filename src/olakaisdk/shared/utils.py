@@ -56,7 +56,7 @@ async def create_error_info(error: Exception) -> Dict[str, Any]:
 async def sleep(ms: int):
     """Sleep for specified milliseconds with logging."""
     safe_log('debug', f"Sleeping for {ms}ms")
-    time.sleep(ms / 1000)
+    await asyncio.sleep(ms / 1000)
 
 def generate_random_id():
     """Generate a random ID."""

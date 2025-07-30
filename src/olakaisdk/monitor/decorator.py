@@ -84,34 +84,13 @@ def olakai_monitor(**kwargs):
                         tokens=0,
                         requestTime=int(time.time() * 1000 - start),
                         blocked=True
-                    )
-
-                    def monitorBlocked(payload: MonitorPayload):
+                    )                    
                         
-                        try:
-                            # Check if there's already an event loop running
-                            loop = asyncio.get_running_loop()
-                            # If there's a running loop, schedule the monitoring as a task
-                            asyncio.create_task(send_to_api(payload, {
-                                "priority": "high"
-                            }))
-                        except RuntimeError:
-                                    # No running loop, create a new one for monitoring
-                                    # Run in a separate thread to avoid blocking the sync function
-                            def run_monitoring():
-                                asyncio.run(send_to_api(payload, {
-                                    "priority": "high"
-                                }))
-                                    
-                            thread = threading.Thread(target=run_monitoring, daemon=True)
-                            thread.start()
-                        except Exception:
-                            # If monitoring fails, don't affect the original function
-                            safe_log('debug', f"Monitoring failed")
-                            pass
-                        
-                        # Start background monitoring
-                    monitorBlocked(payload)
+                    # Start background monitoring
+                    asyncio.create_task(send_to_api(payload, {
+                        "priority": "high"
+                    }))
+                    safe_log('info', f"Function {f.__name__} was blocked")
 
                     raise OlakaiFunctionBlocked("Function execution blocked by Olakai", details=asdict(is_allowed.details))
 
@@ -135,13 +114,13 @@ def olakai_monitor(**kwargs):
                     safe_log('debug', f"Function execution failed: {error}")
                     
                     # Handle error monitoring
-                    handle_error_monitoring(function_error, processed_args, processed_kwargs, options, start)
+                    asyncio.create_task(handle_error_monitoring(function_error, processed_args, processed_kwargs, options, start))
                     raise function_error  # Re-raise the original error
                         
                 # Handle success monitoring
                 if function_error is None:
                     try:
-                        handle_success_monitoring(result, processed_args, processed_kwargs, options, start)
+                        asyncio.create_task(handle_success_monitoring(result, processed_args, processed_kwargs, options, start))
                     except Exception as error:
                         safe_log('debug', f"Error handling success monitoring: {error}")
                 
@@ -193,7 +172,7 @@ def olakai_monitor(**kwargs):
                     requestTime=int(time.time() * 1000 - start),
                     blocked=True
                 )
-                send_to_api(payload, {
+                run_async_in_sync("parallel", send_to_api, payload, {
                     "priority": "high"
                 })
                 

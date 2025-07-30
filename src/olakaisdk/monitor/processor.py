@@ -13,7 +13,7 @@ from ..shared.exceptions import SanitizationError, ControlServiceError
 from ..shared.types import ControlResponse
 
 
-async def sanitize_data(data: Any, patterns: Optional[List[re.Pattern]] = None) -> Any:
+def sanitize_data(data: Any, patterns: Optional[List[re.Pattern]] = None) -> Any:
     """
     Sanitize data by replacing sensitive information with a placeholder.
     
@@ -42,7 +42,7 @@ async def sanitize_data(data: Any, patterns: Optional[List[re.Pattern]] = None) 
         raise SanitizationError(f"Failed to sanitize data: {str(e)}") from e
 
 
-async def process_capture_result(capture_result: dict, options):
+def process_capture_result(capture_result: dict, options):
     """
     Process the result from a capture function, applying sanitization if needed.
     
@@ -60,11 +60,11 @@ async def process_capture_result(capture_result: dict, options):
     safe_log('info', f"Prompt: {prompt}")
 
     if getattr(options, 'sanitize', False):
-        config = await get_config()
+        config = get_config()
         sanitize_patterns = getattr(config, 'sanitize_patterns', None)
         try:
-            prompt = await sanitize_data(prompt, sanitize_patterns)
-            response = await sanitize_data(response, sanitize_patterns)
+            prompt = sanitize_data(prompt, sanitize_patterns)
+            response = sanitize_data(response, sanitize_patterns)
         except SanitizationError:
             safe_log('info', f"Sanitization failed, continuing anyway...")
     safe_log('info', f"Sanitized prompt: {prompt}")
