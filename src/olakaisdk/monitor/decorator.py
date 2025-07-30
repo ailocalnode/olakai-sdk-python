@@ -193,7 +193,9 @@ def olakai_monitor(**kwargs):
                     requestTime=int(time.time() * 1000 - start),
                     blocked=True
                 )
-
+                send_to_api(payload, {
+                    "priority": "high"
+                })
                 
                 raise OlakaiFunctionBlocked("Function execution blocked by Olakai", details=asdict(is_allowed.details))
             
