@@ -62,36 +62,16 @@ def generate_random_id():
     """Generate a random ID."""
     return str(uuid.uuid4())
 
-def run_async_in_sync( thread: Literal["parallel", "sequential"], func: Callable, *args, **kwargs) -> Any:
-    """Run an async function in a synchronous context."""
-    if thread == "parallel":
+def fire_and_forget(func: Callable, *args, **kwargs):
+    """Send monitoring without blocking"""
+    import threading
+    
+    def send_in_background():
         try:
-            loop = asyncio.get_running_loop()
-            # If there's a running loop, we need to run should_block in a separate thread
-            # to avoid blocking the current thread
-            import concurrent.futures
-                    
-            def run_func():
-                return asyncio.run(func(*args, **kwargs))
-                    
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(run_func)
-                return future.result()
-        except RuntimeError:
-            # No running loop, create a new one
-            return asyncio.run(func(*args, **kwargs))
+            asyncio.run(func(*args, **kwargs))
         except Exception as e:
-            safe_log('error', f"Error running async function in sync: {e}")
-            raise e
-        
-    elif thread == "sequential":
-        try:
-            loop = asyncio.get_running_loop()
-            if loop.is_running():
-                return asyncio.run_coroutine_threadsafe(func(*args, **kwargs), loop).result()
-        except RuntimeError:
-            return asyncio.run(func(*args, **kwargs))
-        except Exception as e:
-            safe_log('error', f"Error running async function in sync: {e}")
-            raise e
+            safe_log('debug', f"Background monitoring failed: {e}")
+    
+    thread = threading.Thread(target=send_in_background, daemon=True)
+    thread.start()
     

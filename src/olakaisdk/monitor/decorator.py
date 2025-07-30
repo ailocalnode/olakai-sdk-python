@@ -13,7 +13,7 @@ from .middleware import get_middlewares
 from .processor import process_capture_result, extract_user_info, should_allow_call
 from ..client.types import MonitorPayload
 from ..client.api import send_to_api
-from ..shared.utils import create_error_info, to_string_api, run_async_in_sync
+from ..shared.utils import create_error_info, to_string_api, fire_and_forget
 from ..shared.logger import safe_log
 from ..shared.exceptions import OlakaiFunctionBlocked, MiddlewareError, ControlServiceError
 from ..shared.types import ControlResponse, ControlDetails
@@ -87,9 +87,9 @@ def olakai_monitor(**kwargs):
                     )                    
                         
                     # Start background monitoring
-                    asyncio.create_task(send_to_api(payload, {
+                    fire_and_forget(send_to_api, payload, {
                         "priority": "high"
-                    }))
+                    })
                     safe_log('info', f"Function {f.__name__} was blocked")
 
                     raise OlakaiFunctionBlocked("Function execution blocked by Olakai", details=asdict(is_allowed.details))
@@ -114,13 +114,13 @@ def olakai_monitor(**kwargs):
                     safe_log('debug', f"Function execution failed: {error}")
                     
                     # Handle error monitoring
-                    asyncio.create_task(handle_error_monitoring(function_error, processed_args, processed_kwargs, options, start))
+                    fire_and_forget(handle_error_monitoring, function_error, processed_args, processed_kwargs, options, start)
                     raise function_error  # Re-raise the original error
                         
                 # Handle success monitoring
                 if function_error is None:
                     try:
-                        asyncio.create_task(handle_success_monitoring(result, processed_args, processed_kwargs, options, start))
+                        fire_and_forget(handle_success_monitoring, result, processed_args, processed_kwargs, options, start)
                     except Exception as error:
                         safe_log('debug', f"Error handling success monitoring: {error}")
                 
@@ -141,11 +141,28 @@ def olakai_monitor(**kwargs):
             safe_log('debug', f"Monitoring sync function: {f.__name__}")
             safe_log('info', f"Arguments: {args}, \n Kwargs: {kwargs}")
             
+            
+
             # Check if the function should be blocked
             is_allowed = False
             start = time.time() * 1000
             try:
-                is_allowed = run_async_in_sync("parallel", should_allow_call, options, args, kwargs)
+                loop = asyncio.get_running_loop()
+                # If there's a running loop, we need to run should_block in a separate thread
+                # to avoid blocking the current thread
+                import concurrent.futures
+                
+                def run_should_block():
+                    return asyncio.run(should_allow_call(options, args, kwargs))
+                
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(run_should_block)
+                    is_allowed = future.result()
+                    
+            except RuntimeError:
+                # No running loop, create a new one
+                is_allowed = asyncio.run(should_allow_call(options, args, kwargs))
+
             except ControlServiceError:
                 safe_log('debug', f"Control service error")
                 is_allowed = ControlResponse(allowed=False, details=ControlDetails(detectedSensitivity=[], isAllowedPersona=False))
@@ -172,7 +189,7 @@ def olakai_monitor(**kwargs):
                     requestTime=int(time.time() * 1000 - start),
                     blocked=True
                 )
-                run_async_in_sync("parallel", send_to_api, payload, {
+                fire_and_forget(send_to_api, payload, {
                     "priority": "high"
                 })
                 
