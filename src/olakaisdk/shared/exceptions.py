@@ -10,7 +10,9 @@ class OlakaiSDKError(Exception):
 # Function blocking exceptions
 class OlakaiFunctionBlocked(OlakaiSDKError):
     """Exception raised when a function is blocked by Olakai monitoring."""
-    pass
+    def __init__(self, message: str, details: dict):
+        super().__init__(message)
+        self.details = details
 
 # API and Configuration exceptions
 class APIKeyMissingError(OlakaiSDKError):

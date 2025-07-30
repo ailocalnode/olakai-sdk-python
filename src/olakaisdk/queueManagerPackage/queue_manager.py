@@ -12,6 +12,7 @@ from ..client.types import MonitorPayload, BatchRequest
 from ..shared.logger import safe_log
 from .types import QueueDependencies
 from ..shared.exceptions import QueueNotInitializedError
+from ..shared.utils import sleep, run_async_in_sync
 
 
 class QueueManager:
@@ -29,7 +30,7 @@ class QueueManager:
         self.batch_timer: Optional[asyncio.Task] = None
         self.clear_retries_timer: Optional[asyncio.Task] = None
         
-    async def initialize(self) -> None:
+    def initialize(self) -> None:
         """Initialize the queue by loading persisted data."""
         config = self.dependencies.get_config()
         
@@ -56,7 +57,7 @@ class QueueManager:
         # Start processing queue if we have items and we're online
         if self.batch_queue and self.dependencies.is_online():
             safe_log('info', "Starting batch processing")
-            await self._process_batch_queue()
+            self._process_batch_queue()
     
     async def add_to_queue(
         self,
@@ -199,10 +200,12 @@ class QueueManager:
         config = self.dependencies.get_config()
         
         async def process_after_timeout():
-            await asyncio.sleep(config.batchTimeout / 1000)  # Convert ms to seconds
+            await sleep(config.batchTimeout)  # Convert ms to seconds
             await self._process_batch_queue()
-        
-        self.batch_timer = asyncio.create_task(process_after_timeout())
+        try:
+            self.batch_timer = asyncio.create_task(process_after_timeout())
+        except RuntimeError:
+            run_async_in_sync("parallel", process_after_timeout)
     
     def _schedule_clear_retries_queue(self) -> None:
         """Schedule the clear retries queue."""
@@ -212,10 +215,13 @@ class QueueManager:
         config = self.dependencies.get_config()
         
         async def clear_after_timeout():
-            await asyncio.sleep(config.batchTimeout / 1000)  # Convert ms to seconds
+            await sleep(config.batchTimeout)  # Convert ms to seconds
             self.clear_retries_queue()
         
-        self.clear_retries_timer = asyncio.create_task(clear_after_timeout())
+        try:
+            self.clear_retries_timer = asyncio.create_task(clear_after_timeout())
+        except RuntimeError:
+            run_async_in_sync("parallel", clear_after_timeout)
     
     async def _process_batch_queue(self) -> None:
         """Process the batch queue."""
@@ -297,7 +303,7 @@ class QueueManager:
 # Global queue manager instance
 _queue_manager: Optional[QueueManager] = None
 
-async def init_queue_manager(dependencies: QueueDependencies) -> QueueManager:
+def init_queue_manager(dependencies: QueueDependencies) -> QueueManager:
     """
     Initialize the queue manager.
     
@@ -310,10 +316,11 @@ async def init_queue_manager(dependencies: QueueDependencies) -> QueueManager:
     global _queue_manager
     
     if _queue_manager:
-        safe_log('warn', "Queue manager already initialized, replacing with new instance")
+        safe_log('warn', "Queue manager already initialized, returning existing instance")
+        return _queue_manager
     
     _queue_manager = QueueManager(dependencies)
-    await _queue_manager.initialize()
+    _queue_manager.initialize()
     
     safe_log('info', f"Queue manager initialized with {_queue_manager.get_size()} items in queue")
     

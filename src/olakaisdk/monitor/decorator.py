@@ -6,16 +6,17 @@ import socket
 import inspect
 import time
 import threading
-from dataclasses import fields
+from dataclasses import fields, asdict
 from typing import Any, Callable
 from .types import MonitorOptions
 from .middleware import get_middlewares
-from .processor import process_capture_result, extract_user_info, should_block
+from .processor import process_capture_result, extract_user_info, should_allow_call
 from ..client.types import MonitorPayload
 from ..client.api import send_to_api
-from ..shared.utils import create_error_info, to_string_api
+from ..shared.utils import create_error_info, to_string_api, fire_and_forget
 from ..shared.logger import safe_log
 from ..shared.exceptions import OlakaiFunctionBlocked, MiddlewareError, ControlServiceError
+from ..shared.types import ControlResponse, ControlDetails
 
 externalLogic = False
 
@@ -67,16 +68,15 @@ def olakai_monitor(**kwargs):
                     del kwargs["potential_result"]
                 
                 # Check if the function should be blocked
-                should_be_blocked = await should_block(options, args, kwargs)
-                if should_be_blocked:
+                is_allowed = await should_allow_call(options, args, kwargs)
+                if not is_allowed.allowed:
                     safe_log('warning', f"Function {f.__name__} was blocked")
 
-                    chatId, email = await extract_user_info(options)
+                    chatId, email = extract_user_info(options)
 
                     payload = MonitorPayload(
-                        prompt="",
-                        response="",
-                        errorMessage="Function execution blocked by Olakai",
+                        prompt=f"Args: {args} \n Kwargs: {kwargs}",
+                        response="Function execution blocked by Olakai",
                         chatId=chatId,
                         email=email,
                         task=options.task,
@@ -84,12 +84,15 @@ def olakai_monitor(**kwargs):
                         tokens=0,
                         requestTime=int(time.time() * 1000 - start),
                         blocked=True
-                    )
-
-                    await send_to_api(payload, {
+                    )                    
+                        
+                    # Start background monitoring
+                    fire_and_forget(send_to_api, payload, {
                         "priority": "high"
                     })
-                    raise OlakaiFunctionBlocked("Function execution blocked by Olakai")
+                    safe_log('info', f"Function {f.__name__} was blocked")
+
+                    raise OlakaiFunctionBlocked("Function execution blocked by Olakai", details=asdict(is_allowed.details))
 
                 # Apply before middleware
                 try:
@@ -111,13 +114,13 @@ def olakai_monitor(**kwargs):
                     safe_log('debug', f"Function execution failed: {error}")
                     
                     # Handle error monitoring
-                    handle_error_monitoring(function_error, processed_args, processed_kwargs, options, start)
+                    fire_and_forget(handle_error_monitoring, function_error, processed_args, processed_kwargs, options, start)
                     raise function_error  # Re-raise the original error
                         
                 # Handle success monitoring
                 if function_error is None:
                     try:
-                        handle_success_monitoring(result, processed_args, processed_kwargs, options, start)
+                        fire_and_forget(handle_success_monitoring, result, processed_args, processed_kwargs, options, start)
                     except Exception as error:
                         safe_log('debug', f"Error handling success monitoring: {error}")
                 
@@ -138,8 +141,11 @@ def olakai_monitor(**kwargs):
             safe_log('debug', f"Monitoring sync function: {f.__name__}")
             safe_log('info', f"Arguments: {args}, \n Kwargs: {kwargs}")
             
+            
+
             # Check if the function should be blocked
-            should_be_blocked = False
+            is_allowed = False
+            start = time.time() * 1000
             try:
                 loop = asyncio.get_running_loop()
                 # If there's a running loop, we need to run should_block in a separate thread
@@ -147,29 +153,47 @@ def olakai_monitor(**kwargs):
                 import concurrent.futures
                 
                 def run_should_block():
-                    return asyncio.run(should_block(options, args, kwargs))
+                    return asyncio.run(should_allow_call(options, args, kwargs))
                 
                 with concurrent.futures.ThreadPoolExecutor() as executor:
                     future = executor.submit(run_should_block)
-                    should_be_blocked = future.result()
+                    is_allowed = future.result()
                     
             except RuntimeError:
                 # No running loop, create a new one
-                should_be_blocked = asyncio.run(should_block(options, args, kwargs))
+                is_allowed = asyncio.run(should_allow_call(options, args, kwargs))
 
             except ControlServiceError:
                 safe_log('debug', f"Control service error")
-                should_be_blocked = True
+                is_allowed = ControlResponse(allowed=False, details=ControlDetails(detectedSensitivity=[], isAllowedPersona=False))
 
             except Exception as e:
                 safe_log('debug', f"Error checking should_block: {e}")
                 # If checking fails, default to blocking
-                should_be_blocked = True
+                is_allowed = ControlResponse(allowed=False, details=ControlDetails(detectedSensitivity=[], isAllowedPersona=False))
                 
             # If the function should be blocked, don't execute it
-            if should_be_blocked:
+            if not is_allowed.allowed:
                 safe_log('warning', f"Function {f.__name__} was blocked")
-                raise OlakaiFunctionBlocked("Function execution blocked by Olakai")
+
+                chatId, email = extract_user_info(options)
+
+                payload = MonitorPayload(
+                    prompt=f"Args: {args} \n Kwargs: {kwargs}",
+                    response="Function execution blocked by Olakai",
+                    chatId=chatId,
+                    email=email,
+                    task=options.task,
+                    subTask=options.subTask,
+                    tokens=0,
+                    requestTime=int(time.time() * 1000 - start),
+                    blocked=True
+                )
+                fire_and_forget(send_to_api, payload, {
+                    "priority": "high"
+                })
+                
+                raise OlakaiFunctionBlocked("Function execution blocked by Olakai", details=asdict(is_allowed.details))
             
             def dump_stack_with_args(limit=20, filter=["/site-packages/", "\\site-packages\\", "asyncio"], sanitize_args=["api_key"]):
                 stack = inspect.stack()
@@ -214,35 +238,14 @@ def olakai_monitor(**kwargs):
             try:
                 result = f(*args, **kwargs)
             except Exception as error:
+                safe_log('debug', f"Error: {error}")
+                if options.send_on_function_error:
+                    run_async_in_sync("parallel", handle_error_monitoring, error, args, kwargs, options, start)
                 raise error
             finally:
                 if externalLogic:
                     socket.socket.connect = original_connect
-                # Background monitoring for sync functions
-            def fire_and_forget_monitoring():
-                        
-                try:
-                    # Check if there's already an event loop running
-                    loop = asyncio.get_running_loop()
-                    # If there's a running loop, schedule the monitoring as a task
-                    asyncio.create_task(async_wrapped_f(*args, **kwargs, potential_result=result))
-                except RuntimeError:
-                            # No running loop, create a new one for monitoring
-                            # Run in a separate thread to avoid blocking the sync function
-                    def run_monitoring():
-                        asyncio.run(async_wrapped_f(*args, **kwargs, potential_result=result))
-                            
-                    thread = threading.Thread(target=run_monitoring, daemon=True)
-                    thread.start()
-                except Exception:
-                    # If monitoring fails, don't affect the original function
-                    safe_log('debug', f"Monitoring failed")
-                    pass
-                
-                # Start background monitoring
-            fire_and_forget_monitoring()
-                
-                # Return the original result
+                run_async_in_sync("parallel", handle_success_monitoring, result, args, kwargs, options, start)
             return result
 
             
@@ -294,12 +297,12 @@ async def handle_error_monitoring(error: Exception, processed_args: tuple, proce
         try:
             error_info = await create_error_info(error)
             
-            chatId, email = await extract_user_info(options)
+            chatId, email = extract_user_info(options)
                     
             payload = MonitorPayload(
                 prompt="",
                 response="",
-                errorMessage=await to_string_api(error_info["error_message"]) + await to_string_api(error_info["stack_trace"]),
+                errorMessage=to_string_api(error_info["error_message"]) + to_string_api(error_info["stack_trace"]),
                 chatId=chatId,
                 email=email,
                 tokens=0,
@@ -341,14 +344,14 @@ async def handle_success_monitoring(result: Any, processed_args: tuple, processe
         )
         
         # Process capture result with sanitization
-        prompt, response = await process_capture_result(capture_result, options)
+        prompt, response = process_capture_result(capture_result, options)
         
         # Extract user information
-        chatId, email = await extract_user_info(options)
+        chatId, email = extract_user_info(options)
 
         payload = MonitorPayload(
-            prompt=await to_string_api(prompt),
-            response=await to_string_api(response),
+            prompt=to_string_api(prompt),
+            response=to_string_api(response),
             chatId=chatId if chatId else "anonymous",
             email=email if email else "anonymous@olakai.ai",
             tokens=0,

@@ -13,12 +13,12 @@ class MonitorPayload:
     chatId: str
     prompt: str
     response: str
-    tokens: Optional[int]
-    requestTime: Optional[int]
-    errorMessage: Optional[str]
-    task: Optional[str]
-    subTask: Optional[str]
     blocked: Optional[bool] = False
+    tokens: Optional[int] = 0
+    requestTime: Optional[int] = 0
+    task: Optional[str] = None
+    subTask: Optional[str] = None
+    errorMessage: Optional[str] = None
 
 @dataclass
 class ControlPayload:

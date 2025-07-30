@@ -2,9 +2,11 @@
 Common utility functions used across the SDK.
 """
 import json
+import asyncio
+import uuid
 import time
 import traceback
-from typing import Any, Dict
+from typing import Any, Dict, Callable, Literal
 from .logger import safe_log
 
 
@@ -54,4 +56,22 @@ async def create_error_info(error: Exception) -> Dict[str, Any]:
 async def sleep(ms: int):
     """Sleep for specified milliseconds with logging."""
     safe_log('debug', f"Sleeping for {ms}ms")
-    time.sleep(ms / 1000)
+    await asyncio.sleep(ms / 1000)
+
+def generate_random_id():
+    """Generate a random ID."""
+    return str(uuid.uuid4())
+
+def fire_and_forget(func: Callable, *args, **kwargs):
+    """Send monitoring without blocking"""
+    import threading
+    
+    def send_in_background():
+        try:
+            asyncio.run(func(*args, **kwargs))
+        except Exception as e:
+            safe_log('debug', f"Background monitoring failed: {e}")
+    
+    thread = threading.Thread(target=send_in_background, daemon=True)
+    thread.start()
+    

@@ -8,7 +8,7 @@ import requests
 from ..queueManagerPackage import add_to_queue
 from .types import MonitorPayload, ControlPayload
 from .config import get_config
-from ..shared.types import APIResponse, ControlResponse
+from ..shared.types import APIResponse, ControlResponse, ControlDetails
 from ..shared.logger import safe_log
 from ..shared.utils import sleep
 from ..shared.exceptions import (
@@ -70,10 +70,12 @@ async def make_api_call(
         safe_log('debug', f"Call type: {call_type}, API response: {response}")
         response.raise_for_status()
         result = response.json()
+        safe_log('debug', f"API response: {result}")
 
         if call_type == "monitoring":
             return APIResponse(**result)
         else:
+            result["details"] = ControlDetails(**result["details"]) 
             return ControlResponse(**result)
 
     except requests.exceptions.Timeout as err:
@@ -139,4 +141,4 @@ async def send_to_api(
                     safe_log('warning', f"Direct API call result: {response.failureCount}/{response.totalRequests} requests failed")
     
     else:
-        await send_with_retry(payload, "control")
+        return await send_with_retry(payload, "control")
