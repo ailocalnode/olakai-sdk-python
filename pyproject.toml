@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "olakaisdk"
-version = "0.3.2"
+version = "0.3.3"
 description = "A Python SDK for monitoring function calls and controlling execution with real-time API decisions"
 authors = [
     { name="Olakai", email="support@olakai.ai" }

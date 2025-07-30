@@ -54,8 +54,6 @@ class OlakaiClient:
     
     def monitor(self, **kwargs):
         """Create a monitoring decorator bound to this client instance."""
-        def decorator(func):
-            return olakai_monitor(self.config, **kwargs)(func)
-        return decorator
+        return olakai_monitor(self.config, **kwargs)
 
     
