@@ -3,29 +3,42 @@ Logging utilities for the Olakai SDK using Python's built-in logging module.
 """
 
 import logging
-from ..client.config import get_config
 
 
-def get_default_logger() -> logging.Logger:
+global_logger = None
+
+def create_logger() -> logging.Logger:
     """
     Get a default logger for the SDK if none is provided.
     
     Returns:
         A configured logger instance
     """
-    config = get_config()
-    logger = config.logger
+    global global_logger
+    if global_logger is None:
+        global_logger = logging.getLogger('OlakaiSDK')
     
     # Only configure if not already configured
-    if logger.name == 'OlakaiSDK' and not logger.handlers:
+    if global_logger.name == 'OlakaiSDK' and not global_logger.handlers:
         handler = logging.StreamHandler()
         formatter = logging.Formatter('[%(name)s] %(levelname)s: %(message)s')
         handler.setFormatter(formatter)
-        logger.addHandler(handler)
-        logger.setLevel(logging.INFO)
+        global_logger.addHandler(handler)
+        global_logger.setLevel(logging.INFO)
     
-    return logger
+    return global_logger
 
+def set_logger_level(level: str) -> None:
+    """
+    Set the logger level.
+    
+    Args:
+        level: Log level ('debug', 'info', 'warning', 'error')
+    """
+    global global_logger
+    if global_logger is None:
+        create_logger()
+    global_logger.setLevel(level.upper())
 
 def safe_log(level: str, message: str) -> None:
     """
@@ -36,13 +49,15 @@ def safe_log(level: str, message: str) -> None:
         level: Log level ('debug', 'info', 'warning', 'error')
         message: Message to log
     """
-    logger = get_default_logger()
+    global global_logger
+    if global_logger is None:
+        create_logger()
     
     try:
-        if logger.name == 'OlakaiSDK':
-            getattr(logger, level.lower())(message)
+        if global_logger.name == 'OlakaiSDK':
+            getattr(global_logger, level.lower())(message)
         else:
-            getattr(logger, level.lower())(f"[OlakaiSDK]: {message}")
+            getattr(global_logger, level.lower())(f"[OlakaiSDK]: {message}")
     except Exception:
         # Fallback to print if logging fails
         print(message) 

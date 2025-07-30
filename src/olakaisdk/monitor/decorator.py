@@ -11,7 +11,7 @@ from typing import Any, Callable
 from .types import MonitorOptions
 from .middleware import get_middlewares
 from .processor import process_capture_result, extract_user_info, should_allow_call
-from ..client.types import MonitorPayload
+from ..client.types import MonitorPayload, SDKConfig
 from ..client.api import send_to_api
 from ..shared.utils import create_error_info, to_string_api, fire_and_forget
 from ..shared.logger import safe_log
@@ -21,7 +21,7 @@ from ..shared.types import ControlResponse, ControlDetails
 externalLogic = False
 
 
-def olakai_monitor(**kwargs):
+def olakai_monitor(config: SDKConfig, **kwargs):
     """
     Monitor a function with the given options.
     
@@ -68,7 +68,7 @@ def olakai_monitor(**kwargs):
                     del kwargs["potential_result"]
                 
                 # Check if the function should be blocked
-                is_allowed = await should_allow_call(options, args, kwargs)
+                is_allowed = await should_allow_call(config, options, args, kwargs)
                 if not is_allowed.allowed:
                     safe_log('warning', f"Function {f.__name__} was blocked")
 
@@ -87,7 +87,7 @@ def olakai_monitor(**kwargs):
                     )                    
                         
                     # Start background monitoring
-                    fire_and_forget(send_to_api, payload, {
+                    fire_and_forget(send_to_api, config, payload, {
                         "priority": "high"
                     })
                     safe_log('info', f"Function {f.__name__} was blocked")
@@ -114,13 +114,13 @@ def olakai_monitor(**kwargs):
                     safe_log('debug', f"Function execution failed: {error}")
                     
                     # Handle error monitoring
-                    fire_and_forget(handle_error_monitoring, function_error, processed_args, processed_kwargs, options, start)
+                    fire_and_forget(handle_error_monitoring, config, function_error, processed_args, processed_kwargs, options, start)
                     raise function_error  # Re-raise the original error
                         
                 # Handle success monitoring
                 if function_error is None:
                     try:
-                        fire_and_forget(handle_success_monitoring, result, processed_args, processed_kwargs, options, start)
+                        fire_and_forget(handle_success_monitoring, config, result, processed_args, processed_kwargs, options, start)
                     except Exception as error:
                         safe_log('debug', f"Error handling success monitoring: {error}")
                 
@@ -153,7 +153,7 @@ def olakai_monitor(**kwargs):
                 import concurrent.futures
                 
                 def run_should_block():
-                    return asyncio.run(should_allow_call(options, args, kwargs))
+                    return asyncio.run(should_allow_call(config, options, args, kwargs))
                 
                 with concurrent.futures.ThreadPoolExecutor() as executor:
                     future = executor.submit(run_should_block)
@@ -161,7 +161,7 @@ def olakai_monitor(**kwargs):
                     
             except RuntimeError:
                 # No running loop, create a new one
-                is_allowed = asyncio.run(should_allow_call(options, args, kwargs))
+                is_allowed = asyncio.run(should_allow_call(config, options, args, kwargs))
 
             except ControlServiceError:
                 safe_log('debug', f"Control service error")
@@ -189,7 +189,7 @@ def olakai_monitor(**kwargs):
                     requestTime=int(time.time() * 1000 - start),
                     blocked=True
                 )
-                fire_and_forget(send_to_api, payload, {
+                fire_and_forget(send_to_api, config, payload, {
                     "priority": "high"
                 })
                 
@@ -240,12 +240,12 @@ def olakai_monitor(**kwargs):
             except Exception as error:
                 safe_log('debug', f"Error: {error}")
                 if options.send_on_function_error:
-                    fire_and_forget(handle_error_monitoring, error, args, kwargs, options, start)
+                    fire_and_forget(handle_error_monitoring, config, error, args, kwargs, options, start)
                 raise error
             finally:
                 if externalLogic:
                     socket.socket.connect = original_connect
-                fire_and_forget(handle_success_monitoring, result, args, kwargs, options, start)
+                fire_and_forget(handle_success_monitoring, config, result, args, kwargs, options, start)
             return result
 
             
@@ -280,7 +280,7 @@ def apply_before_middleware(args: tuple, kwargs: dict):
     return processed_args, processed_kwargs
 
 
-async def handle_error_monitoring(error: Exception, processed_args: tuple, processed_kwargs: dict, options: MonitorOptions, start: float):
+async def handle_error_monitoring(config: SDKConfig, error: Exception, processed_args: tuple, processed_kwargs: dict, options: MonitorOptions, start: float):
     """Handle monitoring for function errors."""
     middlewares = get_middlewares()
     
@@ -312,14 +312,14 @@ async def handle_error_monitoring(error: Exception, processed_args: tuple, proce
                 blocked=False
             )
                     
-            await send_to_api(payload, {
+            await send_to_api(config, payload, {
                 "priority": "high"  # Errors always get high priority
             })
         except Exception as capture_error:
             safe_log('debug', f"Error capture failed: {capture_error}")
 
 
-async def handle_success_monitoring(result: Any, processed_args: tuple, processed_kwargs: dict, options: MonitorOptions, start: float):
+async def handle_success_monitoring(config: SDKConfig, result: Any, processed_args: tuple, processed_kwargs: dict, options: MonitorOptions, start: float):
     """Handle monitoring for successful function execution."""
     middlewares = get_middlewares()
     
@@ -344,7 +344,7 @@ async def handle_success_monitoring(result: Any, processed_args: tuple, processe
         )
         
         # Process capture result with sanitization
-        prompt, response = process_capture_result(capture_result, options)
+        prompt, response = process_capture_result(config, capture_result, options)
         
         # Extract user information
         chatId, email = extract_user_info(options)
@@ -365,6 +365,6 @@ async def handle_success_monitoring(result: Any, processed_args: tuple, processe
         safe_log('info', f"Successfully defined payload: {payload}")
                 
         # Send to API
-        await send_to_api(payload, {
+        await send_to_api(config, payload, {
             "priority": getattr(options, 'priority', 'normal')
         }) 

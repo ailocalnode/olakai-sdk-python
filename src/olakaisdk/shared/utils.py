@@ -9,6 +9,10 @@ import traceback
 from typing import Any, Dict, Callable, Literal
 from .logger import safe_log
 
+import concurrent.futures
+
+_executor = concurrent.futures.ThreadPoolExecutor(max_workers=4)
+
 
 async def to_string_api(data: Any) -> str:
     """Convert data to API string format with enhanced handling."""
@@ -62,16 +66,14 @@ def generate_random_id():
     """Generate a random ID."""
     return str(uuid.uuid4())
 
+
 def fire_and_forget(func: Callable, *args, **kwargs):
     """Send monitoring without blocking"""
-    import threading
-    
     def send_in_background():
         try:
             asyncio.run(func(*args, **kwargs))
         except Exception as e:
             safe_log('debug', f"Background monitoring failed: {e}")
     
-    thread = threading.Thread(target=send_in_background, daemon=True)
-    thread.start()
+    _executor.submit(send_in_background)
     
