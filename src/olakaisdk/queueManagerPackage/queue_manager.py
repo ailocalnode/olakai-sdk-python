@@ -12,7 +12,7 @@ from ..client.types import MonitorPayload, BatchRequest
 from ..shared.logger import safe_log
 from .types import QueueDependencies
 from ..shared.exceptions import QueueNotInitializedError
-from ..shared.utils import sleep, run_async_in_sync
+from ..shared.utils import sleep, fire_and_forget
 
 
 class QueueManager:
@@ -205,7 +205,7 @@ class QueueManager:
         try:
             self.batch_timer = asyncio.create_task(process_after_timeout())
         except RuntimeError:
-            run_async_in_sync("parallel", process_after_timeout)
+            fire_and_forget(process_after_timeout)
     
     def _schedule_clear_retries_queue(self) -> None:
         """Schedule the clear retries queue."""
@@ -221,7 +221,7 @@ class QueueManager:
         try:
             self.clear_retries_timer = asyncio.create_task(clear_after_timeout())
         except RuntimeError:
-            run_async_in_sync("parallel", clear_after_timeout)
+            fire_and_forget(clear_after_timeout)
     
     async def _process_batch_queue(self) -> None:
         """Process the batch queue."""
