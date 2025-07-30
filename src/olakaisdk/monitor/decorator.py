@@ -145,7 +145,7 @@ def olakai_monitor(**kwargs):
             is_allowed = False
             start = time.time() * 1000
             try:
-                is_allowed = run_async_in_sync("sequential", should_allow_call, options, args, kwargs)
+                is_allowed = run_async_in_sync("parallel", should_allow_call, options, args, kwargs)
             except ControlServiceError:
                 safe_log('debug', f"Control service error")
                 is_allowed = ControlResponse(allowed=False, details=ControlDetails(detectedSensitivity=[], isAllowedPersona=False))
@@ -285,7 +285,7 @@ async def handle_error_monitoring(error: Exception, processed_args: tuple, proce
             payload = MonitorPayload(
                 prompt="",
                 response="",
-                errorMessage=await to_string_api(error_info["error_message"]) + await to_string_api(error_info["stack_trace"]),
+                errorMessage=to_string_api(error_info["error_message"]) + to_string_api(error_info["stack_trace"]),
                 chatId=chatId,
                 email=email,
                 tokens=0,
@@ -327,14 +327,14 @@ async def handle_success_monitoring(result: Any, processed_args: tuple, processe
         )
         
         # Process capture result with sanitization
-        prompt, response = await process_capture_result(capture_result, options)
+        prompt, response = process_capture_result(capture_result, options)
         
         # Extract user information
         chatId, email = extract_user_info(options)
 
         payload = MonitorPayload(
-            prompt=await to_string_api(prompt),
-            response=await to_string_api(response),
+            prompt=to_string_api(prompt),
+            response=to_string_api(response),
             chatId=chatId if chatId else "anonymous",
             email=email if email else "anonymous@olakai.ai",
             tokens=0,
