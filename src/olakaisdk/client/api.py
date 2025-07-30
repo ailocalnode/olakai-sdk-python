@@ -6,8 +6,7 @@ from typing import List, Union, Literal
 
 import requests
 from ..queueManagerPackage import add_to_queue
-from .types import MonitorPayload, ControlPayload
-from .config import get_config
+from .types import MonitorPayload, ControlPayload, SDKConfig
 from ..shared.types import APIResponse, ControlResponse, ControlDetails
 from ..shared.logger import safe_log
 from ..shared.utils import sleep
@@ -20,11 +19,11 @@ from ..shared.exceptions import (
 )
 
 async def make_api_call(
+    config: SDKConfig,
     payload: Union[List[MonitorPayload], ControlPayload],
     call_type: Literal["monitoring", "control"] = "monitoring",
 ) -> Union[APIResponse, ControlResponse]:
     """Make API call with optional logging."""
-    config = get_config()
 
     if not config.apiKey:
         raise APIKeyMissingError("[Olakai SDK] API key is not set")
@@ -89,18 +88,18 @@ async def make_api_call(
 
 
 async def send_with_retry(
+    config: SDKConfig,
     payload: Union[List[MonitorPayload], ControlPayload],
     call_type: Literal["monitoring", "control"] = "monitoring",
 ) -> Union[APIResponse, ControlResponse]:
     """Send payload with retry logic and optional logging."""
 
-    config = get_config()
     max_retries = config.retries if config.retries > 0 else 0
     last_error = None
 
     for attempt in range(max_retries + 1):
         try:
-            result = await make_api_call(payload, call_type)
+            result = await make_api_call(config, payload, call_type)
             safe_log('debug', f"API call successful")
             return result
         except (APITimeoutError, APIResponseError) as err:
@@ -117,12 +116,11 @@ async def send_with_retry(
 
 
 async def send_to_api(
+    config: SDKConfig,
     payload: Union[MonitorPayload, ControlPayload], 
     options: dict = {}, 
 ) -> Union[APIResponse, ControlResponse]:
     """Send payload to API with optional logging."""
-
-    config = get_config()
 
     if not config.apiKey:
         safe_log('debug', "API key is not set.")
@@ -133,7 +131,7 @@ async def send_to_api(
             options = {"priority": options.get("priority", "normal"), "retries": options.get("retries", 0)}
             await add_to_queue(payload, **options)
         else:
-            response = await make_api_call([payload], "monitoring")
+            response = await make_api_call(config, [payload], "monitoring")
             # Log any batch-style response information if present
             if (response.totalRequests != None and response.successCount != None):
                 safe_log('info', f"Direct API call result: {response.successCount}/{response.totalRequests} requests succeeded")
@@ -141,4 +139,4 @@ async def send_to_api(
                     safe_log('warning', f"Direct API call result: {response.failureCount}/{response.totalRequests} requests failed")
     
     else:
-        return await send_with_retry(payload, "control")
+        return await send_with_retry(config, payload, "control")

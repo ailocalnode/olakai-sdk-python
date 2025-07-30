@@ -4,10 +4,28 @@ Common utility functions used across the SDK.
 import json
 import asyncio
 import uuid
-import time
 import traceback
-from typing import Any, Dict, Callable, Literal
+from typing import Any, Dict, Callable
 from .logger import safe_log
+
+import concurrent.futures
+import threading
+
+# Thread-safe executor with proper lifecycle management
+_executor = None
+_executor_lock = threading.Lock()
+
+def get_executor():
+    """Get or create the global executor in a thread-safe way."""
+    global _executor
+    if _executor is None:
+        with _executor_lock:
+            if _executor is None:
+                _executor = concurrent.futures.ThreadPoolExecutor(
+                    max_workers=4, 
+                    thread_name_prefix="olakai-sdk"
+                )
+    return _executor
 
 
 async def to_string_api(data: Any) -> str:
@@ -62,16 +80,29 @@ def generate_random_id():
     """Generate a random ID."""
     return str(uuid.uuid4())
 
+
 def fire_and_forget(func: Callable, *args, **kwargs):
-    """Send monitoring without blocking"""
-    import threading
-    
+    """Send monitoring without blocking with improved error handling."""
     def send_in_background():
         try:
-            asyncio.run(func(*args, **kwargs))
+            if asyncio.iscoroutinefunction(func):
+                # For async functions, run in new event loop
+                asyncio.run(func(*args, **kwargs))
+            else:
+                # For sync functions, call directly
+                func(*args, **kwargs)
         except Exception as e:
             safe_log('debug', f"Background monitoring failed: {e}")
     
-    thread = threading.Thread(target=send_in_background, daemon=True)
-    thread.start()
+    executor = get_executor()
+    future = executor.submit(send_in_background)
+    # Add error callback for better monitoring
+    def handle_future_exception(fut):
+        try:
+            fut.result()
+        except Exception as e:
+            safe_log('debug', f"Background task failed: {e}")
+    
+    future.add_done_callback(handle_future_exception)
+    return future
     

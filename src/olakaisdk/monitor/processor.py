@@ -5,9 +5,8 @@ import json
 import re
 from typing import Any, Optional, List
 from ..shared.logger import safe_log
-from ..client.config import get_config
 from .types import MonitorOptions
-from ..client.types import ControlPayload
+from ..client.types import ControlPayload, SDKConfig
 from ..client.api import send_to_api
 from ..shared.exceptions import SanitizationError, ControlServiceError
 from ..shared.types import ControlResponse
@@ -42,7 +41,7 @@ def sanitize_data(data: Any, patterns: Optional[List[re.Pattern]] = None) -> Any
         raise SanitizationError(f"Failed to sanitize data: {str(e)}") from e
 
 
-def process_capture_result(capture_result: dict, options):
+def process_capture_result(config: SDKConfig, capture_result: dict, options):
     """
     Process the result from a capture function, applying sanitization if needed.
     
@@ -60,7 +59,6 @@ def process_capture_result(capture_result: dict, options):
     safe_log('info', f"Prompt: {prompt}")
 
     if getattr(options, 'sanitize', False):
-        config = get_config()
         sanitize_patterns = getattr(config, 'sanitize_patterns', None)
         try:
             prompt = sanitize_data(prompt, sanitize_patterns)
@@ -112,7 +110,7 @@ def extract_user_info(options: MonitorOptions) -> tuple[str, str]:
 
     return chatId, email 
 
-async def should_allow_call(options: MonitorOptions, args: tuple, kwargs: dict) -> ControlResponse:
+async def should_allow_call(config: SDKConfig, options: MonitorOptions, args: tuple, kwargs: dict) -> ControlResponse:
     """
     Check if the function should be blocked.
     
@@ -141,7 +139,7 @@ async def should_allow_call(options: MonitorOptions, args: tuple, kwargs: dict) 
             overrideControlCriteria=options.overrideControlCriteria if options.overrideControlCriteria else []
         )
 
-        response = await send_to_api(control_payload)
+        response = await send_to_api(config, control_payload)
         return response
     except Exception as e:
         safe_log('error', f"Control service failed: {str(e)}")

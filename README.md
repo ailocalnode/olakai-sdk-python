@@ -16,16 +16,16 @@ pip install olakaisdk
 
 ```python
 from openai import OpenAI
-from olakaisdk import init_client, olakai_monitor
+from olakaisdk import OlakaiClient
 
-# 1. Initialize once
-init_client("your-olakai-api-key", "https://your-olakai-domain.ai")
+# 1. Initialize the Olakai client
+olakai = OlakaiClient("your-olakai-api-key", "https://your-olakai-domain.ai")
 
 #Example for OpenAI API
 client = OpenAI(api_key="YOUR_OPENAI_API_KEY")
 
 # 2. Wrap any function - that's it!
-@olakai_monitor()
+@olakai.monitor()
 def complete_my_prompt(prompt: str):
     response = client.chat.completions.create(
         model="gpt-4o",  # Specify the model you want to use
@@ -59,14 +59,14 @@ print(result)  # "Hello, World!"
 
 ```python
 import openai
-from olakaisdk import init_client, olakai_monitor
+from olakaisdk import OlakaiClient
 
-init_client("your-olakai-api-key", "https://your-olakai-domain.ai")
+olakai = OlakaiClient("your-olakai-api-key", "https://your-olakai-domain.ai")
 
 openai.api_key = "your-openai-api-key"
 
 # Create a monitored version of the API call
-@olakai_monitor()
+@olakai.monitor()
 def monitored_completion(messages: list) -> dict:
     return openai.chat.completions.create(
         model="gpt-3.5-turbo",
@@ -112,10 +112,12 @@ Built-in error handling, retries, and offline support
 ### Monitor Any Function
 
 ```python
-from olakaisdk import olakai_monitor
+from olakaisdk import OlakaiClient
+
+olakai = OlakaiClient("your-olakai-api-key", "https://your-olakai-domain.ai")
 
 # Works with any function
-@olakai_monitor(
+@olakai.monitor(
     task="Customer service",     # Optional: give it a task
     subTask="process-order"      # Optional: give it a subtask
 )
@@ -131,9 +133,11 @@ result = process_order("order-123")
 ### Track Users (For Multi-User Apps)
 
 ```python
-from olakaisdk import olakai_monitor
+from olakaisdk import OlakaiClient
 
-@olakai_monitor(
+olakai = OlakaiClient("your-olakai-api-key", "https://your-olakai-domain.ai")
+
+@olakai.monitor(
     task="Customer service",
     subTask="process-order",
     email="example@olakai.ai",  # Or use a function: lambda args: get_user_email(args[0])
@@ -154,10 +158,12 @@ result = process_order("order-123")
 ### Capture Only What You Need
 
 ```python
-from olakaisdk import olakai_monitor
+from olakaisdk import OlakaiClient
+
+olakai = OlakaiClient("your-olakai-api-key", "https://your-olakai-domain.ai")
 
 # Custom capture logic
-@olakai_monitor(
+@olakai.monitor(
     capture=lambda args, result: {
         "input": {"email": args[0]},
         "output": {"success": result.get("success")}
@@ -179,9 +185,11 @@ Sometimes you need fine-grained control. Use the full `MonitorOptions` for compl
 ```python
 import time
 import requests
-from olakaisdk import olakai_monitor
+from olakaisdk import OlakaiClient
 
-@olakai_monitor(
+olakai = OlakaiClient("your-olakai-api-key", "https://your-olakai-domain.ai")
+
+@olakai.monitor(
     task="Authentication",
     subTask="user-login",
     email=lambda args: args[0],  # Dynamic user email from first argument
@@ -258,9 +266,11 @@ Works seamlessly with async functions:
 
 ```python
 import asyncio
-from olakaisdk import olakai_monitor
+from olakaisdk import OlakaiClient
 
-@olakai_monitor()
+olakai = OlakaiClient("your-olakai-api-key", "https://your-olakai-domain.ai")
+
+@olakai.monitor()
 async def async_ai_call(prompt: str) -> str:
     # Your async AI logic
     await asyncio.sleep(0.1)
@@ -274,35 +284,38 @@ result = await async_ai_call("Hello async world!")
 
 ## Configuration
 
-### Setup
+### Basic Setup
 
 ```python
-from olakaisdk import init_client
+from olakaisdk import OlakaiClient
 
-init_client("your-olakai-api-key", "https://your-olakai-domain.ai")
+# Simple initialization
+client = OlakaiClient("your-olakai-api-key", "https://your-olakai-domain.ai")
 ```
 
 ### Advanced Configuration
 
 ```python
-from olakai_dk import init_client
+from olakaisdk import OlakaiClient
 
-init_client(
-    apiKey="your-olakai-api-key",
-    apiUrl="https://your-olakai-domain.ai",
-    debug=True,          # See what's happening
-enableLocalStorage=True  # Offline support
-))
+client = OlakaiClient(
+    api_key="your-olakai-api-key",
+    domain="https://your-olakai-domain.ai",
+    debug=True,            # See what's happening
+    enableStorage=True,    # Offline support
+    batchSize=20,          # Custom batch size
+    timeout=30000          # Custom timeout in milliseconds
+)
 ```
 
 ### Advanced Debug Mode
 
 ```python
-from olakaisdk import init_client
+from olakaisdk import OlakaiClient
 
-init_client(
-    apiKey="your-key",
-    apiUrl="https://your-olakai-domain.ai",
+client = OlakaiClient(
+    api_key="your-key",
+    domain="https://your-olakai-domain.ai",
     debug=True,
     verbose=True
 )
@@ -316,10 +329,11 @@ This will log detailed information about what the SDK is doing.
 
 ### ✅ **Do This**
 
-- Start with simple `@olakai_monitor()` decorator
+- Start with simple `@client.monitor()` decorator
 - Use descriptive task names
 - Monitor important business logic functions
 - Set up user tracking for multi-user apps
+- Create one OlakaiClient instance per application
 
 ### ❌ **Avoid This**
 
@@ -337,24 +351,24 @@ This will log detailed information about what the SDK is doing.
 
 ## API Reference
 
-### Core Functions
+### Core Classes and Methods
 
-| Function                | Description                        | Use Case             |
-| ----------------------- | ---------------------------------- | -------------------- |
-| `init_client(key, url)` | Initialize SDK with API key        | Required setup       |
-| `@monitor(options?)`    | Decorator for monitoring functions | Most common use case |
+| Class/Method              | Description                        | Use Case             |
+| ------------------------- | ---------------------------------- | -------------------- |
+| `OlakaiClient(key, url)`  | Initialize SDK client instance     | Required setup       |
+| `client.monitor(options)` | Decorator for monitoring functions | Most common use case |
 
-### Configuration Options (SDKConfig)
+### Configuration Options (OlakaiClient)
 
 | Option               | Default | Description                |
 | -------------------- | ------- | -------------------------- |
-| `apiKey`             | `""`    | Your Olakai API key        |
-| `apiUrl`             | `None`  | API endpoint URL           |
+| `api_key`            | Required| Your Olakai API key        |
+| `domain`             | Default | API endpoint domain        |
 | `batchSize`          | `10`    | Requests to batch together |
 | `batchTimeout`       | `5000`  | Batch timeout (ms)         |
 | `retries`            | `3`     | Retry attempts             |
 | `timeout`            | `20000` | Request timeout (ms)       |
-| `enableLocalStorage` | `True`  | Offline queue support      |
+| `enableStorage`      | `True`  | Offline queue support      |
 | `debug`              | `False` | Debug logging              |
 | `verbose`            | `False` | Verbose logging            |
 
@@ -371,9 +385,6 @@ This will log detailed information about what the SDK is doing.
 | `capture`                | `Callable`          | Custom data capture function                                       |
 | `send_on_function_error` | `bool`              | Enable send to Olakai UNO when the monitored function has an error |
 
-### Utilities
-
-- `get_config()` - Get current SDK configuration
 
 ---
 
@@ -383,9 +394,10 @@ This will log detailed information about what the SDK is doing.
 
 **"Function not being monitored"**
 
-- Check that `init_client()` was called first
+- Check that `OlakaiClient` was instantiated correctly
 - Verify your API key and domain URL
 - Check console for errors (if debug=True)
+- Ensure you're using `@client.monitor()` not `@olakai_monitor()`
 
 **"Import errors"**
 
