@@ -5,6 +5,7 @@ import logging
 from typing import Optional
 from .types import SDKConfig
 from ..shared.exceptions import InitializationError, ConfigNotInitializedError
+from ..shared.utils import run_async_in_sync
 
 # Global configuration
 config = SDKConfig(
@@ -14,7 +15,7 @@ config = SDKConfig(
 )
 
 
-async def init_client(
+async def init_client_async(
     api_key: str, 
     domain: str = "https://app.olakai.ai", 
     logger: Optional[logging.Logger] = None,
@@ -26,8 +27,8 @@ async def init_client(
     Args:
         api_key: Your Olakai API key
         domain: API domain (default: app.olakai.ai)
-        sdk_config: Optional SDK configuration
         logger: Optional logger instance for logging SDK operations
+        **kwargs: Optional SDK configuration
     """
     global config
     if logger is None:
@@ -61,6 +62,23 @@ async def init_client(
         config.logger.setLevel(logging.DEBUG)
     else:
         config.logger.setLevel(logging.WARNING)
+
+def init_client(
+    api_key: str, 
+    domain: str = "https://app.olakai.ai", 
+    logger: Optional[logging.Logger] = None,
+    **kwargs
+):
+    """
+    Initialize the Olakai SDK client.
+    
+    Args:
+        api_key: Your Olakai API key
+        domain: API domain (default: app.olakai.ai)
+        logger: Optional logger instance for logging SDK operations
+        **kwargs: Optional SDK configuration
+    """
+    return run_async_in_sync("sequential", init_client_async, api_key, domain, logger, **kwargs)
 
 
 def get_config() -> SDKConfig:

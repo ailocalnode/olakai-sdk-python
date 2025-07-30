@@ -13,7 +13,7 @@ from .middleware import get_middlewares
 from .processor import process_capture_result, extract_user_info, should_allow_call
 from ..client.types import MonitorPayload
 from ..client.api import send_to_api
-from ..shared.utils import create_error_info, to_string_api
+from ..shared.utils import create_error_info, to_string_api, run_async_in_sync
 from ..shared.logger import safe_log
 from ..shared.exceptions import OlakaiFunctionBlocked, MiddlewareError, ControlServiceError
 from ..shared.types import ControlResponse, ControlDetails
@@ -166,22 +166,7 @@ def olakai_monitor(**kwargs):
             is_allowed = False
             start = time.time() * 1000
             try:
-                loop = asyncio.get_running_loop()
-                # If there's a running loop, we need to run should_block in a separate thread
-                # to avoid blocking the current thread
-                import concurrent.futures
-                
-                def run_should_block():
-                    return asyncio.run(should_allow_call(options, args, kwargs))
-                
-                with concurrent.futures.ThreadPoolExecutor() as executor:
-                    future = executor.submit(run_should_block)
-                    is_allowed = future.result()
-                    
-            except RuntimeError:
-                # No running loop, create a new one
-                is_allowed = asyncio.run(should_allow_call(options, args, kwargs))
-
+                is_allowed = run_async_in_sync("sequential", should_allow_call, options, args, kwargs)
             except ControlServiceError:
                 safe_log('debug', f"Control service error")
                 is_allowed = ControlResponse(allowed=False, details=ControlDetails(detectedSensitivity=[], isAllowedPersona=False))
@@ -255,35 +240,14 @@ def olakai_monitor(**kwargs):
             try:
                 result = f(*args, **kwargs)
             except Exception as error:
+                safe_log('debug', f"Error: {error}")
+                if options.send_on_function_error:
+                    run_async_in_sync("parallel", handle_error_monitoring, error, args, kwargs, options, start)
                 raise error
             finally:
                 if externalLogic:
                     socket.socket.connect = original_connect
-                # Background monitoring for sync functions
-            def fire_and_forget_monitoring():
-                        
-                try:
-                    # Check if there's already an event loop running
-                    loop = asyncio.get_running_loop()
-                    # If there's a running loop, schedule the monitoring as a task
-                    asyncio.create_task(handle_success_monitoring(result, args, kwargs, options, start))
-                except RuntimeError:
-                            # No running loop, create a new one for monitoring
-                            # Run in a separate thread to avoid blocking the sync function
-                    def run_monitoring():
-                        asyncio.run(handle_success_monitoring(result, args, kwargs, options, start))
-                            
-                    thread = threading.Thread(target=run_monitoring, daemon=True)
-                    thread.start()
-                except Exception:
-                    # If monitoring fails, don't affect the original function
-                    safe_log('debug', f"Monitoring failed")
-                    pass
-                
-                # Start background monitoring
-            fire_and_forget_monitoring()
-                
-                # Return the original result
+                run_async_in_sync("parallel", handle_success_monitoring, result, args, kwargs, options, start)
             return result
 
             
