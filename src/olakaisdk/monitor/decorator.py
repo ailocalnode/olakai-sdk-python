@@ -83,7 +83,8 @@ def olakai_monitor(**kwargs):
                         subTask=options.subTask,
                         tokens=0,
                         requestTime=int(time.time() * 1000 - start),
-                        blocked=True
+                        blocked=True,
+                        sensitivity=is_allowed.details.detectedSensitivity if is_allowed.details.detectedSensitivity else []
                     )                    
                         
                     # Start background monitoring
@@ -114,13 +115,13 @@ def olakai_monitor(**kwargs):
                     safe_log('debug', f"Function execution failed: {error}")
                     
                     # Handle error monitoring
-                    fire_and_forget(handle_error_monitoring, function_error, processed_args, processed_kwargs, options, start)
+                    fire_and_forget(handle_error_monitoring, function_error, processed_args, processed_kwargs, options, start, is_allowed)
                     raise function_error  # Re-raise the original error
                         
                 # Handle success monitoring
                 if function_error is None:
                     try:
-                        fire_and_forget(handle_success_monitoring, result, processed_args, processed_kwargs, options, start)
+                        fire_and_forget(handle_success_monitoring, result, processed_args, processed_kwargs, options, start, is_allowed)
                     except Exception as error:
                         safe_log('debug', f"Error handling success monitoring: {error}")
                 
@@ -187,7 +188,8 @@ def olakai_monitor(**kwargs):
                     subTask=options.subTask,
                     tokens=0,
                     requestTime=int(time.time() * 1000 - start),
-                    blocked=True
+                    blocked=True,
+                    sensitivity=is_allowed.details.detectedSensitivity if is_allowed.details.detectedSensitivity else []
                 )
                 fire_and_forget(send_to_api, payload, {
                     "priority": "high"
@@ -240,12 +242,12 @@ def olakai_monitor(**kwargs):
             except Exception as error:
                 safe_log('debug', f"Error: {error}")
                 if options.send_on_function_error:
-                    fire_and_forget(handle_error_monitoring, error, args, kwargs, options, start)
+                    fire_and_forget(handle_error_monitoring, error, args, kwargs, options, start, is_allowed)
                 raise error
             finally:
                 if externalLogic:
                     socket.socket.connect = original_connect
-                fire_and_forget(handle_success_monitoring, result, args, kwargs, options, start)
+                fire_and_forget(handle_success_monitoring, result, args, kwargs, options, start, is_allowed)
             return result
 
             
@@ -280,7 +282,7 @@ def apply_before_middleware(args: tuple, kwargs: dict):
     return processed_args, processed_kwargs
 
 
-async def handle_error_monitoring(error: Exception, processed_args: tuple, processed_kwargs: dict, options: MonitorOptions, start: float):
+async def handle_error_monitoring(error: Exception, processed_args: tuple, processed_kwargs: dict, options: MonitorOptions, start: float, is_allowed: ControlResponse):
     """Handle monitoring for function errors."""
     middlewares = get_middlewares()
     
@@ -309,7 +311,8 @@ async def handle_error_monitoring(error: Exception, processed_args: tuple, proce
                 requestTime=int(time.time() * 1000 - start),
                 task=getattr(options, 'task', None),
                 subTask=getattr(options, 'subTask', None),
-                blocked=False
+                blocked=False,
+                sensitivity=is_allowed.details.detectedSensitivity if is_allowed.details.detectedSensitivity else []
             )
                     
             await send_to_api(payload, {
@@ -319,7 +322,7 @@ async def handle_error_monitoring(error: Exception, processed_args: tuple, proce
             safe_log('debug', f"Error capture failed: {capture_error}")
 
 
-async def handle_success_monitoring(result: Any, processed_args: tuple, processed_kwargs: dict, options: MonitorOptions, start: float):
+async def handle_success_monitoring(result: Any, processed_args: tuple, processed_kwargs: dict, options: MonitorOptions, start: float, is_allowed: ControlResponse):
     """Handle monitoring for successful function execution."""
     middlewares = get_middlewares()
     
@@ -359,7 +362,8 @@ async def handle_success_monitoring(result: Any, processed_args: tuple, processe
             errorMessage=None,
             task=getattr(options, 'task', None),
             subTask=getattr(options, 'subTask', None),
-            blocked=False
+            blocked=False,
+            sensitivity=is_allowed.details.detectedSensitivity if is_allowed.details.detectedSensitivity else []
         )
 
         safe_log('info', f"Successfully defined payload: {payload}")
