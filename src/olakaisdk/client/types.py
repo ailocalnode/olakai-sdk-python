@@ -19,6 +19,7 @@ class MonitorPayload:
     task: Optional[str] = None
     subTask: Optional[str] = None
     errorMessage: Optional[str] = None
+    sensitivity: Optional[List[str]] = None
 
 @dataclass
 class ControlPayload:
