@@ -8,7 +8,7 @@ from .monitor.types import MonitorOptions, MonitorUtils
 from .monitor.middleware import add_middleware, remove_middleware  # For backward compatibility
 from .shared.exceptions import OlakaiFunctionBlocked
 
-__version__ = "0.1.0"
+__version__ = "0.3.4"
 
 __all__ = [
     "OlakaiClient",
