@@ -56,7 +56,7 @@ class SDKConfig:
     controlUrl: Optional[str] = None
     isBatchingEnabled: bool = False
     batchSize: int = 10
-    batchTimeout: int = 5000  # milliseconds
+    batchTimeout: int = 300  # milliseconds
     retries: int = 3
     timeout: int = 20000  # milliseconds
     enableStorage: bool = True
