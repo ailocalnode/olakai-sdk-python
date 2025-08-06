@@ -12,7 +12,7 @@ cd $ROOT
 ruff format --line-length 80 $SRC_DIR tests | \
 	grep -vE "^[0-9]+ files left unchanged$" \
 	|| true
-find . -name "*.sh" -o -name "*.py" -o -name "*.txt" -o -name "*.toml" | \
+find src tests -name "*.sh" -o -name "*.py" -o -name "*.txt" -o -name "*.toml" | \
 	grep -vE "/\.ruff_cache/|/\.mypy_cache/|/\.egg-info/|/build/" | \
 	xargs grep -niE "todo|xxx" | \
 	grep -vE "^check.sh:.*todo.*$" | \
