@@ -1,5 +1,5 @@
 from typing import Callable, List, Optional
-from .decorator import olakai_monitor
+from .decorator import olakai_supervisor
 from ..shared import generate_random_id, MonitorOptions
 from dataclasses import fields
 
@@ -17,7 +17,7 @@ class OlakaiMasterDecorator:
     def __call__(self, *args, **kwargs):
         self.chatId: str = kwargs.get("chatId", generate_random_id())
         self.monitor_options.chatId = self.chatId
-        return olakai_monitor(self.func, **self.monitor_options)
+        return olakai_supervisor(self.func, **self.monitor_options)
 
     def sub_decorator(self, **kwargs):
         # Combiner les paramètres globaux avec les paramètres locaux
@@ -35,4 +35,4 @@ class OlakaiMasterDecorator:
         # Fusionner avec les paramètres locaux (kwargs ont la priorité)
         combined_params = {**global_params, **kwargs}
 
-        return olakai_monitor(**combined_params)
+        return olakai_supervisor(**combined_params)

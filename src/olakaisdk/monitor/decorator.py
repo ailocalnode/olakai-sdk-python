@@ -34,7 +34,7 @@ from ..client import send_to_api, get_olakai_client
 externalLogic = False
 
 
-def olakai_monitor(**kwargs):
+def olakai_supervisor(**kwargs):
     """
     Monitor a function with the given options.
 
