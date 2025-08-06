@@ -1,6 +1,7 @@
 """
 Data processing and sanitization for the Olakai SDK monitor.
 """
+
 import json
 import re
 from typing import Any, Optional, List
@@ -11,79 +12,81 @@ from client import send_to_api
 from shared import SanitizationError, ControlServiceError, ControlResponse
 
 
-def sanitize_data(data: Any, patterns: Optional[List[re.Pattern]] = None) -> Any:
+def sanitize_data(
+    data: Any, patterns: Optional[List[re.Pattern]] = None
+) -> Any:
     """
     Sanitize data by replacing sensitive information with a placeholder.
-    
+
     Args:
         data: The data to sanitize
         patterns: List of regex patterns to replace
         logger: Optional logger instance
-        
+
     Returns:
         The sanitized data
     """
     if not patterns:
         return data
-        
+
     try:
         serialized = json.dumps(data, default=str)
         for pattern in patterns:
             serialized = pattern.sub("[REDACTED]", serialized)
-        
+
         parsed = json.loads(serialized)
 
-        safe_log('info', "Data successfully sanitized")
+        safe_log("info", "Data successfully sanitized")
         return parsed
     except Exception as e:
-        safe_log('debug', f"Data failed to sanitize: {str(e)}")
+        safe_log("debug", f"Data failed to sanitize: {str(e)}")
         raise SanitizationError(f"Failed to sanitize data: {str(e)}") from e
 
 
 def process_capture_result(config: SDKConfig, capture_result: dict, options):
     """
     Process the result from a capture function, applying sanitization if needed.
-    
+
     Args:
         capture_result: Result from the capture function
         options: Monitor options
         logger: Optional logger instance
-        
+
     Returns:
         Processed prompt and response strings
     """
     prompt = capture_result.get("input", "")
     response = capture_result.get("output", "")
 
-    safe_log('info', f"Prompt: {prompt}")
+    safe_log("info", f"Prompt: {prompt}")
 
-    if getattr(options, 'sanitize', False):
-        sanitize_patterns = getattr(config, 'sanitize_patterns', None)
+    if getattr(options, "sanitize", False):
+        sanitize_patterns = getattr(config, "sanitize_patterns", None)
         try:
             prompt = sanitize_data(prompt, sanitize_patterns)
             response = sanitize_data(response, sanitize_patterns)
         except SanitizationError:
-            safe_log('info', f"Sanitization failed, continuing anyway...")
-    safe_log('info', f"Sanitized prompt: {prompt}")
-    
+            safe_log("info", "Sanitization failed, continuing anyway...")
+    safe_log("info", f"Sanitized prompt: {prompt}")
+
     return prompt, response
 
 
 def extract_user_info(options: MonitorOptions) -> tuple[str, str]:
     """
     Extract chatId and email from options, handling both static values and callable functions.
-    
+
     Args:
         options: Monitor options
         logger: Optional logger instance
-        
+
     Returns:
         Tuple of (chatId, email)
     """
     chatId = "anonymous"
     email = "anonymous@olakai.ai"
-    
-    if hasattr(options, 'chatId'):
+
+    if hasattr(options, "chatId"):
         if callable(options.chatId):
             try:
                 chatId = options.chatId()
@@ -91,11 +94,11 @@ def extract_user_info(options: MonitorOptions) -> tuple[str, str]:
                     chatId = str(chatId)
             except Exception:
                 chatId = "anonymous"
-                safe_log('debug', f"Error getting chatId")
+                safe_log("debug", "Error getting chatId")
         else:
             chatId = options.chatId
-            
-    if hasattr(options, 'email'):
+
+    if hasattr(options, "email"):
         if callable(options.email):
             try:
                 email = options.email()
@@ -103,30 +106,42 @@ def extract_user_info(options: MonitorOptions) -> tuple[str, str]:
                     email = str(email)
             except Exception:
                 email = "anonymous@olakai.ai"
-                safe_log('debug', f"Error getting email")
+                safe_log("debug", "Error getting email")
         else:
             email = options.email
 
-    return chatId, email 
+    return chatId, email
 
-async def should_allow_call(config: SDKConfig, options: MonitorOptions, args: tuple, kwargs: dict) -> ControlResponse:
+
+async def should_allow_call(
+    config: SDKConfig, options: MonitorOptions, args: tuple, kwargs: dict
+) -> ControlResponse:
     """
     Check if the function should be blocked.
-    
+
     Args:
         options: Monitor options
         logger: Optional logger instance
-        
+
     Returns:
         True if the function should be blocked, False otherwise
-        
+
     Raises:
         ControlServiceError: If control service communication fails
     """
     try:
         chatId, email = extract_user_info(options)
 
-        prompt = "Args: " + str(args) + "\n\n Kwargs: " + json.dumps(kwargs) + "\n\n Task: " + (options.task if options.task else "") + "\n\n SubTask: " + (options.subTask if options.subTask else "")
+        prompt = (
+            "Args: "
+            + str(args)
+            + "\n\n Kwargs: "
+            + json.dumps(kwargs)
+            + "\n\n Task: "
+            + (options.task if options.task else "")
+            + "\n\n SubTask: "
+            + (options.subTask if options.subTask else "")
+        )
 
         control_payload = ControlPayload(
             email=email,
@@ -135,11 +150,15 @@ async def should_allow_call(config: SDKConfig, options: MonitorOptions, args: tu
             task=options.task,
             subTask=options.subTask,
             tokens=0,
-            overrideControlCriteria=options.overrideControlCriteria if options.overrideControlCriteria else []
+            overrideControlCriteria=options.overrideControlCriteria
+            if options.overrideControlCriteria
+            else [],
         )
 
         response = await send_to_api(config, control_payload)
         return response
     except Exception as e:
-        safe_log('error', f"Control service failed: {str(e)}")
-        raise ControlServiceError(f"Failed to check if function should be blocked: {str(e)}") from e
+        safe_log("error", f"Control service failed: {str(e)}")
+        raise ControlServiceError(
+            f"Failed to check if function should be blocked: {str(e)}"
+        ) from e

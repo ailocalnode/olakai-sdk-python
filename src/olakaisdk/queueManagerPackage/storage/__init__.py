@@ -8,7 +8,12 @@ from .index import StorageAdapter
 from .memoryStorage import MemoryStorageService
 from .fileStorage import FileStorageService
 from .noOpStorage import NoOpStorageService
-from .index import get_storage, is_storage_enabled, get_storage_key, get_max_storage_size
+from .index import (
+    get_storage,
+    is_storage_enabled,
+    get_storage_key,
+    get_max_storage_size,
+)
 
 __all__ = [
     "StorageAdapter",

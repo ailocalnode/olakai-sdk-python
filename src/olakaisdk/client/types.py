@@ -1,14 +1,17 @@
 """
 Types specific to client functionality (API communication, batching, configuration).
 """
+
 from dataclasses import dataclass
 from typing import Optional, List, Any
 from logging import Logger
 from enum import Enum
 
+
 @dataclass
 class MonitorPayload:
     """Payload for monitoring data sent to API."""
+
     email: str
     chatId: str
     prompt: str
@@ -21,9 +24,11 @@ class MonitorPayload:
     errorMessage: Optional[str] = None
     sensitivity: Optional[List[str]] = None
 
+
 @dataclass
 class ControlPayload:
     """Payload for control data sent to API."""
+
     prompt: str = ""
     email: Optional[str] = "anonymous@olakai.ai"
     chatId: Optional[str] = "123"
@@ -32,25 +37,31 @@ class ControlPayload:
     tokens: Optional[int] = 0
     overrideControlCriteria: Optional[List[str]] = None
 
+
 @dataclass
 class BatchRequest:
     """Request in the batch queue."""
+
     id: str
     payload: List[MonitorPayload]
     timestamp: int
     retries: int = 0
     priority: str = "normal"  # 'low', 'normal', 'high'
 
+
 class StorageType(Enum):
     """Type of storage to use."""
+
     FILE = "file"
     MEMORY = "memory"
     AUTO = "auto"
     DISABLED = "disabled"
 
+
 @dataclass
 class SDKConfig:
     """Configuration for the SDK."""
+
     apiKey: str = ""
     monitoringUrl: Optional[str] = None
     controlUrl: Optional[str] = None

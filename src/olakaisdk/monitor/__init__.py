@@ -7,7 +7,11 @@ This module provides function monitoring, decorators, middleware, and processing
 from .decorator import olakai_monitor
 from .master_decorator import OlakaiMasterDecorator
 from .middleware import add_middleware, remove_middleware, get_middlewares
-from .processor import process_capture_result, extract_user_info, should_allow_call
+from .processor import (
+    process_capture_result,
+    extract_user_info,
+    should_allow_call,
+)
 from .types import MonitorOptions, MonitorUtils, Middleware
 
 __all__ = [
@@ -17,7 +21,7 @@ __all__ = [
     "remove_middleware",
     "get_middlewares",
     "process_capture_result",
-    "extract_user_info", 
+    "extract_user_info",
     "should_allow_call",
     "MonitorOptions",
     "MonitorUtils",

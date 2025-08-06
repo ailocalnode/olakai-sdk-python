@@ -32,7 +32,7 @@ from .utils import (
 __all__ = [
     # Exceptions
     "OlakaiSDKError",
-    "OlakaiBlockedError", 
+    "OlakaiBlockedError",
     "APIKeyMissingError",
     "URLConfigurationError",
     "APITimeoutError",

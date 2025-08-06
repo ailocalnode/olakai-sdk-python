@@ -8,12 +8,12 @@ class NoOpStorageService(StorageAdapter):
 
     def get_item(self, key: str) -> None:
         return None
-    
+
     def set_item(self, key: str, value: str) -> None:
         pass
-    
+
     def remove_item(self, key: str) -> None:
         pass
-    
+
     def clear(self) -> None:
         pass
