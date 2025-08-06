@@ -2,7 +2,7 @@
 Olakai SDK for monitoring and tracking AI/ML model interactions.
 """
 
-# from .client import send_to_api
+from .client import init_olakai_client
 
 from .monitor import (
     add_middleware,
@@ -13,7 +13,7 @@ from .shared import OlakaiBlockedError, MonitorOptions, MonitorUtils
 __version__ = "0.3.4"
 
 __all__ = [
-    # "OlakaiClient",
+    "init_olakai_client",
     "MonitorOptions",
     "MonitorUtils",
     "OlakaiBlockedError",

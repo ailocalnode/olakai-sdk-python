@@ -2,7 +2,8 @@
 Client for the Olakai SDK.
 """
 
-'''from ..monitor import olakai_monitor
+from ..monitor import olakai_monitor
+from ..shared import SDKConfig, InitializationError, safe_log, set_logger_level
 
 
 class OlakaiClient:
@@ -71,4 +72,19 @@ class OlakaiClient:
     def monitor(self, **kwargs):
         """Create a monitoring decorator bound to this client instance."""
         return olakai_monitor(self.config, **kwargs)
-'''
+
+_global_client = None
+
+def init_olakai_client(api_key: str, domain: str, **kwargs):
+    """
+    Initialize the Olakai SDK client.
+
+    Args:
+        api_key: Your Olakai API key
+        domain: API domain
+        **kwargs: Optional SDK configuration. See SDKConfig for more details.
+    """
+    global _global_client
+    if _global_client is None:
+        _global_client = OlakaiClient(api_key, domain, **kwargs)
+    return _global_client
