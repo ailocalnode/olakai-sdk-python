@@ -126,7 +126,7 @@ class SDKConfig:
     retries: int = 3
     timeout: int = 20000  # milliseconds
     enableStorage: bool = True
-    storageType: StorageType = StorageType.AUTO
+    storageType: StorageType = StorageType.MEMORY
     maxStorageSize: int = 1000000  # 1MB
     storageFilePath: Optional[str] = None
     debug: bool = False

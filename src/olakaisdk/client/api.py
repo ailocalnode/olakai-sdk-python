@@ -8,8 +8,6 @@ from typing import List, Union, Literal
 import requests
 from ..queueManagerPackage import add_to_queue
 from ..shared import (
-    APIKeyMissingError,
-    URLConfigurationError,
     APITimeoutError,
     APIResponseError,
     RetryExhaustedError,
@@ -31,19 +29,10 @@ async def make_api_call(
 ) -> Union[APIResponse, ControlResponse]:
     """Make API call with optional logging."""
 
-    if not config.apiKey:
-        raise APIKeyMissingError("[Olakai SDK] API key is not set")
-
     if call_type == "monitoring":
         assert not isinstance(payload, ControlPayload)
-        if not config.monitoringUrl:
-            raise URLConfigurationError(
-                "[Olakai SDK] Monitoring URL is not set"
-            )
     else:
         assert isinstance(payload, ControlPayload)
-        if not config.controlUrl:
-            raise URLConfigurationError("[Olakai SDK] Control URL is not set")
 
     headers = {"x-api-key": config.apiKey}
     data_dicts = (
@@ -152,9 +141,6 @@ async def send_to_api(
 ) -> Union[APIResponse, ControlResponse]:
     """Send payload to API with optional logging."""
 
-    if not config.apiKey:
-        safe_log("debug", "API key is not set.")
-        raise APIKeyMissingError("[Olakai SDK] API key is not set")
 
     if isinstance(payload, MonitorPayload):
         if config.isBatchingEnabled:
@@ -164,7 +150,12 @@ async def send_to_api(
             }
             await add_to_queue(payload, **options)
         else:
-            response = await make_api_call(config, [payload], "monitoring")
+            try:
+                response = await send_with_retry(config, [payload], "monitoring")
+            except Exception as e:
+                safe_log("error", f"Error sending payload to API: {e}")
+                raise e
+            
             # Log any batch-style response information if present
             if (
                 response.totalRequests is not None

@@ -29,12 +29,12 @@ from ..shared import (
     MonitorPayload,
     SDKConfig,
 )
-from ..client import send_to_api
+from ..client import send_to_api, get_olakai_client
 
 externalLogic = False
 
 
-def olakai_monitor(config: SDKConfig, **kwargs):
+def olakai_monitor(**kwargs):
     """
     Monitor a function with the given options.
 
@@ -67,6 +67,8 @@ def olakai_monitor(config: SDKConfig, **kwargs):
                     )
             else:
                 safe_log("debug", f"Invalid keyword argument: {key}")
+    
+    config = get_olakai_client().get_config()
 
     def wrap(f: Callable) -> Callable:
         async def async_wrapped_f(*args, **kwargs):

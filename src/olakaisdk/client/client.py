@@ -2,8 +2,7 @@
 Client for the Olakai SDK.
 """
 
-from ..monitor import olakai_monitor
-from ..shared import SDKConfig, InitializationError, safe_log, set_logger_level
+from ..shared import SDKConfig, InitializationError, safe_log, set_logger_level, QueueDependencies, APIKeyMissingError, URLConfigurationError
 
 
 class OlakaiClient:
@@ -19,6 +18,11 @@ class OlakaiClient:
             logger: Optional logger instance for logging SDK operations
             **kwargs: Optional SDK configuration
         """
+        if not api_key:
+            raise APIKeyMissingError("API key is required to initialize the Olakai SDK client.")
+        if not domain:
+            raise URLConfigurationError("Domain is required to initialize the Olakai SDK client.")
+        
         self.config = SDKConfig(
             apiKey=api_key,
             monitoringUrl=f"{domain}/api/monitoring/prompt"
@@ -36,7 +40,7 @@ class OlakaiClient:
             except AttributeError:
                 safe_log(
                     "warning",
-                    f"Invalid configuration parameter: {key}, continuing anyway...",
+                    f"Invalid configuration parameter: {key}. Proceeding with default value.",
                 )
         safe_log(
             "info", f"Initialized Olakai SDK client with config: {self.config}"
@@ -47,9 +51,8 @@ class OlakaiClient:
             try:
                 from ..queueManagerPackage import (
                     init_queue_manager,
-                    QueueDependencies,
                 )
-                from ..client.api import send_with_retry
+                from .api import send_with_retry
 
                 init_queue_manager(
                     QueueDependencies(self.config, send_with_retry)
@@ -69,9 +72,6 @@ class OlakaiClient:
         """Get the current SDK configuration."""
         return self.config
 
-    def monitor(self, **kwargs):
-        """Create a monitoring decorator bound to this client instance."""
-        return olakai_monitor(self.config, **kwargs)
 
 _global_client = None
 
@@ -87,4 +87,12 @@ def init_olakai_client(api_key: str, domain: str, **kwargs):
     global _global_client
     if _global_client is None:
         _global_client = OlakaiClient(api_key, domain, **kwargs)
+    return _global_client
+
+def get_olakai_client():
+    """
+    Get the global Olakai client instance.
+    """
+    if _global_client is None:
+        raise InitializationError("Olakai client not initialized. Please call init_olakai_client first.")
     return _global_client
