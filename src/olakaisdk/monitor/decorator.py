@@ -5,18 +5,18 @@ import asyncio
 import socket
 import inspect
 import time
-import threading
+
 from dataclasses import fields, asdict
 from typing import Any, Callable
 from .types import MonitorOptions
 from .middleware import get_middlewares
 from .processor import process_capture_result, extract_user_info, should_allow_call
-from ..client.types import MonitorPayload, SDKConfig
-from ..client.api import send_to_api
-from ..shared.utils import create_error_info, to_string_api, fire_and_forget
-from ..shared.logger import safe_log
-from ..shared.exceptions import OlakaiFunctionBlocked, MiddlewareError, ControlServiceError
-from ..shared.types import ControlResponse, ControlDetails
+from client import MonitorPayload, SDKConfig
+from client import send_to_api
+from shared import create_error_info, to_string_api, fire_and_forget
+from shared import safe_log
+from shared import OlakaiBlockedError, MiddlewareError, ControlServiceError
+from shared import ControlResponse, ControlDetails
 
 externalLogic = False
 
@@ -93,7 +93,7 @@ def olakai_monitor(config: SDKConfig, **kwargs):
                     })
                     safe_log('info', f"Function {f.__name__} was blocked")
 
-                    raise OlakaiFunctionBlocked("Function execution blocked by Olakai", details=asdict(is_allowed.details))
+                    raise OlakaiBlockedError("Function execution blocked by Olakai", details=asdict(is_allowed.details))
 
                 # Apply before middleware
                 try:
@@ -129,7 +129,7 @@ def olakai_monitor(config: SDKConfig, **kwargs):
                 return result
             
 
-            except OlakaiFunctionBlocked as e:
+            except OlakaiBlockedError as e:
                 # Re-raise blocking exceptions without modification
                 raise e
             except Exception as error:
@@ -196,7 +196,7 @@ def olakai_monitor(config: SDKConfig, **kwargs):
                     "priority": "high"
                 })
                 
-                raise OlakaiFunctionBlocked("Function execution blocked by Olakai", details=asdict(is_allowed.details))
+                raise OlakaiBlockedError("Function execution blocked by Olakai", details=asdict(is_allowed.details))
             
             def dump_stack_with_args(limit=20, filter=["/site-packages/", "\\site-packages\\", "asyncio"], sanitize_args=["api_key"]):
                 stack = inspect.stack()

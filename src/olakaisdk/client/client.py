@@ -4,9 +4,9 @@ Client for the Olakai SDK.
 
 
 from .types import SDKConfig
-from ..shared.exceptions import InitializationError
-from ..shared.logger import safe_log, set_logger_level
-from ..monitor.decorator import olakai_monitor
+from shared import InitializationError
+from shared import safe_log, set_logger_level
+from monitor import olakai_monitor
 
 class OlakaiClient:
     def __init__(self, api_key: str, domain: str = "https://app.olakai.ai", **kwargs):    

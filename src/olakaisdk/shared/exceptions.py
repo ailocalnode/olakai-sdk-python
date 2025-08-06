@@ -8,7 +8,7 @@ class OlakaiSDKError(Exception):
     pass
 
 # Function blocking exceptions
-class OlakaiFunctionBlocked(OlakaiSDKError):
+class OlakaiBlockedError(OlakaiSDKError):
     """Exception raised when a function is blocked by Olakai monitoring."""
     def __init__(self, message: str, details: dict):
         super().__init__(message)

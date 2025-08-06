@@ -3,7 +3,7 @@ Types specific to client functionality (API communication, batching, configurati
 """
 from dataclasses import dataclass
 from typing import Optional, List, Any
-import logging
+from logging import Logger
 from enum import Enum
 
 @dataclass
@@ -66,4 +66,4 @@ class SDKConfig:
     debug: bool = False
     verbose: bool = False
     sanitize_patterns: Optional[List[Any]] = None
-    logger: Optional[logging.Logger] = None
+    logger: Optional[Logger] = None

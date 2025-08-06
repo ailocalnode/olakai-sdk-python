@@ -7,12 +7,11 @@ import json
 import asyncio
 import time
 from typing import List, Optional
-from .storage.index import get_storage, is_storage_enabled, get_storage_key, get_max_storage_size
-from ..client.types import MonitorPayload, BatchRequest
-from ..shared.logger import safe_log
+from storage import get_storage, is_storage_enabled, get_storage_key, get_max_storage_size
+from client import MonitorPayload, BatchRequest
+from shared import safe_log, QueueNotInitializedError, sleep, fire_and_forget
 from .types import QueueDependencies
-from ..shared.exceptions import QueueNotInitializedError
-from ..shared.utils import sleep, fire_and_forget
+
 
 
 class QueueManager:

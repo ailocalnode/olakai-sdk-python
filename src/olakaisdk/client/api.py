@@ -5,12 +5,12 @@ from dataclasses import asdict
 from typing import List, Union, Literal
 
 import requests
-from ..queueManagerPackage import add_to_queue
+from queueManagerPackage import add_to_queue
 from .types import MonitorPayload, ControlPayload, SDKConfig
-from ..shared.types import APIResponse, ControlResponse, ControlDetails
-from ..shared.logger import safe_log
-from ..shared.utils import sleep
-from ..shared.exceptions import (
+from shared import APIResponse, ControlResponse, ControlDetails
+from shared import safe_log
+from shared import sleep
+from shared import (
     APIKeyMissingError, 
     URLConfigurationError, 
     APITimeoutError, 

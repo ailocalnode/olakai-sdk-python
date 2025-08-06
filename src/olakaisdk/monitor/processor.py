@@ -4,12 +4,11 @@ Data processing and sanitization for the Olakai SDK monitor.
 import json
 import re
 from typing import Any, Optional, List
-from ..shared.logger import safe_log
+from shared import safe_log
 from .types import MonitorOptions
-from ..client.types import ControlPayload, SDKConfig
-from ..client.api import send_to_api
-from ..shared.exceptions import SanitizationError, ControlServiceError
-from ..shared.types import ControlResponse
+from client import ControlPayload, SDKConfig
+from client import send_to_api
+from shared import SanitizationError, ControlServiceError, ControlResponse
 
 
 def sanitize_data(data: Any, patterns: Optional[List[re.Pattern]] = None) -> Any:

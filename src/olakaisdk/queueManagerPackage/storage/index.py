@@ -1,8 +1,8 @@
 import os
 from abc import ABC, abstractmethod
 from typing import Optional
-from ...client.types import StorageType, SDKConfig
-from ...shared.logger import safe_log
+from client import StorageType, SDKConfig
+from shared import safe_log
 
 
 class StorageAdapter(ABC):

@@ -3,7 +3,7 @@ Types specific to the storage system.
 """
 from dataclasses import dataclass
 from typing import List, Optional, Union, Callable
-from ..shared.types import APIResponse, ControlResponse
+from shared import APIResponse, ControlResponse
 
 
 @dataclass
@@ -14,7 +14,7 @@ class StorageConfig:
     max_size: int = 1000000  # 1MB
     file_path: Optional[str] = None
 
-from ..client.types import MonitorPayload, SDKConfig
+from client import MonitorPayload, SDKConfig
 
 class QueueDependencies:
     """Dependencies that the queue manager needs from the client."""

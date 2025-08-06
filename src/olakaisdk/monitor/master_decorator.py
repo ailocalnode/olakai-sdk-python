@@ -1,6 +1,6 @@
 from typing import Callable, List, Optional
 from .decorator import olakai_monitor
-from ..shared.utils import generate_random_id
+from shared import generate_random_id
 from .types import MonitorOptions
 from dataclasses import fields
 
