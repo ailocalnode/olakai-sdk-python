@@ -2,9 +2,29 @@
 Types specific to the storage system.
 """
 
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List, Optional, Union, Callable
-from shared import APIResponse, ControlResponse
+from ..shared import APIResponse, ControlResponse
+from ..client import MonitorPayload, SDKConfig
+
+
+class StorageAdapter(ABC):
+    @abstractmethod
+    def get_item(self, key: str) -> Optional[str]:
+        pass
+
+    @abstractmethod
+    def set_item(self, key: str, value: str) -> None:
+        pass
+
+    @abstractmethod
+    def remove_item(self, key: str) -> None:
+        pass
+
+    @abstractmethod
+    def clear(self) -> None:
+        pass
 
 
 @dataclass
@@ -15,9 +35,6 @@ class StorageConfig:
     storage_key: str = "olakai-sdk-queue"
     max_size: int = 1000000  # 1MB
     file_path: Optional[str] = None
-
-
-from client import MonitorPayload, SDKConfig
 
 
 class QueueDependencies:

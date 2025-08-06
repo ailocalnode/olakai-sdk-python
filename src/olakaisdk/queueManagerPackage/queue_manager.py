@@ -8,14 +8,14 @@ import json
 import asyncio
 import time
 from typing import List, Optional
-from storage import (
+from .storage import (
     get_storage,
     is_storage_enabled,
     get_storage_key,
     get_max_storage_size,
 )
-from client import MonitorPayload, BatchRequest
-from shared import safe_log, QueueNotInitializedError, sleep, fire_and_forget
+from ..client import MonitorPayload, BatchRequest
+from ..shared import safe_log, QueueNotInitializedError, sleep, fire_and_forget
 from .types import QueueDependencies
 
 

@@ -16,12 +16,12 @@ from .processor import (
     extract_user_info,
     should_allow_call,
 )
-from client import MonitorPayload, SDKConfig
-from client import send_to_api
-from shared import create_error_info, to_string_api, fire_and_forget
-from shared import safe_log
-from shared import OlakaiBlockedError, MiddlewareError, ControlServiceError
-from shared import ControlResponse, ControlDetails
+from ..client import MonitorPayload, SDKConfig
+from ..client import send_to_api
+from ..shared import create_error_info, to_string_api, fire_and_forget
+from ..shared import safe_log
+from ..shared import OlakaiBlockedError, MiddlewareError, ControlServiceError
+from ..shared import ControlResponse, ControlDetails
 
 externalLogic = False
 
@@ -185,7 +185,7 @@ def olakai_monitor(config: SDKConfig, **kwargs):
             is_allowed = False
             start = time.time() * 1000
             try:
-                loop = asyncio.get_running_loop()
+                asyncio.get_running_loop()
                 # If there's a running loop, we need to run should_block in a separate thread
                 # to avoid blocking the current thread
                 import concurrent.futures

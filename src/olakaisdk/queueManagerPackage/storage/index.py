@@ -1,26 +1,8 @@
 import os
-from abc import ABC, abstractmethod
 from typing import Optional
-from client import StorageType, SDKConfig
-from shared import safe_log
-
-
-class StorageAdapter(ABC):
-    @abstractmethod
-    def get_item(self, key: str) -> Optional[str]:
-        pass
-
-    @abstractmethod
-    def set_item(self, key: str, value: str) -> None:
-        pass
-
-    @abstractmethod
-    def remove_item(self, key: str) -> None:
-        pass
-
-    @abstractmethod
-    def clear(self) -> None:
-        pass
+from ...client import StorageType, SDKConfig
+from ..types import StorageAdapter
+from ...shared import safe_log
 
 
 from .memoryStorage import MemoryStorageService
@@ -60,20 +42,19 @@ def create_storage_instance(storage_type: StorageType) -> StorageType:
         if is_read_only_env():
             return StorageType.MEMORY
         return StorageType.FILE
-    match storage_type:
-        case StorageType.MEMORY:
+    if storage_type == StorageType.MEMORY:
+        return StorageType.MEMORY
+
+    elif storage_type == StorageType.FILE:
+        if is_read_only_env():
+            safe_log(
+                "warning", "Environment is read-only, using memory storage"
+            )
             return StorageType.MEMORY
+        return StorageType.FILE
 
-        case StorageType.FILE:
-            if is_read_only_env():
-                safe_log(
-                    "warning", "Environment is read-only, using memory storage"
-                )
-                return StorageType.MEMORY
-            return StorageType.FILE
-
-        case StorageType.DISABLED:
-            return StorageType.DISABLED
+    elif storage_type == StorageType.DISABLED:
+        return StorageType.DISABLED
 
 
 # Global storage instance
@@ -86,13 +67,12 @@ def init_storage(
     """Initialize the storage instance."""
     global _storage_instance
     _storage_instance_type = create_storage_instance(storage_type)
-    match _storage_instance_type:
-        case StorageType.MEMORY:
-            _storage_instance = MemoryStorageService()
-        case StorageType.FILE:
-            _storage_instance = FileStorageService(storage_file_path)
-        case StorageType.DISABLED:
-            _storage_instance = NoOpStorageService()
+    if _storage_instance_type == StorageType.MEMORY:
+        _storage_instance = MemoryStorageService()
+    elif _storage_instance_type == StorageType.FILE:
+        _storage_instance = FileStorageService(storage_file_path)
+    elif _storage_instance_type == StorageType.DISABLED:
+        _storage_instance = NoOpStorageService()
 
 
 def get_storage() -> StorageAdapter:

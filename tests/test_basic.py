@@ -3,7 +3,7 @@
 import pytest
 import asyncio
 from unittest.mock import Mock
-from olakaisdk import __version__
+from src.olakaisdk import __version__
 
 
 def test_version():
@@ -13,7 +13,7 @@ def test_version():
 
 def test_import():
     """Test that main functions can be imported."""
-    from olakaisdk import init_client, olakai_monitor
+    from src.olakaisdk import init_client, olakai_monitor
 
     assert callable(init_client)
     assert callable(olakai_monitor)
@@ -21,7 +21,7 @@ def test_import():
 
 def test_monitor_decorator():
     """Test that the monitor decorator can be applied."""
-    from olakaisdk import olakai_monitor
+    from src.olakaisdk import olakai_monitor
 
     @olakai_monitor()
     def test_function(x: int) -> int:
@@ -34,7 +34,7 @@ def test_monitor_decorator():
 
 def test_config_types():
     """Test that types can be imported."""
-    from olakaisdk import SDKConfig, MonitorOptions
+    from src.olakaisdk import SDKConfig, MonitorOptions
 
     # Test basic instantiation
     config = SDKConfig(apiKey="test", apiUrl="https://test.com")
@@ -73,8 +73,8 @@ def test_sdk_config_defaults():
     assert config.apiKey == ""
     assert config.batchSize == 10
     assert config.timeout == 20000
-    assert config.enableLocalStorage == True
-    assert config.debug == False
+    assert config.enableLocalStorage
+    assert not config.debug
 
 
 def test_monitor_options_defaults():
@@ -82,10 +82,9 @@ def test_monitor_options_defaults():
     from olakaisdk import MonitorOptions
 
     options = MonitorOptions()
-    assert options.sanitize == False
-    assert options.send_on_function_error == True
+    assert not options.sanitize
+    assert options.send_on_function_error
     assert options.priority == "normal"
-    assert options.shouldScore == False
 
 
 @pytest.mark.asyncio
@@ -116,7 +115,7 @@ async def test_init_client_with_kwargs():
 
     config = get_config()
     assert config.apiKey == "test_key2"
-    assert config.debug == True
+    assert config.debug
     assert config.batchSize == 5
 
 

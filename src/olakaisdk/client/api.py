@@ -6,12 +6,12 @@ from dataclasses import asdict
 from typing import List, Union, Literal
 
 import requests
-from queueManagerPackage import add_to_queue
+from ..queueManagerPackage import add_to_queue
 from .types import MonitorPayload, ControlPayload, SDKConfig
-from shared import APIResponse, ControlResponse, ControlDetails
-from shared import safe_log
-from shared import sleep
-from shared import (
+from ..shared import APIResponse, ControlResponse, ControlDetails
+from ..shared import safe_log
+from ..shared import sleep
+from ..shared import (
     APIKeyMissingError,
     URLConfigurationError,
     APITimeoutError,
@@ -162,7 +162,10 @@ async def send_to_api(
         else:
             response = await make_api_call(config, [payload], "monitoring")
             # Log any batch-style response information if present
-            if response.totalRequests != None and response.successCount != None:
+            if (
+                response.totalRequests is not None
+                and response.successCount is not None
+            ):
                 safe_log(
                     "info",
                     f"Direct API call result: {response.successCount}/{response.totalRequests} requests succeeded",

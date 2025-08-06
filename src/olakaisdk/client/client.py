@@ -2,10 +2,7 @@
 Client for the Olakai SDK.
 """
 
-from .types import SDKConfig
-from shared import InitializationError
-from shared import safe_log, set_logger_level
-from monitor import olakai_monitor
+'''from ..monitor import olakai_monitor
 
 
 class OlakaiClient:
@@ -74,3 +71,4 @@ class OlakaiClient:
     def monitor(self, **kwargs):
         """Create a monitoring decorator bound to this client instance."""
         return olakai_monitor(self.config, **kwargs)
+'''
