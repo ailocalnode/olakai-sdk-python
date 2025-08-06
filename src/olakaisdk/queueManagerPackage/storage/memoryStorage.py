@@ -1,4 +1,4 @@
-from .index import StorageAdapter
+from ...shared import StorageAdapter
 from typing import Optional
 
 
@@ -16,9 +16,9 @@ class MemoryStorageService(StorageAdapter):
 
     def set_item(self, key: str, value: str) -> None:
         self.storage[key] = value
-    
+
     def remove_item(self, key: str) -> None:
         del self.storage[key]
-    
+
     def clear(self) -> None:
         self.storage.clear()
