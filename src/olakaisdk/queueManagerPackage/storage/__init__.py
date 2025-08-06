@@ -4,7 +4,6 @@ Storage module for the Olakai SDK queue manager.
 This module provides different storage adapters for persisting queue data.
 """
 
-from .index import StorageAdapter
 from .memoryStorage import MemoryStorageService
 from .fileStorage import FileStorageService
 from .noOpStorage import NoOpStorageService
@@ -16,7 +15,6 @@ from .index import (
 )
 
 __all__ = [
-    "StorageAdapter",
     "get_storage",
     "is_storage_enabled",
     "get_storage_key",

@@ -1,4 +1,4 @@
-from .index import StorageAdapter
+from ...shared import StorageAdapter
 
 
 class NoOpStorageService(StorageAdapter):

@@ -1,4 +1,4 @@
-from .index import StorageAdapter
+from ...shared import StorageAdapter
 from typing import Optional
 
 

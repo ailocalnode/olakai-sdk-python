@@ -3,8 +3,7 @@ Middleware management for the Olakai SDK monitor.
 """
 
 from typing import List, Dict
-from .types import Middleware
-from ..shared import safe_log
+from ..shared import safe_log, Middleware
 
 # Global middleware registry for backward compatibility
 _global_middlewares: List[Middleware] = []

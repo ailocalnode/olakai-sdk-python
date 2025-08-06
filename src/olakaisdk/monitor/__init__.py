@@ -12,7 +12,6 @@ from .processor import (
     extract_user_info,
     should_allow_call,
 )
-from .types import MonitorOptions, MonitorUtils, Middleware
 
 __all__ = [
     "olakai_monitor",
@@ -23,7 +22,4 @@ __all__ = [
     "process_capture_result",
     "extract_user_info",
     "should_allow_call",
-    "MonitorOptions",
-    "MonitorUtils",
-    "Middleware",
 ]

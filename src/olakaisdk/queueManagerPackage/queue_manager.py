@@ -14,9 +14,15 @@ from .storage import (
     get_storage_key,
     get_max_storage_size,
 )
-from ..client import MonitorPayload, BatchRequest
-from ..shared import safe_log, QueueNotInitializedError, sleep, fire_and_forget
-from .types import QueueDependencies
+from ..shared import (
+    safe_log,
+    QueueNotInitializedError,
+    sleep,
+    fire_and_forget,
+    QueueDependencies,
+    MonitorPayload,
+    BatchRequest,
+)
 
 
 class QueueManager:

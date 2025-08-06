@@ -6,7 +6,6 @@ This package provides queue management and persistence functionality similar to 
 
 from .queue_manager import (
     QueueManager,
-    QueueDependencies,
     init_queue_manager,
     get_queue_manager,
     add_to_queue,
@@ -17,7 +16,6 @@ from .queue_manager import (
 
 __all__ = [
     "QueueManager",
-    "QueueDependencies",
     "init_queue_manager",
     "get_queue_manager",
     "add_to_queue",

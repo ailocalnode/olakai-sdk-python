@@ -7,8 +7,7 @@ This provides an abstraction layer over file operations.
 import os
 from typing import Optional
 from pathlib import Path
-from shared import safe_log
-from .index import StorageAdapter
+from ...shared import safe_log, StorageAdapter
 
 
 class FileStorageService(StorageAdapter):
