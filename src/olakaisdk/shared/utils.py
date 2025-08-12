@@ -101,7 +101,6 @@ def sanitize_data(
     """
     if not patterns:
         return data
-
     try:
         serialized = data
         for pattern in patterns:
@@ -118,6 +117,7 @@ def sanitize_data(
     except Exception as e:
         safe_log("debug", f"Data failed to sanitize: {str(e)}")
         return "[SANITIZED]"
+
 
 
 async def create_error_info(error: Exception) -> Dict[str, Any]:

@@ -75,8 +75,7 @@ def extract_user_info(options: MonitorOptions) -> tuple[str, str]:
             email = options.email
 
     return chatId, email
-
-
+  
 async def should_allow_call(
     config: SDKConfig, options: MonitorOptions, args: tuple, kwargs: dict
 ) -> ControlResponse:

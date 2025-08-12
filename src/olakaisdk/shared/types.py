@@ -60,7 +60,6 @@ class MonitorUtils:
 @dataclass
 class MonitorOptions:
     """Options for monitoring functions."""
-
     capture: Optional[Callable] = (
         MonitorUtils.capture_all_f
     )  # Will be set to default in helpers.py
@@ -77,7 +76,6 @@ class MonitorOptions:
 @dataclass
 class MonitorPayload:
     """Payload for monitoring data sent to API."""
-
     email: str
     chatId: str
     prompt: JSONType
@@ -94,7 +92,6 @@ class MonitorPayload:
 @dataclass
 class ControlPayload:
     """Payload for control data sent to API."""
-
     prompt: JSONType
     email: Optional[str] = "anonymous@olakai.ai"
     chatId: Optional[str] = "123"
@@ -127,7 +124,6 @@ class StorageType(Enum):
 @dataclass
 class SDKConfig:
     """Configuration for the SDK."""
-
     apiKey: str = ""
     monitoringUrl: Optional[str] = None
     controlUrl: Optional[str] = None
