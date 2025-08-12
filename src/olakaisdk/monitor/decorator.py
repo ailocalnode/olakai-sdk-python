@@ -17,7 +17,7 @@ from .processor import (
 )
 from ..shared import (
     create_error_info,
-    to_string_api,
+    to_json_value,
     fire_and_forget,
     ControlResponse,
     ControlDetails,
@@ -416,8 +416,8 @@ async def handle_error_monitoring(
             payload = MonitorPayload(
                 prompt="",
                 response="",
-                errorMessage=to_string_api(error_info["error_message"])
-                + to_string_api(error_info["stack_trace"]),
+                errorMessage=to_json_value(error_info["error_message"])
+                + to_json_value(error_info["stack_trace"]),
                 chatId=chatId,
                 email=email,
                 tokens=0,
@@ -484,8 +484,8 @@ async def handle_success_monitoring(
         chatId, email = extract_user_info(options)
 
         payload = MonitorPayload(
-            prompt=to_string_api(prompt),
-            response=to_string_api(response),
+            prompt=to_json_value(prompt, sanitize=options.sanitize, patterns=config.sanitize_patterns),
+            response=to_json_value(response, sanitize=options.sanitize, patterns=config.sanitize_patterns),
             chatId=chatId if chatId else "anonymous",
             email=email if email else "anonymous@olakai.ai",
             tokens=0,

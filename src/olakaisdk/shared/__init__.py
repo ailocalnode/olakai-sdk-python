@@ -37,7 +37,7 @@ from .types import (
 )
 from .utils import (
     create_error_info,
-    to_string_api,
+    to_json_value,
     fire_and_forget,
     sleep,
     generate_random_id,
@@ -78,7 +78,7 @@ __all__ = [
     "ControlPayload",
     # Utils
     "create_error_info",
-    "to_string_api",
+    "to_json_value",
     "fire_and_forget",
     "sleep",
     "generate_random_id",

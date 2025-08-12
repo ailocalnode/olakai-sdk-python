@@ -13,40 +13,9 @@ from ..shared import (
     SDKConfig,
     ControlPayload,
     MonitorOptions,
+    to_json_value,
 )
 from ..client import send_to_api
-
-
-def sanitize_data(
-    data: Any, patterns: Optional[List[re.Pattern]] = None
-) -> Any:
-    """
-    Sanitize data by replacing sensitive information with a placeholder.
-
-    Args:
-        data: The data to sanitize
-        patterns: List of regex patterns to replace
-        logger: Optional logger instance
-
-    Returns:
-        The sanitized data
-    """
-    if not patterns:
-        return data
-
-    try:
-        serialized = json.dumps(data, default=str)
-        for pattern in patterns:
-            serialized = pattern.sub("[REDACTED]", serialized)
-
-        parsed = json.loads(serialized)
-
-        safe_log("info", "Data successfully sanitized")
-        return parsed
-    except Exception as e:
-        safe_log("debug", f"Data failed to sanitize: {str(e)}")
-        raise SanitizationError(f"Failed to sanitize data: {str(e)}") from e
-
 
 def process_capture_result(config: SDKConfig, capture_result: dict, options):
     """
@@ -151,7 +120,7 @@ async def should_allow_call(
         control_payload = ControlPayload(
             email=email,
             chatId=chatId,
-            prompt=prompt,
+            prompt=to_json_value(prompt),
             task=options.task,
             subTask=options.subTask,
             tokens=0,
