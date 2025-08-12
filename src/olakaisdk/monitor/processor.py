@@ -33,16 +33,6 @@ def process_capture_result(config: SDKConfig, capture_result: dict, options):
     response = capture_result.get("output", "")
 
     safe_log("info", f"Prompt: {prompt}")
-
-    if getattr(options, "sanitize", False):
-        sanitize_patterns = getattr(config, "sanitize_patterns", None)
-        try:
-            prompt = sanitize_data(prompt, sanitize_patterns)
-            response = sanitize_data(response, sanitize_patterns)
-        except SanitizationError:
-            safe_log("info", "Sanitization failed, continuing anyway...")
-    safe_log("info", f"Sanitized prompt: {prompt}")
-
     return prompt, response
 
 
