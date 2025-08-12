@@ -18,6 +18,7 @@ _executor = None
 _executor_lock = threading.Lock()
 
 
+
 def get_executor():
     """Get or create the global executor in a thread-safe way."""
     global _executor
@@ -25,6 +26,7 @@ def get_executor():
         with _executor_lock:
             if _executor is None:
                 _executor = concurrent.futures.ThreadPoolExecutor(
+                    max_workers=4, thread_name_prefix="olakai-sdk"
                     max_workers=4, thread_name_prefix="olakai-sdk"
                 )
     return _executor
@@ -120,21 +122,30 @@ def sanitize_data(
         return "[SANITIZED]"
 
 
+
 async def create_error_info(error: Exception) -> Dict[str, Any]:
     """
     Create error information dictionary from an exception.
 
+
     Args:
         error: The exception to process
         logger: Optional logger instance
+
 
     Returns:
         Dictionary containing error message and stack trace
     """
     safe_log("debug", f"Creating error info: {error}")
 
+    safe_log("debug", f"Creating error info: {error}")
+
     return {
         "error_message": str(error),
+        "stack_trace": traceback.format_exc()
+        if isinstance(error, Exception)
+        else None,
+    }
         "stack_trace": traceback.format_exc()
         if isinstance(error, Exception)
         else None,
@@ -144,7 +155,9 @@ async def create_error_info(error: Exception) -> Dict[str, Any]:
 async def sleep(ms: int):
     """Sleep for specified milliseconds with logging."""
     safe_log("debug", f"Sleeping for {ms}ms")
+    safe_log("debug", f"Sleeping for {ms}ms")
     await asyncio.sleep(ms / 1000)
+
 
 
 def generate_random_id():
@@ -154,6 +167,7 @@ def generate_random_id():
 
 def fire_and_forget(func: Callable, *args, **kwargs):
     """Send monitoring without blocking with improved error handling."""
+
 
     def send_in_background():
         try:
@@ -166,8 +180,11 @@ def fire_and_forget(func: Callable, *args, **kwargs):
         except Exception as e:
             safe_log("debug", f"Background monitoring failed: {e}")
 
+            safe_log("debug", f"Background monitoring failed: {e}")
+
     executor = get_executor()
     future = executor.submit(send_in_background)
+
 
     # Add error callback for better monitoring
     def handle_future_exception(fut):
@@ -176,5 +193,8 @@ def fire_and_forget(func: Callable, *args, **kwargs):
         except Exception as e:
             safe_log("debug", f"Background task failed: {e}")
 
+            safe_log("debug", f"Background task failed: {e}")
+
     future.add_done_callback(handle_future_exception)
     return future
+

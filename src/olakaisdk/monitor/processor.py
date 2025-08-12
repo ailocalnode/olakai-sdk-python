@@ -2,6 +2,7 @@
 Data processing and sanitization for the Olakai SDK monitor.
 """
 
+
 import json
 import re
 from typing import Any, Optional, List
@@ -21,10 +22,12 @@ def process_capture_result(config: SDKConfig, capture_result: dict, options):
     """
     Process the result from a capture function, applying sanitization if needed.
 
+
     Args:
         capture_result: Result from the capture function
         options: Monitor options
         logger: Optional logger instance
+
 
     Returns:
         Processed prompt and response strings
@@ -40,15 +43,19 @@ def extract_user_info(options: MonitorOptions) -> tuple[str, str]:
     """
     Extract chatId and email from options, handling both static values and callable functions.
 
+
     Args:
         options: Monitor options
         logger: Optional logger instance
+
 
     Returns:
         Tuple of (chatId, email)
     """
     chatId = "anonymous"
     email = "anonymous@olakai.ai"
+
+    if hasattr(options, "chatId"):
 
     if hasattr(options, "chatId"):
         if callable(options.chatId):
@@ -59,8 +66,11 @@ def extract_user_info(options: MonitorOptions) -> tuple[str, str]:
             except Exception:
                 chatId = "anonymous"
                 safe_log("debug", "Error getting chatId")
+                safe_log("debug", "Error getting chatId")
         else:
             chatId = options.chatId
+
+    if hasattr(options, "email"):
 
     if hasattr(options, "email"):
         if callable(options.email):
@@ -71,11 +81,17 @@ def extract_user_info(options: MonitorOptions) -> tuple[str, str]:
             except Exception:
                 email = "anonymous@olakai.ai"
                 safe_log("debug", "Error getting email")
+                safe_log("debug", "Error getting email")
         else:
             email = options.email
 
     return chatId, email
+    return chatId, email
 
+
+async def should_allow_call(
+    config: SDKConfig, options: MonitorOptions, args: tuple, kwargs: dict
+) -> ControlResponse:
 
 async def should_allow_call(
     config: SDKConfig, options: MonitorOptions, args: tuple, kwargs: dict
@@ -83,12 +99,15 @@ async def should_allow_call(
     """
     Check if the function should be blocked.
 
+
     Args:
         options: Monitor options
         logger: Optional logger instance
 
+
     Returns:
         True if the function should be blocked, False otherwise
+
 
     Raises:
         ControlServiceError: If control service communication fails
@@ -96,6 +115,16 @@ async def should_allow_call(
     try:
         chatId, email = extract_user_info(options)
 
+        prompt = (
+            "Args: "
+            + str(args)
+            + "\n\n Kwargs: "
+            + json.dumps(kwargs)
+            + "\n\n Task: "
+            + (options.task if options.task else "")
+            + "\n\n SubTask: "
+            + (options.subTask if options.subTask else "")
+        )
         prompt = (
             "Args: "
             + str(args)
@@ -117,11 +146,19 @@ async def should_allow_call(
             overrideControlCriteria=options.overrideControlCriteria
             if options.overrideControlCriteria
             else [],
+            overrideControlCriteria=options.overrideControlCriteria
+            if options.overrideControlCriteria
+            else [],
         )
 
         response = await send_to_api(config, control_payload)
         return response
     except Exception as e:
+        safe_log("error", f"Control service failed: {str(e)}")
+        raise ControlServiceError(
+            f"Failed to check if function should be blocked: {str(e)}"
+        ) from e
+
         safe_log("error", f"Control service failed: {str(e)}")
         raise ControlServiceError(
             f"Failed to check if function should be blocked: {str(e)}"

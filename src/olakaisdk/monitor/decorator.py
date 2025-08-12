@@ -2,10 +2,12 @@
 Core monitoring decorator functionality.
 """
 
+
 import asyncio
 import socket
 import inspect
 import time
+
 
 from dataclasses import fields, asdict
 from typing import Any, Callable
@@ -35,8 +37,10 @@ externalLogic = False
 
 
 def olakai_supervisor(**kwargs):
+def olakai_supervisor(**kwargs):
     """
     Monitor a function with the given options.
+
 
     Kwargs:
         possible options (must be kwargs):
@@ -49,6 +53,7 @@ def olakai_supervisor(**kwargs):
             task: str
             subTask: str
             overrideControlCriteria: List[str]
+
 
     Returns:
         Decorator function
@@ -65,7 +70,14 @@ def olakai_supervisor(**kwargs):
                         "debug",
                         f"Error setting attribute, check the type of the value: {e}",
                     )
+                    safe_log(
+                        "debug",
+                        f"Error setting attribute, check the type of the value: {e}",
+                    )
             else:
+                safe_log("debug", f"Invalid keyword argument: {key}")
+    
+    config = get_olakai_client().get_config()
                 safe_log("debug", f"Invalid keyword argument: {key}")
     
     config = get_olakai_client().get_config()
@@ -74,8 +86,11 @@ def olakai_supervisor(**kwargs):
         async def async_wrapped_f(*args, **kwargs):
             safe_log("debug", f"Monitoring function: {f.__name__}")
             safe_log("debug", f"Arguments: {args}")
+            safe_log("debug", f"Monitoring function: {f.__name__}")
+            safe_log("debug", f"Arguments: {args}")
 
             try:
+                # TODO modify the del[potential_result] to behave well with shouldBlock
                 # TODO modify the del[potential_result] to behave well with shouldBlock
                 start = time.time() * 1000  # Convert to milliseconds
                 processed_args = args
@@ -83,11 +98,16 @@ def olakai_supervisor(**kwargs):
                 if "potential_result" in kwargs:
                     del kwargs["potential_result"]
 
+
                 # Check if the function should be blocked
                 is_allowed = await should_allow_call(
                     config, options, args, kwargs
                 )
+                is_allowed = await should_allow_call(
+                    config, options, args, kwargs
+                )
                 if not is_allowed.allowed:
+                    safe_log("warning", f"Function {f.__name__} was blocked")
                     safe_log("warning", f"Function {f.__name__} was blocked")
 
                     chatId, email = extract_user_info(options)
@@ -107,7 +127,16 @@ def olakai_supervisor(**kwargs):
                         else [],
                     )
 
+                        sensitivity=is_allowed.details.detectedSensitivity
+                        if is_allowed.details.detectedSensitivity
+                        else [],
+                    )
+
                     # Start background monitoring
+                    fire_and_forget(
+                        send_to_api, config, payload, {"priority": "high"}
+                    )
+                    safe_log("info", f"Function {f.__name__} was blocked")
                     fire_and_forget(
                         send_to_api, config, payload, {"priority": "high"}
                     )
@@ -117,9 +146,16 @@ def olakai_supervisor(**kwargs):
                         "Function execution blocked by Olakai",
                         details=asdict(is_allowed.details),
                     )
+                    raise OlakaiBlockedError(
+                        "Function execution blocked by Olakai",
+                        details=asdict(is_allowed.details),
+                    )
 
                 # Apply before middleware
                 try:
+                    processed_args, processed_kwargs = apply_before_middleware(
+                        processed_args, processed_kwargs
+                    )
                     processed_args, processed_kwargs = apply_before_middleware(
                         processed_args, processed_kwargs
                     )
@@ -131,15 +167,24 @@ def olakai_supervisor(**kwargs):
                     f"Processed arguments: {processed_args}, \n Processed kwargs: {processed_kwargs}",
                 )
 
+                safe_log(
+                    "info",
+                    f"Processed arguments: {processed_args}, \n Processed kwargs: {processed_kwargs}",
+                )
+
                 # Execute the function
                 function_error = None
                 result = None
 
+
                 try:
                     result = await f(*processed_args, **processed_kwargs)
                     safe_log("debug", "Function executed successfully")
+                    safe_log("debug", "Function executed successfully")
                 except Exception as error:
                     function_error = error
+                    safe_log("debug", f"Function execution failed: {error}")
+
                     safe_log("debug", f"Function execution failed: {error}")
 
                     # Handle error monitoring
@@ -154,11 +199,32 @@ def olakai_supervisor(**kwargs):
                         start,
                         is_allowed,
                     )
+                    fire_and_forget(
+                        handle_error_monitoring,
+                        config,
+                        function_error,
+                        processed_args,
+                        processed_kwargs,
+                        options,
+                        start,
+                        is_allowed,
+                    )
                     raise function_error  # Re-raise the original error
+
 
                 # Handle success monitoring
                 if function_error is None:
                     try:
+                        fire_and_forget(
+                            handle_success_monitoring,
+                            config,
+                            result,
+                            processed_args,
+                            processed_kwargs,
+                            options,
+                            start,
+                            is_allowed,
+                        )
                         fire_and_forget(
                             handle_success_monitoring,
                             config,
@@ -175,19 +241,30 @@ def olakai_supervisor(**kwargs):
                             f"Error handling success monitoring: {error}",
                         )
 
+                        safe_log(
+                            "debug",
+                            f"Error handling success monitoring: {error}",
+                        )
+
                 return result
+
+            except OlakaiBlockedError as e:
 
             except OlakaiBlockedError as e:
                 # Re-raise blocking exceptions without modification
                 raise e
             except Exception as error:
                 safe_log("error", f"Error: {error}")
+                safe_log("error", f"Error: {error}")
                 if function_error is not None:
                     raise function_error
                 result = await f(*args, **kwargs)
                 return result
 
+
         def sync_wrapped_f(*args, **kwargs):
+            safe_log("debug", f"Monitoring sync function: {f.__name__}")
+            safe_log("info", f"Arguments: {args}, \n Kwargs: {kwargs}")
             safe_log("debug", f"Monitoring sync function: {f.__name__}")
             safe_log("info", f"Arguments: {args}, \n Kwargs: {kwargs}")
 
@@ -196,11 +273,17 @@ def olakai_supervisor(**kwargs):
             start = time.time() * 1000
             try:
                 asyncio.get_running_loop()
+                asyncio.get_running_loop()
                 # If there's a running loop, we need to run should_block in a separate thread
                 # to avoid blocking the current thread
                 import concurrent.futures
 
+
                 def run_should_block():
+                    return asyncio.run(
+                        should_allow_call(config, options, args, kwargs)
+                    )
+
                     return asyncio.run(
                         should_allow_call(config, options, args, kwargs)
                     )
@@ -209,8 +292,12 @@ def olakai_supervisor(**kwargs):
                     future = executor.submit(run_should_block)
                     is_allowed = future.result()
 
+
             except RuntimeError:
                 # No running loop, create a new one
+                is_allowed = asyncio.run(
+                    should_allow_call(config, options, args, kwargs)
+                )
                 is_allowed = asyncio.run(
                     should_allow_call(config, options, args, kwargs)
                 )
@@ -223,8 +310,16 @@ def olakai_supervisor(**kwargs):
                         detectedSensitivity=[], isAllowedPersona=False
                     ),
                 )
+                safe_log("debug", "Control service error")
+                is_allowed = ControlResponse(
+                    allowed=False,
+                    details=ControlDetails(
+                        detectedSensitivity=[], isAllowedPersona=False
+                    ),
+                )
 
             except Exception as e:
+                safe_log("debug", f"Error checking should_block: {e}")
                 safe_log("debug", f"Error checking should_block: {e}")
                 # If checking fails, default to blocking
                 is_allowed = ControlResponse(
@@ -234,8 +329,16 @@ def olakai_supervisor(**kwargs):
                     ),
                 )
 
+                is_allowed = ControlResponse(
+                    allowed=False,
+                    details=ControlDetails(
+                        detectedSensitivity=[], isAllowedPersona=False
+                    ),
+                )
+
             # If the function should be blocked, don't execute it
             if not is_allowed.allowed:
+                safe_log("warning", f"Function {f.__name__} was blocked")
                 safe_log("warning", f"Function {f.__name__} was blocked")
 
                 chatId, email = extract_user_info(options)
@@ -253,7 +356,24 @@ def olakai_supervisor(**kwargs):
                     sensitivity=is_allowed.details.detectedSensitivity
                     if is_allowed.details.detectedSensitivity
                     else [],
+                    sensitivity=is_allowed.details.detectedSensitivity
+                    if is_allowed.details.detectedSensitivity
+                    else [],
                 )
+                fire_and_forget(
+                    send_to_api, config, payload, {"priority": "high"}
+                )
+
+                raise OlakaiBlockedError(
+                    "Function execution blocked by Olakai",
+                    details=asdict(is_allowed.details),
+                )
+
+            def dump_stack_with_args(
+                limit=20,
+                filter=["/site-packages/", "\\site-packages\\", "asyncio"],
+                sanitize_args=["api_key"],
+            ):
                 fire_and_forget(
                     send_to_api, config, payload, {"priority": "high"}
                 )
@@ -281,7 +401,20 @@ def olakai_supervisor(**kwargs):
                         f"{a}={repr(values[a])[:50]}"
                         if (a in values and a not in sanitize_args)
                         else f"{a}=[REDACTED]"
+                        f"{a}={repr(values[a])[:50]}"
+                        if (a in values and a not in sanitize_args)
+                        else f"{a}=[REDACTED]"
                         for a in args
+                    )
+                    call_info.append(
+                        {
+                            "filename": filename.split(
+                                "\\" if "\\" in filename else "/"
+                            )[-1],
+                            "lineno": frame_info.lineno,
+                            "function": func,
+                            "args": arg_str,
+                        }
                     )
                     call_info.append(
                         {
@@ -298,6 +431,7 @@ def olakai_supervisor(**kwargs):
             if externalLogic:
                 original_connect = socket.socket.connect
 
+
                 def monitored_connect(self, address):
                     print(f"[NETWORK] Connecting to {address}")
                     stack = dump_stack_with_args()
@@ -312,15 +446,31 @@ def olakai_supervisor(**kwargs):
                         print(
                             f"{call['filename']}:{call['lineno']} {call['function']}({call['args']})"
                         )
+                        print(
+                            f"{call['filename']}:{call['lineno']} {call['function']}({call['args']})"
+                        )
                     return original_connect(self, address)
 
+
                 socket.socket.connect = monitored_connect
+
 
             try:
                 result = f(*args, **kwargs)
             except Exception as error:
                 safe_log("debug", f"Error: {error}")
+                safe_log("debug", f"Error: {error}")
                 if options.send_on_function_error:
+                    fire_and_forget(
+                        handle_error_monitoring,
+                        config,
+                        error,
+                        args,
+                        kwargs,
+                        options,
+                        start,
+                        is_allowed,
+                    )
                     fire_and_forget(
                         handle_error_monitoring,
                         config,
@@ -346,6 +496,16 @@ def olakai_supervisor(**kwargs):
                     start,
                     is_allowed,
                 )
+                fire_and_forget(
+                    handle_success_monitoring,
+                    config,
+                    result,
+                    args,
+                    kwargs,
+                    options,
+                    start,
+                    is_allowed,
+                )
             return result
 
         # Check if the decorated function is async or sync
@@ -356,16 +516,20 @@ def olakai_supervisor(**kwargs):
             # For sync functions, create a sync wrapper that fires off monitoring in background
             return sync_wrapped_f
 
+
     return wrap
+
 
 
 def apply_before_middleware(args: tuple, kwargs: dict):
     """Apply before middleware to the function."""
     safe_log("debug", "Applying before middleware to the function")
+    safe_log("debug", "Applying before middleware to the function")
     processed_args = args
     processed_kwargs = kwargs
     middlewares = get_middlewares()
     for middleware in middlewares:
+        if hasattr(middleware, "before_call") and middleware.before_call:
         if hasattr(middleware, "before_call") and middleware.before_call:
             try:
                 safe_log(
@@ -377,9 +541,20 @@ def apply_before_middleware(args: tuple, kwargs: dict):
                 )
                 safe_log("info", f"Processed arguments: {processed_args}")
                 safe_log("info", f"Processed kwargs: {processed_kwargs}")
+                safe_log(
+                    "info",
+                    f"Applying before middleware: {middleware.__class__.__name__}",
+                )
+                processed_args, processed_kwargs = middleware.before_call(
+                    args, kwargs
+                )
+                safe_log("info", f"Processed arguments: {processed_args}")
+                safe_log("info", f"Processed kwargs: {processed_kwargs}")
             except MiddlewareError as e:
                 safe_log("debug", f"Middleware error: {e}")
+                safe_log("debug", f"Middleware error: {e}")
                 raise e
+    safe_log("info", "Exiting apply_before_middleware")
     safe_log("info", "Exiting apply_before_middleware")
     return processed_args, processed_kwargs
 
@@ -393,15 +568,30 @@ async def handle_error_monitoring(
     start: float,
     is_allowed: ControlResponse,
 ):
+async def handle_error_monitoring(
+    config: SDKConfig,
+    error: Exception,
+    processed_args: tuple,
+    processed_kwargs: dict,
+    options: MonitorOptions,
+    start: float,
+    is_allowed: ControlResponse,
+):
     """Handle monitoring for function errors."""
     middlewares = get_middlewares()
+
 
     # Apply error middleware
     for middleware in middlewares:
         if hasattr(middleware, "on_error") and middleware.on_error:
+        if hasattr(middleware, "on_error") and middleware.on_error:
             try:
                 middleware.on_error(error, processed_args, processed_kwargs)
             except Exception as middleware_error:
+                safe_log(
+                    "debug", f"Error middleware failed: {middleware_error}"
+                )
+
                 safe_log(
                     "debug", f"Error middleware failed: {middleware_error}"
                 )
@@ -411,7 +601,9 @@ async def handle_error_monitoring(
         try:
             error_info = await create_error_info(error)
 
+
             chatId, email = extract_user_info(options)
+
 
             payload = MonitorPayload(
                 prompt="",
@@ -424,7 +616,12 @@ async def handle_error_monitoring(
                 requestTime=int(time.time() * 1000 - start),
                 task=getattr(options, "task", None),
                 subTask=getattr(options, "subTask", None),
+                task=getattr(options, "task", None),
+                subTask=getattr(options, "subTask", None),
                 blocked=False,
+                sensitivity=is_allowed.details.detectedSensitivity
+                if is_allowed.details.detectedSensitivity
+                else [],
                 sensitivity=is_allowed.details.detectedSensitivity
                 if is_allowed.details.detectedSensitivity
                 else [],
@@ -437,7 +634,16 @@ async def handle_error_monitoring(
                     "priority": "high"  # Errors always get high priority
                 },
             )
+
+            await send_to_api(
+                config,
+                payload,
+                {
+                    "priority": "high"  # Errors always get high priority
+                },
+            )
         except Exception as capture_error:
+            safe_log("debug", f"Error capture failed: {capture_error}")
             safe_log("debug", f"Error capture failed: {capture_error}")
 
 
@@ -450,13 +656,27 @@ async def handle_success_monitoring(
     start: float,
     is_allowed: ControlResponse,
 ):
+async def handle_success_monitoring(
+    config: SDKConfig,
+    result: Any,
+    processed_args: tuple,
+    processed_kwargs: dict,
+    options: MonitorOptions,
+    start: float,
+    is_allowed: ControlResponse,
+):
     """Handle monitoring for successful function execution."""
     middlewares = get_middlewares()
+
 
     # Apply afterCall middleware
     for middleware in middlewares:
         if hasattr(middleware, "after_call") and middleware.after_call:
+        if hasattr(middleware, "after_call") and middleware.after_call:
             try:
+                middleware_result = middleware.after_call(
+                    result, processed_args
+                )
                 middleware_result = middleware.after_call(
                     result, processed_args
                 )
@@ -466,16 +686,28 @@ async def handle_success_monitoring(
                 safe_log(
                     "debug", f"After middleware failed: {middleware_error}"
                 )
+                safe_log(
+                    "debug", f"After middleware failed: {middleware_error}"
+                )
+
+    safe_log("info", f"Result: {result}")
 
     safe_log("info", f"Result: {result}")
 
     # Capture success data
     if hasattr(options, "capture") and options.capture:
+    if hasattr(options, "capture") and options.capture:
         capture_result = options.capture(
+            args=processed_args, kwargs=processed_kwargs, result=result
             args=processed_args, kwargs=processed_kwargs, result=result
         )
 
+
         # Process capture result with sanitization
+        prompt, response = process_capture_result(
+            config, capture_result, options
+        )
+
         prompt, response = process_capture_result(
             config, capture_result, options
         )
@@ -493,7 +725,12 @@ async def handle_success_monitoring(
             errorMessage=None,
             task=getattr(options, "task", None),
             subTask=getattr(options, "subTask", None),
+            task=getattr(options, "task", None),
+            subTask=getattr(options, "subTask", None),
             blocked=False,
+            sensitivity=is_allowed.details.detectedSensitivity
+            if is_allowed.details.detectedSensitivity
+            else [],
             sensitivity=is_allowed.details.detectedSensitivity
             if is_allowed.details.detectedSensitivity
             else [],
@@ -501,7 +738,15 @@ async def handle_success_monitoring(
 
         safe_log("info", f"Successfully defined payload: {payload}")
 
+        safe_log("info", f"Successfully defined payload: {payload}")
+
         # Send to API
+        await send_to_api(
+            config,
+            payload,
+            {"priority": getattr(options, "priority", "normal")},
+        )
+
         await send_to_api(
             config,
             payload,
