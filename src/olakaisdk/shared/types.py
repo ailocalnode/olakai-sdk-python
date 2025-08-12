@@ -4,11 +4,22 @@ Common types used across the SDK.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional, List, Any, Callable, Union
+from typing import Optional, List, Any, Callable, Union, Dict
 from logging import Logger
 from enum import Enum
 import json
 
+JSONType = Union[
+    None, bool, int, float, str,
+    Dict[str, "JSONType"],
+    List["JSONType"]
+]
+
+@dataclass
+class SanitizePattern:
+    pattern: Optional[str] = None
+    key: Optional[str] = None
+    replacement: Optional[str] = None   
 
 @dataclass
 class Middleware:
@@ -49,7 +60,6 @@ class MonitorUtils:
 @dataclass
 class MonitorOptions:
     """Options for monitoring functions."""
-
     capture: Optional[Callable] = (
         MonitorUtils.capture_all_f
     )  # Will be set to default in helpers.py
@@ -66,11 +76,10 @@ class MonitorOptions:
 @dataclass
 class MonitorPayload:
     """Payload for monitoring data sent to API."""
-
     email: str
     chatId: str
-    prompt: str
-    response: str
+    prompt: JSONType
+    response: JSONType
     blocked: Optional[bool] = False
     tokens: Optional[int] = 0
     requestTime: Optional[int] = 0
@@ -83,8 +92,7 @@ class MonitorPayload:
 @dataclass
 class ControlPayload:
     """Payload for control data sent to API."""
-
-    prompt: str = ""
+    prompt: JSONType
     email: Optional[str] = "anonymous@olakai.ai"
     chatId: Optional[str] = "123"
     task: Optional[str] = None
@@ -116,7 +124,6 @@ class StorageType(Enum):
 @dataclass
 class SDKConfig:
     """Configuration for the SDK."""
-
     apiKey: str = ""
     monitoringUrl: Optional[str] = None
     controlUrl: Optional[str] = None
@@ -131,7 +138,7 @@ class SDKConfig:
     storageFilePath: Optional[str] = None
     debug: bool = False
     verbose: bool = False
-    sanitize_patterns: Optional[List[Any]] = None
+    sanitize_patterns: Optional[List[SanitizePattern]] = None
     logger: Optional[Logger] = None
 
 
