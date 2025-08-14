@@ -11,7 +11,7 @@ from .monitor import (
 )  # For backward compatibility
 from .shared import OlakaiBlockedError, MonitorOptions
 
-__version__ = "0.3.6"
+__version__ = "0.3.7"
 
 __all__ = [
     "init_olakai_client",
