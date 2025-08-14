@@ -9,15 +9,14 @@ from .monitor import (
     remove_middleware,
     olakai_supervisor,
 )  # For backward compatibility
-from .shared import OlakaiBlockedError, MonitorOptions, MonitorUtils
+from .shared import OlakaiBlockedError, MonitorOptions
 
-__version__ = "0.3.4"
+__version__ = "0.3.6"
 
 __all__ = [
     "init_olakai_client",
     "olakai_supervisor",
     "MonitorOptions",
-    "MonitorUtils",
     "OlakaiBlockedError",
     "add_middleware",  # Deprecated but available
     "remove_middleware",  # Deprecated but available

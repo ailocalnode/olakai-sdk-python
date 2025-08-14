@@ -6,7 +6,7 @@ import re
 import asyncio
 import uuid
 import traceback
-from typing import Any, Dict, Callable, Union, List, Optional
+from typing import Any, Dict, Callable, List, Optional
 from .logger import safe_log
 from .types import JSONType, SanitizePattern
 
@@ -30,14 +30,18 @@ def get_executor():
     return _executor
 
 
-def to_json_value(val: Any, sanitize: bool = False, patterns: Optional[List[SanitizePattern]] = None) -> JSONType:
+def to_json_value(
+    val: Any,
+    sanitize: bool = False,
+    patterns: Optional[List[SanitizePattern]] = None,
+) -> JSONType:
     """
     Convert any value to a JSONType with optional sanitization.
-    
+
     Args:
         val: The value to convert
         sanitize: Whether to sanitize the data using configured patterns
-        
+
     Returns:
         A JSONType value (None, bool, int, float, str, Dict[str, JSONType], List[JSONType])
     """
@@ -45,41 +49,45 @@ def to_json_value(val: Any, sanitize: bool = False, patterns: Optional[List[Sani
         # Handle null and undefined
         if val is None:
             return None
-            
+
         # Handle primitives that are already JSONType
         if isinstance(val, (str, int, float, bool)):
             if sanitize:
                 return sanitize_data(str(val), None, patterns)
             return val
-            
+
         # Handle arrays/lists/tuples
         if isinstance(val, (list, tuple)):
             return [to_json_value(item, sanitize, patterns) for item in val]
-            
+
         # Handle dictionaries and objects
         if isinstance(val, dict):
             result = {}
             for key, value in val.items():
                 if sanitize:
-                    result[str(key)] = sanitize_data(str(value), str(key), patterns)
+                    result[str(key)] = sanitize_data(
+                        str(value), str(key), patterns
+                    )
                 else:
                     result[str(key)] = to_json_value(value, sanitize, patterns)
             return result
-            
+
         # Handle objects with __dict__ attribute
-        if hasattr(val, '__dict__'):
+        if hasattr(val, "__dict__"):
             obj_dict = val.__dict__
             result = {}
             for key, value in obj_dict.items():
                 if sanitize:
-                    result[str(key)] = sanitize_data(str(value), str(key), patterns)
+                    result[str(key)] = sanitize_data(
+                        str(value), str(key), patterns
+                    )
                 else:
                     result[str(key)] = to_json_value(value, sanitize, patterns)
             return result
-            
+
         # Fallback for other types - convert to string
         return str(val)
-        
+
     except Exception as error:
         safe_log("error", f"Error converting value to JSONType: {error}")
         return str(val)
@@ -104,11 +112,19 @@ def sanitize_data(
     try:
         serialized = data
         for pattern in patterns:
-            if pattern.pattern: 
-                return re.sub(pattern.pattern, pattern.replacement or "[REDACTED]", serialized)
+            if pattern.pattern:
+                return re.sub(
+                    pattern.pattern,
+                    pattern.replacement or "[REDACTED]",
+                    serialized,
+                )
             elif pattern.key:
                 if data_key and pattern.key in data_key:
-                    return re.sub(pattern.pattern, pattern.replacement or "[REDACTED]", data)
+                    return re.sub(
+                        pattern.pattern,
+                        pattern.replacement or "[REDACTED]",
+                        data,
+                    )
                 else:
                     return data
 
@@ -117,7 +133,6 @@ def sanitize_data(
     except Exception as e:
         safe_log("debug", f"Data failed to sanitize: {str(e)}")
         return "[SANITIZED]"
-
 
 
 async def create_error_info(error: Exception) -> Dict[str, Any]:
@@ -178,3 +193,12 @@ def fire_and_forget(func: Callable, *args, **kwargs):
 
     future.add_done_callback(handle_future_exception)
     return future
+
+
+def put_args_in_kwargs(kwargs: dict, args: tuple):
+    if len(args) > 0:
+        i = 0
+        while kwargs.get(f"arg{i}", None) is not None:
+            i += 1
+        kwargs[f"arg{i}"] = args[0]
+    return kwargs

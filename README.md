@@ -129,7 +129,6 @@ _This approach lets you monitor specific API calls while keeping your business l
 
 </details>
 
-
 ## Simple Examples
 
 ### Monitor Any Function
@@ -175,32 +174,6 @@ result = process_order("order-123")
 
 **What it does?** This feature lets you specify a user email, so our API can associate each call with a specific user. Instead of seeing "Anonymous user" in the UNO product's prompts panel, you'll see the actual user linked to each call. For now the matching is based on users' email.
 
-
-## Common Patterns
-
-### Capture Only What You Need
-
-```python
-from olakaisdk import init_olakai_client, olakai_supervisor
-
-init_olakai_client("your-olakai-api-key", "https://your-olakai-domain.ai")
-
-# Custom capture logic
-@olakai_supervisor(
-    capture=lambda args, result: {
-        "input": {"email": args[0]},
-        "output": {"success": result.get("success")}
-    }
-)
-def my_function(email: str, password: str) -> dict:
-    # This will only capture email, not password
-    return {"success": True, "user_id": "123"}
-```
-
----
-
-## When You Need More Control
-
 ### Advanced Monitoring
 
 Sometimes you need fine-grained control. Use the full `MonitorOptions` for complete customization:
@@ -219,17 +192,6 @@ init_olakai_client("your-olakai-api-key", "https://your-olakai-domain.ai")
     chatId=lambda args: args[1], # Session tracking from second argument
     sanitize=True,               # Remove sensitive data
     priority="high",             # Queue priority
-    capture=lambda args, result: {
-        "input": {
-            "email": args[0],
-            "request_time": int(time.time())
-        },
-        "output": {
-            "success": result.get("success"),
-            "user_id": result.get("user_id"),
-            "status_code": result.get("status_code")
-        }
-    }
 )
 def login_user(email: str, session_id: str, password: str) -> dict:
     """
@@ -247,7 +209,7 @@ def login_user(email: str, session_id: str, password: str) -> dict:
             headers={"Content-Type": "application/json"},
             timeout=10
         )
-        
+
         if auth_response.status_code == 200:
             auth_data = auth_response.json()
             return {
@@ -268,7 +230,7 @@ def login_user(email: str, session_id: str, password: str) -> dict:
                 "error": f"Authentication service error: {auth_response.status_code}",
                 "status_code": auth_response.status_code
             }
-            
+
     except requests.RequestException as e:
         return {
             "success": False,
@@ -278,7 +240,8 @@ def login_user(email: str, session_id: str, password: str) -> dict:
 
 result = login_user("user@example.com", "session-123", "secret")
 ```
-Here you choose precisely what field you are sending to Olakai, if you want to be sure not to divulge crucial information. 
+
+Here you choose precisely what field you are sending to Olakai, if you want to be sure not to divulge crucial information.
 In all cases, you should keep in mind not to wrap such sensitive functions to avoid exposing confidential data.
 
 The capture process transforms the function's arguments and return value into input/output data using the provided capture function,
@@ -321,12 +284,34 @@ client = init_olakai_client("your-olakai-api-key", "https://your-olakai-domain.a
 
 ```python
 from olakaisdk import init_olakai_client
+from olakaisdk.shared.types import SanitizePattern
+
+# Define patterns to automatically sanitize sensitive data
+example_sanitize_patterns = [
+    SanitizePattern(
+        pattern=r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
+        replacement="[EMAIL_REDACTED]"
+    ),
+    SanitizePattern(
+        pattern=r'\b(?:\d{4}[-\s]?){3}\d{4}\b',
+        replacement="[CARD_REDACTED]"
+    ),
+    SanitizePattern(
+        key="password",
+        replacement="[PASSWORD_REDACTED]"
+    ),
+    SanitizePattern(
+        key="api_key",
+        replacement="[API_KEY_REDACTED]"
+    )
+]
 
 client = init_olakai_client(
     api_key="your-olakai-api-key",
     domain="https://your-olakai-domain.ai",
     debug=True,            # See what's happening
     enableStorage=True,    # Offline support
+    sanitize_patterns=example_sanitize_patterns,
     batchSize=20,          # Custom batch size
     timeout=30000          # Custom timeout in milliseconds
 )
@@ -371,44 +356,70 @@ This will log detailed information about what the SDK is doing.
 - Enable `sanitize=True` for functions handling sensitive data
 - Use custom `capture` functions to exclude sensitive parameters
 
+### 🛡️ **Data Sanitization**
+
+Automatically redact sensitive data with sanitization patterns:
+
+```python
+from olakaisdk.shared.types import SanitizePattern
+
+patterns = [
+    SanitizePattern(pattern=r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', replacement="[EMAIL]"),
+    SanitizePattern(key="password", replacement="[PASSWORD]")
+]
+
+client = init_olakai_client(
+    api_key="your-key",
+    domain="https://your-domain.ai",
+    sanitize_patterns=patterns  # Apply globally
+)
+
+@olakai_supervisor(sanitize=True)  # Enable for this function
+def process_data(email: str, password: str):
+    return {"user": email}  # Will be sanitized automatically
+```
+
+When using the "key" field, you will sanitize ANY key that matches the string provided, in any args/kwargs you're passing
+When using the "pattern" field, you will sanitize any string that matches the provided regex pattern
+
 ---
 
 ## API Reference
 
 ### Core Classes and Methods
 
-| Class/Method              | Description                        | Use Case             |
-| ------------------------- | ---------------------------------- | -------------------- |
-| `init_olakai_client(key, url)`  | Initialize SDK client instance     | Required setup       |
-| `client.monitor(options)` | Decorator for monitoring functions | Most common use case |
+| Class/Method                   | Description                        | Use Case             |
+| ------------------------------ | ---------------------------------- | -------------------- |
+| `init_olakai_client(key, url)` | Initialize SDK client instance     | Required setup       |
+| `client.monitor(options)`      | Decorator for monitoring functions | Most common use case |
 
 ### Configuration Options (init_olakai_client)
 
-| Option               | Default | Description                |
-| -------------------- | ------- | -------------------------- |
-| `api_key`            | Required| Your Olakai API key        |
-| `domain`             | Default | API endpoint domain        |
-| `batchSize`          | `10`    | Requests to batch together |
-| `batchTimeout`       | `5000`  | Batch timeout (ms)         |
-| `retries`            | `3`     | Retry attempts             |
-| `timeout`            | `20000` | Request timeout (ms)       |
-| `enableStorage`      | `True`  | Offline queue support      |
-| `debug`              | `False` | Debug logging              |
-| `verbose`            | `False` | Verbose logging            |
+| Option              | Default  | Description                                   |
+| ------------------- | -------- | --------------------------------------------- |
+| `api_key`           | Required | Your Olakai API key                           |
+| `domain`            | Default  | API endpoint domain                           |
+| `batchSize`         | `10`     | Requests to batch together                    |
+| `batchTimeout`      | `5000`   | Batch timeout (ms)                            |
+| `retries`           | `3`      | Retry attempts                                |
+| `timeout`           | `20000`  | Request timeout (ms)                          |
+| `enableStorage`     | `True`   | Offline queue support                         |
+| `debug`             | `False`  | Debug logging                                 |
+| `verbose`           | `False`  | Verbose logging                               |
+| `sanitize_patterns` | `None`   | List of SanitizePattern for data sanitization |
 
-### Monitor Options 
+### Monitor Options
 
 | Option                   | Type                | Description                                                        |
-| ------------------------ | ------------------- | ------------------------------------------------------------------ |
+| ------------------------ | ------------------- | ------------------------------------------------------------------ | --- |
 | `email`                  | `str` or `Callable` | User email for tracking                                            |
 | `chatId`                 | `str` or `Callable` | Chat/session ID                                                    |
 | `task`                   | `str`               | Task category                                                      |
-| `subTask`                | `str`               | Specific task                                                      |                                            |
-| `sanitize`               | `bool`              | Remove sensitive data                                              |
+| `subTask`                | `str`               | Specific task                                                      |     |
+| `sanitize`               | `bool`              | Enable automatic data sanitization using configured patterns       |
 | `priority`               | `str`               | Queue priority (low/normal/high)                                   |
 | `capture`                | `Callable`          | Custom data capture function                                       |
 | `send_on_function_error` | `bool`              | Enable send to Olakai UNO when the monitored function has an error |
-
 
 ---
 

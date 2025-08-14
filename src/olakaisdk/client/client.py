@@ -2,7 +2,15 @@
 Client for the Olakai SDK.
 """
 
-from ..shared import SDKConfig, InitializationError, safe_log, set_logger_level, QueueDependencies, APIKeyMissingError, URLConfigurationError
+from ..shared import (
+    SDKConfig,
+    InitializationError,
+    safe_log,
+    set_logger_level,
+    QueueDependencies,
+    APIKeyMissingError,
+    URLConfigurationError,
+)
 
 
 class OlakaiClient:
@@ -19,10 +27,14 @@ class OlakaiClient:
             **kwargs: Optional SDK configuration
         """
         if not api_key:
-            raise APIKeyMissingError("API key is required to initialize the Olakai SDK client.")
+            raise APIKeyMissingError(
+                "API key is required to initialize the Olakai SDK client."
+            )
         if not domain:
-            raise URLConfigurationError("Domain is required to initialize the Olakai SDK client.")
-        
+            raise URLConfigurationError(
+                "Domain is required to initialize the Olakai SDK client."
+            )
+
         self.config = SDKConfig(
             apiKey=api_key,
             monitoringUrl=f"{domain}/api/monitoring/prompt"
@@ -75,6 +87,7 @@ class OlakaiClient:
 
 _global_client = None
 
+
 def init_olakai_client(api_key: str, domain: str, **kwargs):
     """
     Initialize the Olakai SDK client.
@@ -89,10 +102,13 @@ def init_olakai_client(api_key: str, domain: str, **kwargs):
         _global_client = OlakaiClient(api_key, domain, **kwargs)
     return _global_client
 
+
 def get_olakai_client():
     """
     Get the global Olakai client instance.
     """
     if _global_client is None:
-        raise InitializationError("Olakai client not initialized. Please call init_olakai_client first.")
+        raise InitializationError(
+            "Olakai client not initialized. Please call init_olakai_client first."
+        )
     return _global_client

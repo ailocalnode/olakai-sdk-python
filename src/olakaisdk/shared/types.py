@@ -4,22 +4,21 @@ Common types used across the SDK.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional, List, Any, Callable, Union, Dict
+from typing import Optional, List, Callable, Union, Dict
 from logging import Logger
 from enum import Enum
-import json
 
 JSONType = Union[
-    None, bool, int, float, str,
-    Dict[str, "JSONType"],
-    List["JSONType"]
+    None, bool, int, float, str, Dict[str, "JSONType"], List["JSONType"]
 ]
+
 
 @dataclass
 class SanitizePattern:
     pattern: Optional[str] = None
     key: Optional[str] = None
-    replacement: Optional[str] = None   
+    replacement: Optional[str] = None
+
 
 @dataclass
 class Middleware:
@@ -32,37 +31,9 @@ class Middleware:
 
 
 @dataclass
-class MonitorUtils:
-    """Utility functions for data capture in monitoring."""
-
-    @staticmethod
-    def capture_all_f(**kwargs):
-        """Capture all input and output data."""
-        return {
-            "input": str(kwargs["args"]) + json.dumps(kwargs["kwargs"]),
-            "output": kwargs["result"],
-        }
-
-    @staticmethod
-    def capture_input_f(**kwargs):
-        """Capture only input data."""
-        return {
-            "input": str(kwargs["args"]) + json.dumps(kwargs["kwargs"]),
-            "output": "Function executed successfully",
-        }
-
-    @staticmethod
-    def capture_output_f(**kwargs):
-        """Capture only output data."""
-        return {"input": "Function called", "output": kwargs["result"]}
-
-
-@dataclass
 class MonitorOptions:
     """Options for monitoring functions."""
-    capture: Optional[Callable] = (
-        MonitorUtils.capture_all_f
-    )  # Will be set to default in helpers.py
+
     sanitize: bool = False
     send_on_function_error: bool = True
     priority: str = "normal"
@@ -76,6 +47,7 @@ class MonitorOptions:
 @dataclass
 class MonitorPayload:
     """Payload for monitoring data sent to API."""
+
     email: str
     chatId: str
     prompt: JSONType
@@ -92,6 +64,7 @@ class MonitorPayload:
 @dataclass
 class ControlPayload:
     """Payload for control data sent to API."""
+
     prompt: JSONType
     email: Optional[str] = "anonymous@olakai.ai"
     chatId: Optional[str] = "123"
@@ -124,6 +97,7 @@ class StorageType(Enum):
 @dataclass
 class SDKConfig:
     """Configuration for the SDK."""
+
     apiKey: str = ""
     monitoringUrl: Optional[str] = None
     controlUrl: Optional[str] = None

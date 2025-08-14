@@ -141,7 +141,6 @@ async def send_to_api(
 ) -> Union[APIResponse, ControlResponse]:
     """Send payload to API with optional logging."""
 
-
     if isinstance(payload, MonitorPayload):
         if config.isBatchingEnabled:
             options = {
@@ -151,11 +150,13 @@ async def send_to_api(
             await add_to_queue(payload, **options)
         else:
             try:
-                response = await send_with_retry(config, [payload], "monitoring")
+                response = await send_with_retry(
+                    config, [payload], "monitoring"
+                )
             except Exception as e:
                 safe_log("error", f"Error sending payload to API: {e}")
                 raise e
-            
+
             # Log any batch-style response information if present
             if (
                 response.totalRequests is not None

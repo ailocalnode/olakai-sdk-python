@@ -3,11 +3,8 @@ Data processing and sanitization for the Olakai SDK monitor.
 """
 
 import json
-import re
-from typing import Any, Optional, List
 from ..shared import safe_log
 from ..shared import (
-    SanitizationError,
     ControlServiceError,
     ControlResponse,
     SDKConfig,
@@ -16,24 +13,6 @@ from ..shared import (
     to_json_value,
 )
 from ..client import send_to_api
-
-def process_capture_result(config: SDKConfig, capture_result: dict, options):
-    """
-    Process the result from a capture function, applying sanitization if needed.
-
-    Args:
-        capture_result: Result from the capture function
-        options: Monitor options
-        logger: Optional logger instance
-
-    Returns:
-        Processed prompt and response strings
-    """
-    prompt = capture_result.get("input", "")
-    response = capture_result.get("output", "")
-
-    safe_log("info", f"Prompt: {prompt}")
-    return prompt, response
 
 
 def extract_user_info(options: MonitorOptions) -> tuple[str, str]:
@@ -75,7 +54,8 @@ def extract_user_info(options: MonitorOptions) -> tuple[str, str]:
             email = options.email
 
     return chatId, email
-  
+
+
 async def should_allow_call(
     config: SDKConfig, options: MonitorOptions, args: tuple, kwargs: dict
 ) -> ControlResponse:

@@ -32,7 +32,6 @@ from .types import (
     SDKConfig,
     MonitorOptions,
     Middleware,
-    MonitorUtils,
     ControlPayload,
 )
 from .utils import (
@@ -42,6 +41,7 @@ from .utils import (
     sleep,
     generate_random_id,
     get_executor,
+    put_args_in_kwargs,
 )
 
 __all__ = [
@@ -74,7 +74,6 @@ __all__ = [
     "SDKConfig",
     "MonitorOptions",
     "Middleware",
-    "MonitorUtils",
     "ControlPayload",
     # Utils
     "create_error_info",
@@ -83,4 +82,5 @@ __all__ = [
     "sleep",
     "generate_random_id",
     "get_executor",
+    "put_args_in_kwargs",
 ]

@@ -11,7 +11,6 @@ from dataclasses import fields, asdict
 from typing import Any, Callable
 from .middleware import get_middlewares
 from .processor import (
-    process_capture_result,
     extract_user_info,
     should_allow_call,
 )
@@ -28,6 +27,7 @@ from ..shared import (
     safe_log,
     MonitorPayload,
     SDKConfig,
+    put_args_in_kwargs,
 )
 from ..client import send_to_api, get_olakai_client
 
@@ -67,7 +67,7 @@ def olakai_supervisor(**kwargs):
                     )
             else:
                 safe_log("debug", f"Invalid keyword argument: {key}")
-    
+
     config = get_olakai_client().get_config()
 
     def wrap(f: Callable) -> Callable:
@@ -76,12 +76,9 @@ def olakai_supervisor(**kwargs):
             safe_log("debug", f"Arguments: {args}")
 
             try:
-                # TODO modify the del[potential_result] to behave well with shouldBlock
                 start = time.time() * 1000  # Convert to milliseconds
                 processed_args = args
                 processed_kwargs = kwargs
-                if "potential_result" in kwargs:
-                    del kwargs["potential_result"]
 
                 # Check if the function should be blocked
                 is_allowed = await should_allow_call(
@@ -91,9 +88,12 @@ def olakai_supervisor(**kwargs):
                     safe_log("warning", f"Function {f.__name__} was blocked")
 
                     chatId, email = extract_user_info(options)
+                    kwargs = put_args_in_kwargs(kwargs, args)
 
                     payload = MonitorPayload(
-                        prompt=f"Args: {args} \n Kwargs: {kwargs}",
+                        prompt=to_json_value(
+                            kwargs, False, patterns=config.sanitize_patterns
+                        ),
                         response="Function execution blocked by Olakai",
                         chatId=chatId,
                         email=email,
@@ -239,9 +239,12 @@ def olakai_supervisor(**kwargs):
                 safe_log("warning", f"Function {f.__name__} was blocked")
 
                 chatId, email = extract_user_info(options)
+                kwargs = put_args_in_kwargs(kwargs, args)
 
                 payload = MonitorPayload(
-                    prompt=f"Args: {args} \n Kwargs: {kwargs}",
+                    prompt=to_json_value(
+                        kwargs, False, patterns=config.sanitize_patterns
+                    ),
                     response="Function execution blocked by Olakai",
                     chatId=chatId,
                     email=email,
@@ -410,11 +413,16 @@ async def handle_error_monitoring(
     if options.send_on_function_error:
         try:
             error_info = await create_error_info(error)
+            processed_kwargs = put_args_in_kwargs(
+                processed_kwargs, processed_args
+            )
 
             chatId, email = extract_user_info(options)
 
             payload = MonitorPayload(
-                prompt="",
+                prompt=to_json_value(
+                    processed_kwargs, False, patterns=config.sanitize_patterns
+                ),
                 response="",
                 errorMessage=to_json_value(error_info["error_message"])
                 + to_json_value(error_info["stack_trace"]),
@@ -468,42 +476,38 @@ async def handle_success_monitoring(
                 )
 
     safe_log("info", f"Result: {result}")
+    processed_kwargs = put_args_in_kwargs(processed_kwargs, processed_args)
 
-    # Capture success data
-    if hasattr(options, "capture") and options.capture:
-        capture_result = options.capture(
-            args=processed_args, kwargs=processed_kwargs, result=result
-        )
+    # Extract user information
+    chatId, email = extract_user_info(options)
 
-        # Process capture result with sanitization
-        prompt, response = process_capture_result(
-            config, capture_result, options
-        )
+    payload = MonitorPayload(
+        prompt=to_json_value(
+            processed_kwargs,
+            sanitize=options.sanitize,
+            patterns=config.sanitize_patterns,
+        ),
+        response=to_json_value(
+            result, sanitize=options.sanitize, patterns=config.sanitize_patterns
+        ),
+        chatId=chatId if chatId else "anonymous",
+        email=email if email else "anonymous@olakai.ai",
+        tokens=0,
+        requestTime=int(time.time() * 1000 - start),
+        errorMessage=None,
+        task=getattr(options, "task", None),
+        subTask=getattr(options, "subTask", None),
+        blocked=False,
+        sensitivity=is_allowed.details.detectedSensitivity
+        if is_allowed.details.detectedSensitivity
+        else [],
+    )
 
-        # Extract user information
-        chatId, email = extract_user_info(options)
+    safe_log("info", f"Successfully defined payload: {payload}")
 
-        payload = MonitorPayload(
-            prompt=to_json_value(prompt, sanitize=options.sanitize, patterns=config.sanitize_patterns),
-            response=to_json_value(response, sanitize=options.sanitize, patterns=config.sanitize_patterns),
-            chatId=chatId if chatId else "anonymous",
-            email=email if email else "anonymous@olakai.ai",
-            tokens=0,
-            requestTime=int(time.time() * 1000 - start),
-            errorMessage=None,
-            task=getattr(options, "task", None),
-            subTask=getattr(options, "subTask", None),
-            blocked=False,
-            sensitivity=is_allowed.details.detectedSensitivity
-            if is_allowed.details.detectedSensitivity
-            else [],
-        )
-
-        safe_log("info", f"Successfully defined payload: {payload}")
-
-        # Send to API
-        await send_to_api(
-            config,
-            payload,
-            {"priority": getattr(options, "priority", "normal")},
-        )
+    # Send to API
+    await send_to_api(
+        config,
+        payload,
+        {"priority": getattr(options, "priority", "normal")},
+    )
