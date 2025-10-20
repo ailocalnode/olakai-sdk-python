@@ -137,8 +137,8 @@ def test_olakai_event():
         response="Test response",
         email="test@example.com",
         task="test-task",
-        custom_dimensions={"env": "test"},
-        custom_metrics={"score": 0.95}
+        dim1="test",
+        metric1=0.95
     )
 
     # Test event tracking
@@ -252,9 +252,9 @@ def test_custom_dimensions_and_metrics():
     params = OlakaiEventParams(
         prompt="test",
         response="response",
-        custom_dimensions={"env": "production"},
-        custom_metrics={"confidence": 0.95}
+        dim1="production",
+        metric1=0.95
     )
     
-    assert params.custom_dimensions["env"] == "production"
-    assert params.custom_metrics["confidence"] == 0.95
+    assert params.dim1 == "production"
+    assert params.metric1 == 0.95

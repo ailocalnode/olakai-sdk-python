@@ -68,8 +68,10 @@ client = OpenAI(api_key="your-openai-key")
 @olakai_monitor(
     email="user@example.com",
     task="Customer Support",
-    custom_dimensions={"model": "gpt-4", "department": "support"},
-    custom_metrics={"tokens_used": 150, "response_time": 2.3}
+    dim1="gpt-4",
+    dim2="support",
+    metric1=150,
+    metric2=2.3
 )
 def get_ai_response(user_question: str) -> str:
     response = client.chat.completions.create(
@@ -89,16 +91,12 @@ answer = get_ai_response("How do I reset my password?")
 @olakai_monitor(
     email=lambda args: get_user_email(args[0]),  # Dynamic user email
     chatId=lambda args: get_session_id(args[0]),  # Dynamic session
-    task="Product Recommendations",
-    subTask="clothing-suggestions",
-    custom_dimensions={
-        "user_tier": "premium",
-        "category": "fashion"
-    },
-    custom_metrics={
-        "products_shown": 5,
-        "click_through_rate": 0.23
-    }
+    task="Customer Experience",
+    subTask="customer service",
+    dim1="premium",
+    dim2="fashion",
+    metric1=5,
+    metric2=0.23
 )
 def recommend_products(user_id: str, preferences: dict) -> list:
     # Your recommendation logic
@@ -109,46 +107,16 @@ def recommend_products(user_id: str, preferences: dict) -> list:
 
 ```python
 @olakai_monitor(
-    email="marketing@company.com",
-    task="Email Marketing",
-    subTask="campaign-generation",
-    custom_dimensions={
-        "campaign_type": "promotional",
-        "audience": "existing_customers"
-    },
-    custom_metrics={
-        "email_length": 250,
-        "sentiment_score": 0.8
-    }
+    task="Communication Strategy",
+    subTask="communication/persuasion",
+    dim1="promotional",
+    dim2="existing_customers",
+    metric1=250,
+    metric2=0.8
 )
 def generate_email_campaign(topic: str, tone: str) -> str:
     # Your email generation logic
     return f"Subject: {topic}\n\nDear Customer, ..."
-```
-
-### Async AI Processing
-
-```python
-import asyncio
-from olakaisdk import olakai_config, olakai_monitor
-
-olakai_config("your-api-key", "https://your-domain.ai")
-
-@olakai_monitor(
-    email="async@example.com",
-    task="Batch Processing",
-    custom_dimensions={"batch_size": "large", "priority": "high"}
-)
-async def process_ai_batch(items: list) -> list:
-    results = []
-    for item in items:
-        # Process each item with AI
-        result = await ai_process_item(item)
-        results.append(result)
-    return results
-
-# Use with async/await
-results = await process_ai_batch(["item1", "item2", "item3"])
 ```
 
 ---
@@ -162,19 +130,15 @@ Track any data you want alongside your AI interactions:
 ```python
 @olakai_monitor(
     # String dimensions (categorical data)
-    custom_dimensions={
-        "model": "gpt-4",
-        "environment": "production",
-        "user_type": "premium",
-        "language": "en"
-    },
+    dim1="gpt-4",
+    dim2="production",
+    dim3="premium",
+    dim4="en",
     # Numeric metrics (quantitative data)
-    custom_metrics={
-        "tokens_used": 150,
-        "response_time": 2.5,
-        "confidence_score": 0.95,
-        "cost_usd": 0.02
-    }
+    metric1=150,
+    metric2=2.5,
+    metric3=0.95,
+    metric4=0.02
 )
 def advanced_ai_function(prompt: str) -> str:
     return "AI response"
@@ -188,8 +152,8 @@ Track individual users and their AI interactions:
 @olakai_monitor(
     email="john.doe@company.com",  # User email
     chatId="session-abc123",       # Session/conversation ID
-    task="Personal Assistant",
-    subTask="calendar-management"
+    task="Personal Productivity",
+    subTask="email management"
 )
 def personal_assistant(user_request: str) -> str:
     return "Assistant response"
@@ -209,8 +173,8 @@ olakai_report(
         "email": "user@example.com",
         "chatId": "pricing-session-123",
         "task": "Sales Support",
-        "custom_dimensions": {"inquiry_type": "pricing"},
-        "custom_metrics": {"response_time": 1.2}
+        "dim1": "pricing",
+        "metric1": 1.2
     }
 )
 ```
@@ -228,8 +192,8 @@ params = OlakaiEventParams(
     email="user@example.com",
     chatId="custom-session",
     task="Custom Task",
-    custom_dimensions={"method": "lowlevel"},
-    custom_metrics={"custom_score": 0.85},
+    dim1="lowlevel",
+    metric1=0.85,
     shouldScore=True,
     tokens=100,
     requestTime=500
@@ -259,15 +223,23 @@ olakai_config("your-api-key", "https://your-domain.ai", debug=True)
 
 ### Monitor Options
 
-| Option              | Type   | Description             | Example              |
-| ------------------- | ------ | ----------------------- | -------------------- |
-| `email`             | `str`  | User email for tracking | `"user@example.com"` |
-| `chatId`            | `str`  | Session/conversation ID | `"session-123"`      |
-| `task`              | `str`  | Task category           | `"Customer Support"` |
-| `subTask`           | `str`  | Specific task           | `"password-reset"`   |
-| `custom_dimensions` | `dict` | String metadata         | `{"model": "gpt-4"}` |
-| `custom_metrics`    | `dict` | Numeric data            | `{"tokens": 150}`    |
-| `shouldScore`       | `bool` | Enable content scoring  | `True`               |
+| Option        | Type    | Description             | Example              |
+| ------------- | ------- | ----------------------- | -------------------- |
+| `email`       | `str`   | User email for tracking | `"user@example.com"` |
+| `chatId`      | `str`   | Session/conversation ID | `"session-123"`      |
+| `task`        | `str`   | Task category           | `"Customer Support"` |
+| `subTask`     | `str`   | Specific task           | `"password-reset"`   |
+| `dim1`        | `str`   | First dimension         | `"gpt-4"`            |
+| `dim2`        | `str`   | Second dimension        | `"production"`       |
+| `dim3`        | `str`   | Third dimension         | `"premium"`          |
+| `dim4`        | `str`   | Fourth dimension        | `"en"`               |
+| `dim5`        | `str`   | Fifth dimension         | `"api"`              |
+| `metric1`     | `float` | First metric            | `150`                |
+| `metric2`     | `float` | Second metric           | `2.5`                |
+| `metric3`     | `float` | Third metric            | `0.95`               |
+| `metric4`     | `float` | Fourth metric           | `0.02`               |
+| `metric5`     | `float` | Fifth metric            | `1000`               |
+| `shouldScore` | `bool`  | Enable content scoring  | `True`               |
 
 ---
 
@@ -304,7 +276,7 @@ olakai_config("api-key", "https://domain.ai", debug=True)
 # Simple decorator
 @olakai_monitor(
     email="user@example.com",
-    custom_dimensions={"environment": "production"}
+    dim1="production"
 )
 def new_function():
     pass
@@ -322,8 +294,8 @@ def new_function():
 
 3. **Update parameters:**
 
-   - Use `custom_dimensions` for string data
-   - Use `custom_metrics` for numeric data
+   - Use `dim1`, `dim2`, `dim3`, `dim4`, `dim5` for string data
+   - Use `metric1`, `metric2`, `metric3`, `metric4`, `metric5` for numeric data
    - Add `email` and `chatId` for user tracking
 
 4. **Remove complex options:**
@@ -400,8 +372,8 @@ olakai_config("your-api-key", debug=True)
 - **Start simple:** Begin with `@olakai_monitor()` and add options as needed
 - **Use descriptive tasks:** `task="Customer Support"` instead of `task="cs"`
 - **Track users:** Always include `email` for user-specific analytics
-- **Use custom dimensions:** Track model, environment, user type, etc.
-- **Use custom metrics:** Track tokens, response time, costs, etc.
+- **Use custom dimensions:** Track model, environment, user type, etc. with `dim1`, `dim2`, etc.
+- **Use custom metrics:** Track tokens, response time, costs, etc. with `metric1`, `metric2`, etc.
 - **Group related calls:** Use consistent `task` and `subTask` names
 
 ### Avoid This
@@ -414,7 +386,7 @@ olakai_config("your-api-key", debug=True)
 ### Security Tips
 
 - **User emails should match Olakai accounts** for proper user tracking
-- **Use custom dimensions** to exclude sensitive parameters
+- **Use custom dimensions** to exclude sensitive parameters with `dim1`, `dim2`, etc.
 - **Never log passwords or API keys** in prompts/responses
 - **Consider data privacy** when tracking user interactions
 
@@ -429,15 +401,11 @@ olakai_config("your-api-key", debug=True)
     email=lambda args: get_user_email(args[0]),
     task="Enterprise AI",
     subTask="document-analysis",
-    custom_dimensions={
-        "company": "acme-corp",
-        "department": "legal",
-        "document_type": "contract"
-    },
-    custom_metrics={
-        "pages_processed": 10,
-        "confidence_score": 0.92
-    }
+    dim1="acme-corp",
+    dim2="legal",
+    dim3="contract",
+    metric1=10,
+    metric2=0.92
 )
 def analyze_document(user_id: str, document: str) -> dict:
     # Document analysis logic
@@ -451,15 +419,11 @@ def analyze_document(user_id: str, document: str) -> dict:
     email="student@university.edu",
     task="Educational AI",
     subTask="homework-help",
-    custom_dimensions={
-        "course": "computer-science",
-        "difficulty": "intermediate",
-        "subject": "algorithms"
-    },
-    custom_metrics={
-        "attempts": 3,
-        "time_spent": 15.5
-    }
+    dim1="computer-science",
+    dim2="intermediate",
+    dim3="algorithms",
+    metric1=3,
+    metric2=15.5
 )
 def help_with_homework(question: str, student_level: str) -> str:
     # Educational AI logic
@@ -473,15 +437,11 @@ def help_with_homework(question: str, student_level: str) -> str:
     email="doctor@hospital.com",
     task="Medical AI",
     subTask="symptom-analysis",
-    custom_dimensions={
-        "specialty": "cardiology",
-        "patient_age_group": "adult",
-        "urgency": "routine"
-    },
-    custom_metrics={
-        "symptoms_analyzed": 5,
-        "confidence": 0.88
-    }
+    dim1="cardiology",
+    dim2="adult",
+    dim3="routine",
+    metric1=5,
+    metric2=0.88
 )
 def analyze_symptoms(symptoms: list, patient_info: dict) -> dict:
     # Medical AI logic (with proper compliance)
