@@ -1,23 +1,25 @@
 """
-Olakai SDK for monitoring and tracking AI/ML model interactions.
+Simplified Olakai SDK for monitoring and tracking AI/ML model interactions.
 """
 
-from .client import init_olakai_client
+from .core import olakai_config, olakai, olakai_report, olakai_monitor, get_config
+from .monitor import olakai_supervisor  # Legacy function for backward compatibility
+from .shared import OlakaiBlockedError, MonitorOptions, OlakaiEventParams, OlakaiConfig
 
-from .monitor import (
-    add_middleware,
-    remove_middleware,
-    olakai_supervisor,
-)  # For backward compatibility
-from .shared import OlakaiBlockedError, MonitorOptions
-
-__version__ = "0.3.7"
+__version__ = "0.4.0"
 
 __all__ = [
-    "init_olakai_client",
-    "olakai_supervisor",
+    # New simplified API
+    "olakai_config",
+    "olakai", 
+    "olakai_report",
+    "olakai_monitor",
+    "get_config",
+    # Types
     "MonitorOptions",
+    "OlakaiEventParams", 
+    "OlakaiConfig",
     "OlakaiBlockedError",
-    "add_middleware",  # Deprecated but available
-    "remove_middleware",  # Deprecated but available
+    # Legacy functions for backward compatibility
+    "olakai_supervisor",
 ]
