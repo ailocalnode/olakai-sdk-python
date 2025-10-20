@@ -1,25 +1,12 @@
 """
-Monitor module for the Olakai SDK.
+Simplified monitor module for the Olakai SDK.
 
-This module provides function monitoring, decorators, middleware, and processing functionality.
+This module provides simplified function monitoring and decorator functionality.
 """
 
-from .decorator import olakai_supervisor
-from .master_decorator import OlakaiMasterDecorator
-from .middleware import add_middleware, remove_middleware, get_middlewares
-from .processor import (
-    process_capture_result,
-    extract_user_info,
-    should_allow_call,
-)
+from .decorator import olakai_monitor, olakai_supervisor
 
 __all__ = [
-    "olakai_supervisor",
-    "OlakaiMasterDecorator",
-    "add_middleware",
-    "remove_middleware",
-    "get_middlewares",
-    "process_capture_result",
-    "extract_user_info",
-    "should_allow_call",
+    "olakai_monitor",
+    "olakai_supervisor",  # Legacy function for backward compatibility
 ]

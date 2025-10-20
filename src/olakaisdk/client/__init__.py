@@ -1,14 +1,14 @@
 """
-Client module for the Olakai SDK.
+Simplified client module for the Olakai SDK.
 
-This module provides API communication, client configuration, and type definitions.
+This module provides simplified client configuration and API communication.
 """
 
 from .client import init_olakai_client, get_olakai_client
-from .api import send_to_api
+from .api import send_to_api_simple
 
 __all__ = [
     "init_olakai_client",
-    "send_to_api",
     "get_olakai_client",
+    "send_to_api_simple",
 ]

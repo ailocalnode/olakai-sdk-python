@@ -1,12 +1,9 @@
 """
-Common types used across the SDK.
+Simplified types for the Olakai SDK.
 """
 
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional, List, Callable, Union, Dict
-from logging import Logger
-from enum import Enum
+from typing import Optional, List, Union, Dict
 
 JSONType = Union[
     None, bool, int, float, str, Dict[str, "JSONType"], List["JSONType"]
@@ -14,34 +11,42 @@ JSONType = Union[
 
 
 @dataclass
-class SanitizePattern:
-    pattern: Optional[str] = None
-    key: Optional[str] = None
-    replacement: Optional[str] = None
+class OlakaiConfig:
+    """Simplified configuration for the SDK."""
+
+    api_key: str
+    endpoint: str = "https://app.olakai.ai"
+    debug: bool = False
 
 
 @dataclass
-class Middleware:
-    """Middleware for monitoring functions."""
+class OlakaiEventParams:
+    """Parameters for event tracking."""
 
-    name: str
-    before_call: Optional[Callable] = None
-    after_call: Optional[Callable] = None
-    on_error: Optional[Callable] = None
+    prompt: str
+    response: str
+    email: Optional[str] = "anonymous@olakai.ai"
+    chatId: Optional[str] = None
+    task: Optional[str] = None
+    subTask: Optional[str] = None
+    custom_dimensions: Optional[Dict[str, str]] = None
+    custom_metrics: Optional[Dict[str, float]] = None
+    shouldScore: bool = True
+    tokens: Optional[int] = 0
+    requestTime: Optional[int] = 0
 
 
 @dataclass
 class MonitorOptions:
     """Options for monitoring functions."""
 
-    sanitize: bool = False
-    send_on_function_error: bool = True
-    priority: str = "normal"
-    email: Optional[Union[str, Callable]] = "anonymous@olakai.ai"
-    chatId: Optional[Union[str, Callable]] = "123"
+    email: Optional[str] = "anonymous@olakai.ai"
+    chatId: Optional[str] = None
     task: Optional[str] = None
     subTask: Optional[str] = None
-    overrideControlCriteria: Optional[List[str]] = None
+    custom_dimensions: Optional[Dict[str, str]] = None
+    custom_metrics: Optional[Dict[str, float]] = None
+    shouldScore: bool = True
 
 
 @dataclass
@@ -59,6 +64,9 @@ class MonitorPayload:
     subTask: Optional[str] = None
     errorMessage: Optional[str] = None
     sensitivity: Optional[List[str]] = None
+    custom_dimensions: Optional[Dict[str, str]] = None
+    custom_metrics: Optional[Dict[str, float]] = None
+    shouldScore: Optional[bool] = True
 
 
 @dataclass
@@ -72,48 +80,6 @@ class ControlPayload:
     subTask: Optional[str] = None
     tokens: Optional[int] = 0
     overrideControlCriteria: Optional[List[str]] = None
-
-
-@dataclass
-class BatchRequest:
-    """Request in the batch queue."""
-
-    id: str
-    payload: List[MonitorPayload]
-    timestamp: int
-    retries: int = 0
-    priority: str = "normal"  # 'low', 'normal', 'high'
-
-
-class StorageType(Enum):
-    """Type of storage to use."""
-
-    FILE = "file"
-    MEMORY = "memory"
-    AUTO = "auto"
-    DISABLED = "disabled"
-
-
-@dataclass
-class SDKConfig:
-    """Configuration for the SDK."""
-
-    apiKey: str = ""
-    monitoringUrl: Optional[str] = None
-    controlUrl: Optional[str] = None
-    isBatchingEnabled: bool = False
-    batchSize: int = 10
-    batchTimeout: int = 300  # milliseconds
-    retries: int = 3
-    timeout: int = 20000  # milliseconds
-    enableStorage: bool = True
-    storageType: StorageType = StorageType.MEMORY
-    maxStorageSize: int = 1000000  # 1MB
-    storageFilePath: Optional[str] = None
-    debug: bool = False
-    verbose: bool = False
-    sanitize_patterns: Optional[List[SanitizePattern]] = None
-    logger: Optional[Logger] = None
 
 
 @dataclass
@@ -134,7 +100,7 @@ class APIResponse:
     totalRequests: int
     successCount: int
     failureCount: int
-    results: List[MonitoringResponse]
+    results: Optional[List[MonitoringResponse]] = None
     message: Optional[str] = None
 
 
@@ -151,60 +117,3 @@ class ControlResponse:
     allowed: bool
     details: ControlDetails
     message: Optional[str] = None
-
-
-class StorageAdapter(ABC):
-    @abstractmethod
-    def get_item(self, key: str) -> Optional[str]:
-        pass
-
-    @abstractmethod
-    def set_item(self, key: str, value: str) -> None:
-        pass
-
-    @abstractmethod
-    def remove_item(self, key: str) -> None:
-        pass
-
-    @abstractmethod
-    def clear(self) -> None:
-        pass
-
-
-@dataclass
-class StorageConfig:
-    """Configuration for storage operations."""
-
-    enabled: bool = True
-    storage_key: str = "olakai-sdk-queue"
-    max_size: int = 1000000  # 1MB
-    file_path: Optional[str] = None
-
-
-class QueueDependencies:
-    """Dependencies that the queue manager needs from the client."""
-
-    def __init__(
-        self,
-        config: SDKConfig,
-        send_with_retry: Callable[
-            [List[MonitorPayload], Optional[int]],
-            Union[APIResponse, ControlResponse],
-        ],
-    ):
-        self.config = config
-        self.send_with_retry = send_with_retry
-
-    def get_config(self) -> SDKConfig:
-        """Get the current SDK configuration."""
-        return self.config
-
-    def is_online(self) -> bool:
-        """Check if the client is online."""
-        ...
-
-    async def send_with_retry(
-        self, payloads: List[MonitorPayload], max_retries: Optional[int] = None
-    ) -> Union[APIResponse, ControlResponse]:
-        """Send payloads with retry logic."""
-        return self.send_with_retry(payloads, max_retries)

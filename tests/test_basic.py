@@ -1,27 +1,54 @@
-"""Basic tests for the olakaisdk package."""
+"""Tests for the simplified olakaisdk package."""
 
 import pytest
 import asyncio
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 from src.olakaisdk import __version__
 
 
 def test_version():
     """Test that version is accessible."""
-    assert __version__ == "0.1.0"
+    assert __version__ == "0.4.0"
 
 
 def test_import():
     """Test that main functions can be imported."""
-    from src.olakaisdk import init_client, olakai_monitor
+    from src.olakaisdk import olakai_config, olakai_monitor, olakai_report, olakai
 
-    assert callable(init_client)
+    assert callable(olakai_config)
     assert callable(olakai_monitor)
+    assert callable(olakai_report)
+    assert callable(olakai)
+
+
+def test_olakai_config():
+    """Test olakai_config function."""
+    from src.olakaisdk import olakai_config, get_config
+
+    # Test basic configuration
+    olakai_config("test-api-key", "https://test.com", debug=True)
+    
+    config = get_config()
+    assert config is not None
+    assert config.api_key == "test-api-key"
+    assert config.endpoint == "https://test.com"
+    assert config.debug is True
+
+
+def test_olakai_config_missing_api_key():
+    """Test that missing API key raises error."""
+    from src.olakaisdk import olakai_config
+    from src.olakaisdk.shared.exceptions import APIKeyMissingError
+
+    with pytest.raises(APIKeyMissingError):
+        olakai_config("", "https://test.com")
 
 
 def test_monitor_decorator():
     """Test that the monitor decorator can be applied."""
-    from src.olakaisdk import olakai_monitor
+    from src.olakaisdk import olakai_monitor, olakai_config
+
+    olakai_config("test-key", "https://test.com")
 
     @olakai_monitor()
     def test_function(x: int) -> int:
@@ -32,113 +59,19 @@ def test_monitor_decorator():
     assert result == 10
 
 
-def test_config_types():
-    """Test that types can be imported."""
-    from src.olakaisdk import SDKConfig, MonitorOptions
-
-    # Test basic instantiation
-    config = SDKConfig(apiKey="test", apiUrl="https://test.com")
-    assert config.apiKey == "test"
-
-    monitor_opts = MonitorOptions(task="test-task")
-    assert monitor_opts.task == "test-task"
-
-
-def test_middleware_management():
-    """Test middleware addition and removal."""
-    from olakaisdk import add_middleware, remove_middleware, Middleware
-    from olakaisdk.monitor.middleware import middlewares
-
-    # Clear any existing middlewares
-    middlewares.clear()
-
-    # Create test middleware
-    test_middleware = Middleware(name="test_middleware")
-
-    # Test adding middleware
-    asyncio.run(add_middleware(test_middleware))
-    assert len(middlewares) == 1
-    assert middlewares[0].name == "test_middleware"
-
-    # Test removing middleware
-    asyncio.run(remove_middleware("test_middleware"))
-    assert len(middlewares) == 0
-
-
-def test_sdk_config_defaults():
-    """Test SDKConfig with default values."""
-    from olakaisdk import SDKConfig
-
-    config = SDKConfig()
-    assert config.apiKey == ""
-    assert config.batchSize == 10
-    assert config.timeout == 20000
-    assert config.enableLocalStorage
-    assert not config.debug
-
-
-def test_monitor_options_defaults():
-    """Test MonitorOptions with default values."""
-    from olakaisdk import MonitorOptions
-
-    options = MonitorOptions()
-    assert not options.sanitize
-    assert options.send_on_function_error
-    assert options.priority == "normal"
-
-
-@pytest.mark.asyncio
-async def test_init_client_basic():
-    """Test basic client initialization."""
-    from olakaisdk import init_client, get_config
-
-    # Test initialization
-    await init_client(api_key="test_key", domain="https://test.example.com")
-
-    config = get_config()
-    assert config.apiKey == "test_key"
-    assert config.apiUrl == "https://test.example.com/api/monitoring/prompt"
-
-
-@pytest.mark.asyncio
-async def test_init_client_with_kwargs():
-    """Test client initialization with additional kwargs."""
-    from olakaisdk import init_client, get_config
-
-    # Test initialization with kwargs
-    await init_client(
-        api_key="test_key2",
-        domain="https://test2.example.com",
-        debug=True,
-        batchSize=5,
-    )
-
-    config = get_config()
-    assert config.apiKey == "test_key2"
-    assert config.debug
-    assert config.batchSize == 5
-
-
-def test_async_monitor_decorator():
-    """Test monitor decorator with async functions."""
-    from olakaisdk import olakai_monitor
-
-    @olakai_monitor()
-    async def async_test_function(x: int) -> int:
-        return x * 3
-
-    # Test that the async function still works when wrapped
-    result = asyncio.run(async_test_function(4))
-    assert result == 12
-
-
 def test_monitor_decorator_with_options():
     """Test monitor decorator with custom options."""
-    from olakaisdk import olakai_monitor, MonitorOptions
+    from src.olakaisdk import olakai_monitor, olakai_config
 
-    options = MonitorOptions(task="custom-task", shouldScore=True)
+    olakai_config("test-key", "https://test.com")
 
-    @olakai_monitor(options)
+    @olakai_monitor(
+        email="test@example.com",
+        chatId="test-session",
+        task="test-task",
+        custom_dimensions={"env": "test"},
+        custom_metrics={"score": 0.95}
+    )
     def test_function_with_options(x: int) -> int:
         return x + 10
 
@@ -148,7 +81,9 @@ def test_monitor_decorator_with_options():
 
 def test_monitor_decorator_error_handling():
     """Test that monitor decorator doesn't break error propagation."""
-    from olakaisdk import olakai_monitor
+    from src.olakaisdk import olakai_monitor, olakai_config
+
+    olakai_config("test-key", "https://test.com")
 
     @olakai_monitor()
     def error_function():
@@ -159,92 +94,167 @@ def test_monitor_decorator_error_handling():
         error_function()
 
 
-@pytest.mark.asyncio
-async def test_to_string_api():
-    """Test the to_string_api utility function."""
-    from olakaisdk.shared.utils import to_string_api
+def test_async_monitor_decorator():
+    """Test monitor decorator with async functions."""
+    from src.olakaisdk import olakai_monitor, olakai_config
 
-    # Test various data types
-    assert await to_string_api(None) == "Empty data"
-    assert await to_string_api("") == "Empty data"
-    assert await to_string_api("test string") == "test string"
-    assert await to_string_api([1, 2, 3]) == "123"
-    assert await to_string_api({"key": "value"}) == '{"key": "value"}'
+    olakai_config("test-key", "https://test.com")
+
+    @olakai_monitor()
+    async def async_test_function(x: int) -> int:
+        return x * 3
+
+    # Test that the async function still works when wrapped
+    result = asyncio.run(async_test_function(4))
+    assert result == 12
 
 
-def test_middleware_type():
-    """Test Middleware type creation."""
-    from olakaisdk import Middleware
+def test_olakai_report():
+    """Test olakai_report function."""
+    from src.olakaisdk import olakai_report, olakai_config
 
-    # Test with callbacks
-    before_callback = Mock()
-    after_callback = Mock()
+    olakai_config("test-key", "https://test.com")
 
-    middleware = Middleware(
-        name="test", before_call=before_callback, after_call=after_callback
+    # Test basic reporting
+    olakai_report(
+        prompt="Test prompt",
+        response="Test response",
+        options={
+            "email": "test@example.com",
+            "task": "test-task"
+        }
     )
 
-    assert middleware.name == "test"
-    assert middleware.before_call == before_callback
-    assert middleware.after_call == after_callback
+
+def test_olakai_event():
+    """Test olakai event function."""
+    from src.olakaisdk import olakai, olakai_config, OlakaiEventParams
+
+    olakai_config("test-key", "https://test.com")
+
+    params = OlakaiEventParams(
+        prompt="Test prompt",
+        response="Test response",
+        email="test@example.com",
+        task="test-task",
+        custom_dimensions={"env": "test"},
+        custom_metrics={"score": 0.95}
+    )
+
+    # Test event tracking
+    olakai("ai_activity", "test_event", params)
 
 
-@pytest.mark.asyncio
-async def test_config_get():
+def test_types_import():
+    """Test that types can be imported."""
+    from src.olakaisdk import OlakaiConfig, OlakaiEventParams, MonitorOptions
+
+    # Test basic instantiation
+    config = OlakaiConfig(api_key="test", endpoint="https://test.com")
+    assert config.api_key == "test"
+
+    event_params = OlakaiEventParams(
+        prompt="test",
+        response="response",
+        email="test@example.com"
+    )
+    assert event_params.prompt == "test"
+
+    monitor_opts = MonitorOptions(task="test-task")
+    assert monitor_opts.task == "test-task"
+
+
+def test_legacy_compatibility():
+    """Test that legacy functions still work."""
+    from src.olakaisdk import olakai_supervisor, olakai_config
+
+    olakai_config("test-key", "https://test.com")
+
+    # Test legacy decorator
+    @olakai_supervisor()
+    def legacy_function(x: int) -> int:
+        return x * 2
+
+    result = legacy_function(5)
+    assert result == 10
+
+
+def test_get_config():
     """Test get_config function."""
-    from olakaisdk import get_config, init_client
+    from src.olakaisdk import get_config, olakai_config
 
     # Initialize with specific config
-    await init_client(api_key="config_test_key")
+    olakai_config(api_key="config_test_key", endpoint="https://test.com")
 
     config = get_config()
-    assert config.apiKey == "config_test_key"
-    assert hasattr(config, "apiUrl")
-    assert hasattr(config, "batchSize")
-    assert hasattr(config, "timeout")
+    assert config is not None
+    assert config.api_key == "config_test_key"
+    assert config.endpoint == "https://test.com"
 
 
 def test_all_exports():
     """Test that all expected exports are available."""
-    import olakaisdk
+    import src.olakaisdk
 
     expected_exports = [
-        "init_client",
+        "olakai_config",
         "olakai_monitor",
+        "olakai_report",
+        "olakai",
         "get_config",
-        "add_middleware",
-        "remove_middleware",
-        "SDKConfig",
         "MonitorOptions",
-        "Middleware",
-        "MonitorUtils",
+        "OlakaiEventParams",
+        "OlakaiConfig",
+        "OlakaiBlockedError",
+        "olakai_supervisor",  # Legacy
     ]
 
     for export in expected_exports:
-        assert hasattr(olakaisdk, export), f"Missing export: {export}"
+        assert hasattr(src.olakaisdk, export), f"Missing export: {export}"
 
 
-@pytest.mark.asyncio
-async def test_sanitize_data():
-    """Test data sanitization functionality."""
-    from olakaisdk.monitor.processor import sanitize_data
-    import re
+@patch('src.olakaisdk.client.api.send_to_api_simple')
+def test_api_integration(mock_send):
+    """Test API integration with mocked calls."""
+    from src.olakaisdk import olakai_config, olakai_monitor
 
-    # Test without patterns
-    data = {"password": "secret123"}
-    result = await sanitize_data(data)
-    assert result == data  # Should return unchanged without patterns
+    olakai_config("test-key", "https://test.com")
 
-    # Test with patterns
-    patterns = [re.compile(r"secret\d+")]
-    result = await sanitize_data(data, patterns)
-    # Should replace the sensitive data
-    assert result != data
+    @olakai_monitor()
+    def test_function():
+        return "test result"
+
+    # Call the function
+    result = test_function()
+    assert result == "test result"
+
+    # Verify API was called
+    mock_send.assert_called_once()
 
 
-def test_monitor_utils_import():
-    """Test that MonitorUtils can be imported and used."""
-    from olakaisdk import MonitorUtils
+def test_custom_dimensions_and_metrics():
+    """Test custom dimensions and metrics functionality."""
+    from src.olakaisdk import olakai_monitor, olakai_config, OlakaiEventParams
 
-    # Test that MonitorUtils has expected attributes
-    assert hasattr(MonitorUtils, "capture_all_f")
+    olakai_config("test-key", "https://test.com")
+
+    @olakai_monitor(
+        custom_dimensions={"model": "gpt-4", "language": "en"},
+        custom_metrics={"tokens": 150, "latency": 2.5}
+    )
+    def test_function():
+        return "response"
+
+    result = test_function()
+    assert result == "response"
+
+    # Test OlakaiEventParams with custom data
+    params = OlakaiEventParams(
+        prompt="test",
+        response="response",
+        custom_dimensions={"env": "production"},
+        custom_metrics={"confidence": 0.95}
+    )
+    
+    assert params.custom_dimensions["env"] == "production"
+    assert params.custom_metrics["confidence"] == 0.95
