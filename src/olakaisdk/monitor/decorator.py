@@ -24,8 +24,16 @@ def olakai_monitor(**kwargs):
         chatId: str
         task: str
         subTask: str
-        custom_dimensions: Dict[str, str]
-        custom_metrics: Dict[str, float]
+        dim1: str
+        dim2: str
+        dim3: str
+        dim4: str
+        dim5: str
+        metric1: float
+        metric2: float
+        metric3: float
+        metric4: float
+        metric5: float
         shouldScore: bool
 
     Returns:
@@ -58,8 +66,16 @@ def olakai_monitor(**kwargs):
                     requestTime=0,  # Simplified - no timing
                     task=options.task,
                     subTask=options.subTask,
-                    custom_dimensions=options.custom_dimensions,
-                    custom_metrics=options.custom_metrics,
+                    dim1=options.dim1,
+                    dim2=options.dim2,
+                    dim3=options.dim3,
+                    dim4=options.dim4,
+                    dim5=options.dim5,
+                    metric1=options.metric1,
+                    metric2=options.metric2,
+                    metric3=options.metric3,
+                    metric4=options.metric4,
+                    metric5=options.metric5,
                     shouldScore=options.shouldScore,
                 )
 
@@ -81,8 +97,16 @@ def olakai_monitor(**kwargs):
                     requestTime=0,  # Simplified - no timing
                     task=options.task,
                     subTask=options.subTask,
-                    custom_dimensions=options.custom_dimensions,
-                    custom_metrics=options.custom_metrics,
+                    dim1=options.dim1,
+                    dim2=options.dim2,
+                    dim3=options.dim3,
+                    dim4=options.dim4,
+                    dim5=options.dim5,
+                    metric1=options.metric1,
+                    metric2=options.metric2,
+                    metric3=options.metric3,
+                    metric4=options.metric4,
+                    metric5=options.metric5,
                     shouldScore=options.shouldScore,
                 )
 
@@ -107,8 +131,16 @@ def olakai_monitor(**kwargs):
                     requestTime=0,  # Simplified - no timing
                     task=options.task,
                     subTask=options.subTask,
-                    custom_dimensions=options.custom_dimensions,
-                    custom_metrics=options.custom_metrics,
+                    dim1=options.dim1,
+                    dim2=options.dim2,
+                    dim3=options.dim3,
+                    dim4=options.dim4,
+                    dim5=options.dim5,
+                    metric1=options.metric1,
+                    metric2=options.metric2,
+                    metric3=options.metric3,
+                    metric4=options.metric4,
+                    metric5=options.metric5,
                     shouldScore=options.shouldScore,
                 )
 
@@ -130,8 +162,16 @@ def olakai_monitor(**kwargs):
                     requestTime=0,  # Simplified - no timing
                     task=options.task,
                     subTask=options.subTask,
-                    custom_dimensions=options.custom_dimensions,
-                    custom_metrics=options.custom_metrics,
+                    dim1=options.dim1,
+                    dim2=options.dim2,
+                    dim3=options.dim3,
+                    dim4=options.dim4,
+                    dim5=options.dim5,
+                    metric1=options.metric1,
+                    metric2=options.metric2,
+                    metric3=options.metric3,
+                    metric4=options.metric4,
+                    metric5=options.metric5,
                     shouldScore=options.shouldScore,
                 )
 
