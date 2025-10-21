@@ -45,6 +45,12 @@ async def make_api_call(
             del data_dict["task"]
         if "subTask" in data_dict and data_dict["subTask"] is None:
             del data_dict["subTask"]
+        if "customDimensions" in data_dict and data_dict["customDimensions"] is None:
+            del data_dict["customDimensions"]
+        if "customMetrics" in data_dict and data_dict["customMetrics"] is None:
+            del data_dict["customMetrics"]
+        if "shouldScore" in data_dict and data_dict["shouldScore"] is None:
+            del data_dict["shouldScore"]
     else:
         if "overrideControlCriteria" in data_dict and data_dict["overrideControlCriteria"] is None:
             del data_dict["overrideControlCriteria"]

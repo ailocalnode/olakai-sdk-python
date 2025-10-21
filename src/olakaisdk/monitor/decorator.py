@@ -20,20 +20,12 @@ def olakai_monitor(**kwargs):
     Monitor a function with the given options (simplified version).
 
     Kwargs:
-        email: str
+        userEmail: str
         chatId: str
         task: str
         subTask: str
-        dim1: str
-        dim2: str
-        dim3: str
-        dim4: str
-        dim5: str
-        metric1: float
-        metric2: float
-        metric3: float
-        metric4: float
-        metric5: float
+        customDimensions: Dict[str, str]
+        customMetrics: Dict[str, float]
         shouldScore: bool
 
     Returns:
@@ -60,22 +52,14 @@ def olakai_monitor(**kwargs):
                 payload = MonitorPayload(
                     prompt=str(args) + str(kwargs),
                     response=str(result),
-                    email=options.email or "anonymous@olakai.ai",
+                    userEmail=options.userEmail or "anonymous@olakai.ai",
                     chatId=options.chatId or "anonymous",
                     tokens=0,
                     requestTime=0,  # Simplified - no timing
                     task=options.task,
                     subTask=options.subTask,
-                    dim1=options.dim1,
-                    dim2=options.dim2,
-                    dim3=options.dim3,
-                    dim4=options.dim4,
-                    dim5=options.dim5,
-                    metric1=options.metric1,
-                    metric2=options.metric2,
-                    metric3=options.metric3,
-                    metric4=options.metric4,
-                    metric5=options.metric5,
+                    customDimensions=options.customDimensions,
+                    customMetrics=options.customMetrics,
                     shouldScore=options.shouldScore,
                 )
 
@@ -91,22 +75,14 @@ def olakai_monitor(**kwargs):
                 payload = MonitorPayload(
                     prompt=str(args) + str(kwargs),
                     response=f"Error: {str(error)}",
-                    email=options.email or "anonymous@olakai.ai",
+                    userEmail=options.userEmail or "anonymous@olakai.ai",
                     chatId=options.chatId or "anonymous",
                     tokens=0,
                     requestTime=0,  # Simplified - no timing
                     task=options.task,
                     subTask=options.subTask,
-                    dim1=options.dim1,
-                    dim2=options.dim2,
-                    dim3=options.dim3,
-                    dim4=options.dim4,
-                    dim5=options.dim5,
-                    metric1=options.metric1,
-                    metric2=options.metric2,
-                    metric3=options.metric3,
-                    metric4=options.metric4,
-                    metric5=options.metric5,
+                    customDimensions=options.customDimensions,
+                    customMetrics=options.customMetrics,
                     shouldScore=options.shouldScore,
                 )
 
@@ -125,22 +101,14 @@ def olakai_monitor(**kwargs):
                 payload = MonitorPayload(
                     prompt=str(args) + str(kwargs),
                     response=str(result),
-                    email=options.email or "anonymous@olakai.ai",
+                    userEmail=options.userEmail or "anonymous@olakai.ai",
                     chatId=options.chatId or "anonymous",
                     tokens=0,
                     requestTime=0,  # Simplified - no timing
                     task=options.task,
                     subTask=options.subTask,
-                    dim1=options.dim1,
-                    dim2=options.dim2,
-                    dim3=options.dim3,
-                    dim4=options.dim4,
-                    dim5=options.dim5,
-                    metric1=options.metric1,
-                    metric2=options.metric2,
-                    metric3=options.metric3,
-                    metric4=options.metric4,
-                    metric5=options.metric5,
+                    customDimensions=options.customDimensions,
+                    customMetrics=options.customMetrics,
                     shouldScore=options.shouldScore,
                 )
 
@@ -156,22 +124,14 @@ def olakai_monitor(**kwargs):
                 payload = MonitorPayload(
                     prompt=str(args) + str(kwargs),
                     response=f"Error: {str(error)}",
-                    email=options.email or "anonymous@olakai.ai",
+                    userEmail=options.userEmail or "anonymous@olakai.ai",
                     chatId=options.chatId or "anonymous",
                     tokens=0,
                     requestTime=0,  # Simplified - no timing
                     task=options.task,
                     subTask=options.subTask,
-                    dim1=options.dim1,
-                    dim2=options.dim2,
-                    dim3=options.dim3,
-                    dim4=options.dim4,
-                    dim5=options.dim5,
-                    metric1=options.metric1,
-                    metric2=options.metric2,
-                    metric3=options.metric3,
-                    metric4=options.metric4,
-                    metric5=options.metric5,
+                    customDimensions=options.customDimensions,
+                    customMetrics=options.customMetrics,
                     shouldScore=options.shouldScore,
                 )
 
