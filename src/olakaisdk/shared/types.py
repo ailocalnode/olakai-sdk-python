@@ -25,20 +25,12 @@ class OlakaiEventParams:
 
     prompt: str
     response: str
-    email: Optional[str] = "anonymous@olakai.ai"
+    userEmail: Optional[str] = "anonymous@olakai.ai"
     chatId: Optional[str] = None
     task: Optional[str] = None
     subTask: Optional[str] = None
-    dim1: Optional[str] = None
-    dim2: Optional[str] = None
-    dim3: Optional[str] = None
-    dim4: Optional[str] = None
-    dim5: Optional[str] = None
-    metric1: Optional[float] = None
-    metric2: Optional[float] = None
-    metric3: Optional[float] = None
-    metric4: Optional[float] = None
-    metric5: Optional[float] = None
+    customDimensions: Optional[Dict[str, str]] = None
+    customMetrics: Optional[Dict[str, float]] = None
     shouldScore: bool = True
     tokens: Optional[int] = 0
     requestTime: Optional[int] = 0
@@ -48,20 +40,12 @@ class OlakaiEventParams:
 class MonitorOptions:
     """Options for monitoring functions."""
 
-    email: Optional[str] = "anonymous@olakai.ai"
+    userEmail: Optional[str] = "anonymous@olakai.ai"
     chatId: Optional[str] = None
     task: Optional[str] = None
     subTask: Optional[str] = None
-    dim1: Optional[str] = None
-    dim2: Optional[str] = None
-    dim3: Optional[str] = None
-    dim4: Optional[str] = None
-    dim5: Optional[str] = None
-    metric1: Optional[float] = None
-    metric2: Optional[float] = None
-    metric3: Optional[float] = None
-    metric4: Optional[float] = None
-    metric5: Optional[float] = None
+    customDimensions: Optional[Dict[str, str]] = None
+    customMetrics: Optional[Dict[str, float]] = None
     shouldScore: bool = True
 
 
@@ -69,7 +53,7 @@ class MonitorOptions:
 class MonitorPayload:
     """Payload for monitoring data sent to API."""
 
-    email: str
+    userEmail: str
     chatId: str
     prompt: JSONType
     response: JSONType
@@ -80,16 +64,8 @@ class MonitorPayload:
     subTask: Optional[str] = None
     errorMessage: Optional[str] = None
     sensitivity: Optional[List[str]] = None
-    dim1: Optional[str] = None
-    dim2: Optional[str] = None
-    dim3: Optional[str] = None
-    dim4: Optional[str] = None
-    dim5: Optional[str] = None
-    metric1: Optional[float] = None
-    metric2: Optional[float] = None
-    metric3: Optional[float] = None
-    metric4: Optional[float] = None
-    metric5: Optional[float] = None
+    customDimensions: Optional[Dict[str, str]] = None
+    customMetrics: Optional[Dict[str, float]] = None
     shouldScore: Optional[bool] = True
 
 

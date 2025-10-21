@@ -135,10 +135,10 @@ def test_olakai_event():
     params = OlakaiEventParams(
         prompt="Test prompt",
         response="Test response",
-        email="test@example.com",
+        userEmail="test@example.com",
         task="test-task",
-        dim1="test",
-        metric1=0.95
+        customDimensions={"dim1": "test"},
+        customMetrics={"metric1": 0.95}
     )
 
     # Test event tracking
@@ -252,9 +252,9 @@ def test_custom_dimensions_and_metrics():
     params = OlakaiEventParams(
         prompt="test",
         response="response",
-        dim1="production",
-        metric1=0.95
+        customDimensions={"dim1": "production"},
+        customMetrics={"metric1": 0.95}
     )
     
-    assert params.dim1 == "production"
-    assert params.metric1 == 0.95
+    assert params.customDimensions["dim1"] == "production"
+    assert params.customMetrics["metric1"] == 0.95
