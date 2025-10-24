@@ -45,7 +45,7 @@ result = my_ai_function("Hello world!")
 ## Installation
 
 ```bash
-pip install olakaisdk
+pip install olakai-sdk
 ```
 
 **Requirements:** Python 3.7+ and `requests` library (installed automatically)
@@ -308,7 +308,7 @@ def my_function():
 
 ```bash
 # Make sure you have the right version
-pip install --upgrade olakaisdk
+pip install --upgrade olakai-sdk
 
 # Check Python version (3.7+ required)
 python --version
