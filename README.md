@@ -1,6 +1,6 @@
 # Olakai Python SDK
 
-**The simplest way to monitor your AI/ML applications** - Track every prompt, response, and interaction with just one line of code.
+**Automatic instrumentation for LLM monitoring and tracking** - Monitor your AI applications with zero code changes.
 
 [![PyPI version](https://badge.fury.io/py/olakai-sdk.svg)](https://badge.fury.io/py/olakai-sdk)
 [![Python](https://img.shields.io/badge/Python-3.7+-blue?style=flat&logo=python&logoColor=white)](https://www.python.org/)
@@ -8,416 +8,437 @@
 
 ---
 
-## What This Does
+## What's New in v0.5.0 🎉
 
-Transform any Python function into a monitored AI interaction with **zero configuration**. Perfect for:
+**Automatic instrumentation is here!** No more manual decorators or payload construction. Just install, configure once, and monitor all your LLM calls automatically.
 
-- **AI/LLM Applications** - Monitor OpenAI, Anthropic, or any AI model calls
-- **Analytics & Insights** - Track usage patterns, performance, and user behavior
-- **Content Safety** - Detect and block inappropriate content automatically
-- **User Management** - Track individual users and their AI interactions
-- **Business Intelligence** - Understand how your AI features are being used
+- ✅ **Auto-instrument OpenAI** - One line to monitor all OpenAI calls
+- ✅ **Zero code changes** - Works with existing OpenAI code
+- ✅ **Automatic data extraction** - Tokens, costs, models, API keys
+- ✅ **Streaming support** - Handles both regular and streaming responses
+- ✅ **Context-based metadata** - Add user/session data with context managers
+- ✅ **Server-focused** - Designed for backend Python applications
 
 ---
 
 ## Quick Start (30 seconds)
 
-```python
-from olakaisdk import olakai_config, olakai_monitor
-
-# 1. Initialize (one time setup)
-olakai_config("your-api-key", "https://your-domain.ai")
-
-# 2. Wrap any function (that's it!)
-@olakai_monitor()
-def my_ai_function(prompt: str):
-    # Your AI logic here
-    return f"AI response to: {prompt}"
-
-# 3. Use normally - monitoring happens automatically
-result = my_ai_function("Hello world!")
-```
-
-**That's it!** Your function is now being monitored. Check your [Olakai dashboard](https://app.olakai.ai) to see the data.
-
----
-
-## Installation
+### Installation
 
 ```bash
 pip install olakai-sdk
+pip install openai  # Install OpenAI SDK separately
 ```
 
-**Requirements:** Python 3.7+ and `requests` library (installed automatically)
+### Basic Usage
+
+```python
+from olakaisdk import olakai_config, instrument_openai
+from openai import OpenAI
+
+# 1. Configure Olakai (one-time setup)
+olakai_config("your-olakai-api-key")
+
+# 2. Auto-instrument OpenAI
+instrument_openai()
+
+# 3. Use OpenAI normally - monitoring happens automatically!
+client = OpenAI(api_key="your-openai-key")
+response = client.chat.completions.create(
+    model="gpt-4",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+
+# That's it! Your call is now tracked with:
+# - Token counts (input/output)
+# - Model name
+# - API key (for cost tracking)
+# - Latency
+# - Request/response content
+```
+
+**Check your [Olakai dashboard](https://app.olakai.ai) to see the tracked data!**
 
 ---
 
-## Real-World Examples
+## Features
 
-### OpenAI Integration
+### Automatic Tracking
+
+After calling `instrument_openai()`, the SDK automatically captures:
+
+- **Token usage** - Prompt tokens, completion tokens, total tokens
+- **Cost tracking** - API key identification for backend cost calculation
+- **Model information** - Which model was used (gpt-4, gpt-3.5-turbo, etc.)
+- **Latency** - Request duration in milliseconds
+- **Content** - Prompts and responses (configurable)
+- **Errors** - Automatic error tracking with context
+
+### Context-Based Metadata
+
+Add user and session metadata using context managers:
+
+```python
+from olakaisdk import olakai_context
+
+with olakai_context(
+    userEmail="user@example.com",
+    chatId="session-123",
+    task="Customer Support"
+):
+    # All OpenAI calls within this context include the metadata
+    response = client.chat.completions.create(...)
+```
+
+### Streaming Support
+
+Works seamlessly with OpenAI's streaming API:
+
+```python
+response = client.chat.completions.create(
+    model="gpt-4",
+    messages=[{"role": "user", "content": "Tell me a story"}],
+    stream=True  # Streaming is automatically handled!
+)
+
+for chunk in response:
+    print(chunk.choices[0].delta.content, end="")
+
+# Telemetry is sent after stream completes
+```
+
+---
+
+## Installation Options
+
+```bash
+# Basic installation
+pip install olakai-sdk
+
+# With OpenAI support
+pip install olakai-sdk[openai]
+
+# For development
+pip install olakai-sdk[dev]
+```
+
+**Requirements:** Python 3.7+
+
+---
+
+## Usage Examples
+
+### Minimal Example
+
+```python
+from olakaisdk import olakai_config, instrument_openai
+from openai import OpenAI
+
+olakai_config("olakai-api-key")
+instrument_openai()
+
+client = OpenAI(api_key="openai-key")
+response = client.chat.completions.create(
+    model="gpt-4",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+print(response.choices[0].message.content)
+```
+
+### With User Context
+
+```python
+from olakaisdk import olakai_config, instrument_openai, olakai_context
+from openai import OpenAI
+
+olakai_config("olakai-api-key")
+instrument_openai()
+
+client = OpenAI(api_key="openai-key")
+
+# Add user metadata
+with olakai_context(
+    userEmail="customer@example.com",
+    chatId="support-session-456",
+    task="Customer Support",
+    subTask="password-reset"
+):
+    response = client.chat.completions.create(
+        model="gpt-4",
+        messages=[
+            {"role": "user", "content": "How do I reset my password?"}
+        ]
+    )
+    print(response.choices[0].message.content)
+```
+
+### With Custom Dimensions and Metrics
+
+```python
+with olakai_context(
+    userEmail="user@example.com",
+    task="Content Generation",
+    customDimensions={
+        "environment": "production",
+        "region": "us-east-1",
+        "user_tier": "premium"
+    },
+    customMetrics={
+        "user_id": 12345.0,
+        "session_length": 45.5
+    }
+):
+    response = client.chat.completions.create(
+        model="gpt-4",
+        messages=[{"role": "user", "content": "Write a blog post"}]
+    )
+```
+
+### Nested Contexts
+
+Contexts can be nested, with inner contexts overriding outer values:
+
+```python
+# Outer context applies to all calls
+with olakai_context(task="Customer Service", userEmail="support@example.com"):
+
+    # Inner context overrides specific fields
+    with olakai_context(subTask="billing-inquiry"):
+        response = client.chat.completions.create(...)
+        # Has task="Customer Service", subTask="billing-inquiry"
+
+    # Back to outer context
+    with olakai_context(subTask="technical-support"):
+        response = client.chat.completions.create(...)
+        # Has task="Customer Service", subTask="technical-support"
+```
+
+### Async Support
+
+Works with async OpenAI calls:
+
+```python
+import asyncio
+from openai import AsyncOpenAI
+
+async def main():
+    olakai_config("olakai-api-key")
+    instrument_openai()
+
+    client = AsyncOpenAI(api_key="openai-key")
+
+    with olakai_context(userEmail="user@example.com"):
+        response = await client.chat.completions.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": "Hello async world!"}]
+        )
+        print(response.choices[0].message.content)
+
+asyncio.run(main())
+```
+
+---
+
+## Configuration
+
+### Initialize the SDK
+
+```python
+from olakaisdk import olakai_config
+
+# Basic configuration
+olakai_config("your-api-key")
+
+# With custom endpoint
+olakai_config("your-api-key", endpoint="https://custom.olakai.ai")
+
+# With debug logging
+olakai_config("your-api-key", debug=True)
+```
+
+### Instrumentation Options
+
+```python
+from olakaisdk import instrument_openai
+
+# Default: capture everything
+instrument_openai()
+
+# Customize what to capture
+instrument_openai(
+    capture_inputs=True,      # Capture prompts/messages
+    capture_outputs=True,     # Capture responses
+    capture_api_keys=True     # Track API keys for cost analysis
+)
+```
+
+### Privacy Controls
+
+Disable input/output capture for sensitive data:
+
+```python
+instrument_openai(
+    capture_inputs=False,    # Don't send prompts
+    capture_outputs=False,   # Don't send responses
+    capture_api_keys=True    # Still track tokens and costs
+)
+```
+
+---
+
+## API Reference
+
+### Primary API (v0.5.0)
+
+#### `olakai_config(api_key, endpoint="https://app.olakai.ai", debug=False)`
+
+Initialize the Olakai SDK. Must be called before instrumentation.
+
+**Parameters:**
+- `api_key` (str): Your Olakai API key
+- `endpoint` (str, optional): API endpoint URL
+- `debug` (bool, optional): Enable debug logging
+
+---
+
+#### `instrument_openai(capture_inputs=True, capture_outputs=True, capture_api_keys=True)`
+
+Auto-instrument OpenAI SDK for monitoring.
+
+**Parameters:**
+- `capture_inputs` (bool): Capture prompt/messages
+- `capture_outputs` (bool): Capture responses
+- `capture_api_keys` (bool): Track API keys for cost analysis
+
+**Raises:**
+- `RuntimeError`: If SDK not configured with `olakai_config()`
+- `ImportError`: If OpenAI SDK not installed
+
+---
+
+#### `olakai_context(**metadata)`
+
+Context manager to add metadata to LLM calls.
+
+**Parameters:**
+- `userEmail` (str, optional): User email for tracking
+- `chatId` (str, optional): Session/chat identifier
+- `task` (str, optional): High-level task category
+- `subTask` (str, optional): Specific subtask
+- `customDimensions` (dict, optional): String metadata
+- `customMetrics` (dict, optional): Numeric metadata
+
+**Example:**
+```python
+with olakai_context(userEmail="user@example.com", task="Support"):
+    # Your OpenAI calls here
+    pass
+```
+
+---
+
+#### `uninstrument_openai()`
+
+Remove OpenAI instrumentation. Restores original OpenAI behavior.
+
+---
+
+#### `is_instrumented()`
+
+Check if OpenAI is currently instrumented.
+
+**Returns:** `bool`
+
+---
+
+### Legacy API (Deprecated)
+
+The v0.4.0 decorator-based API is still available but will be removed in v1.0.0:
+
+- `@olakai_monitor()` - Manual decorator (use `instrument_openai()` instead)
+- `olakai_report()` - Manual reporting (use auto-instrumentation instead)
+- `olakai()` - Low-level API (use auto-instrumentation instead)
+
+---
+
+## How It Works
+
+### Under the Hood
+
+1. **Monkey Patching**: `instrument_openai()` wraps OpenAI's `chat.completions.create` methods
+2. **Data Extraction**: Automatically extracts tokens, model, latency from responses
+3. **Context Merging**: Combines context metadata with extracted data
+4. **Async Telemetry**: Sends data to Olakai API without blocking your code
+5. **Error Handling**: Captures errors without affecting your application
+
+### Data Flow
+
+```
+Your Code → OpenAI API → Response
+    ↓                        ↓
+Olakai Context      Extract Telemetry
+    ↓                        ↓
+    └──→ Merge & Send to Olakai API (async)
+```
+
+---
+
+## Migration from v0.4.0
+
+### Old Way (v0.4.0)
 
 ```python
 from olakaisdk import olakai_config, olakai_monitor
 from openai import OpenAI
 
-# Setup
-olakai_config("your-olakai-key", "https://your-domain.ai")
-client = OpenAI(api_key="your-openai-key")
+olakai_config("api-key")
 
-# Monitor your AI calls
 @olakai_monitor(
     userEmail="user@example.com",
-    task="Customer Support",
-    customDimensions={"dim1": "gpt-4", "dim2": "support"},
-    customMetrics={"metric1": 150, "metric2": 2.3}
+    task="Support",
+    customDimensions={"model": "gpt-4"}
 )
-def get_ai_response(user_question: str) -> str:
+def get_response(prompt):
+    client = OpenAI(api_key="openai-key")
     response = client.chat.completions.create(
         model="gpt-4",
-        messages=[{"role": "user", "content": user_question}],
-        max_tokens=200
+        messages=[{"role": "user", "content": prompt}]
     )
     return response.choices[0].message.content
 
-# Use it!
-answer = get_ai_response("How do I reset my password?")
+result = get_response("Hello")
 ```
 
-### E-commerce AI Assistant
+### New Way (v0.5.0)
 
 ```python
-@olakai_monitor(
-    userEmail=lambda args: get_user_email(args[0]),  # Dynamic user email
-    chatId=lambda args: get_session_id(args[0]),  # Dynamic session
-    task="Customer Experience",
-    subTask="customer service",
-    customDimensions={"dim1": "premium", "dim2": "fashion"},
-    customMetrics={"metric1": 5, "metric2": 0.23}
-)
-def recommend_products(user_id: str, preferences: dict) -> list:
-    # Your recommendation logic
-    return ["Product A", "Product B", "Product C"]
+from olakaisdk import olakai_config, instrument_openai, olakai_context
+from openai import OpenAI
+
+olakai_config("api-key")
+instrument_openai()  # ← One-time setup
+
+client = OpenAI(api_key="openai-key")
+
+def get_response(prompt):
+    # No decorator needed!
+    response = client.chat.completions.create(
+        model="gpt-4",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.choices[0].message.content
+
+# Add metadata with context when needed
+with olakai_context(userEmail="user@example.com", task="Support"):
+    result = get_response("Hello")
 ```
 
-### Email AI Writer
-
-```python
-@olakai_monitor(
-    task="Communication Strategy",
-    subTask="communication/persuasion",
-    customDimensions={"dim1": "promotional", "dim2": "existing_customers"},
-    customMetrics={"metric1": 250, "metric2": 0.8}
-)
-def generate_email_campaign(topic: str, tone: str) -> str:
-    # Your email generation logic
-    return f"Subject: {topic}\n\nDear Customer, ..."
-```
-
----
-
-## Advanced Features
-
-### Custom Dimensions & Metrics
-
-Track any data you want alongside your AI interactions:
-
-```python
-@olakai_monitor(
-    # String dimensions (categorical data)
-    customDimensions={"dim1": "gpt-4", "dim2": "production", "dim3": "premium", "dim4": "en"},
-    # Numeric metrics (quantitative data)
-    customMetrics={"metric1": 150, "metric2": 2.5, "metric3": 0.95, "metric4": 0.02}
-)
-def advanced_ai_function(prompt: str) -> str:
-    return "AI response"
-```
-
-### User Tracking
-
-Track individual users and their AI interactions:
-
-```python
-@olakai_monitor(
-    userEmail="john.doe@company.com",  # User email
-    chatId="session-abc123",       # Session/conversation ID
-    task="Personal Productivity",
-    subTask="email management"
-)
-def personal_assistant(user_request: str) -> str:
-    return "Assistant response"
-```
-
-### Direct Reporting
-
-Report events manually without decorators:
-
-```python
-from olakaisdk import olakai_report
-
-olakai_report(
-    prompt="User asked about pricing",
-    response="Here are our pricing plans...",
-    options={
-        "userEmail": "user@example.com",
-        "chatId": "pricing-session-123",
-        "task": "Sales Support",
-        "customDimensions": {"dim1": "pricing"},
-        "customMetrics": {"metric1": 1.2}
-    }
-)
-```
-
-### Low-Level Event Tracking
-
-For maximum control:
-
-```python
-from olakaisdk import olakai, OlakaiEventParams
-
-params = OlakaiEventParams(
-    prompt="Custom prompt",
-    response="Custom response",
-    userEmail="user@example.com",
-    chatId="custom-session",
-    task="Custom Task",
-    customDimensions={"dim1": "lowlevel"},
-    customMetrics={"metric1": 0.85},
-    shouldScore=True,
-    tokens=100,
-    requestTime=500
-)
-
-olakai("ai_activity", "custom_event", params)
-```
-
----
-
-## Configuration Options
-
-### Basic Setup
-
-```python
-from olakaisdk import olakai_config
-
-# Simple setup
-olakai_config("your-api-key")
-
-# With custom endpoint
-olakai_config("your-api-key", "https://your-domain.ai")
-
-# With debug logging
-olakai_config("your-api-key", "https://your-domain.ai", debug=True)
-```
-
-### Monitor Options
-
-| Option             | Type   | Description             | Example              |
-| ------------------ | ------ | ----------------------- | -------------------- |
-| `userEmail`        | `str`  | User email for tracking | `"user@example.com"` |
-| `chatId`           | `str`  | Session/conversation ID | `"session-123"`      |
-| `task`             | `str`  | Task category           | `"Customer Support"` |
-| `subTask`          | `str`  | Specific task           | `"password-reset"`   |
-| `customDimensions` | `dict` | String metadata         | `{"dim1": "gpt-4"}`  |
-| `customMetrics`    | `dict` | Numeric data            | `{"metric1": 150}`   |
-| `shouldScore`      | `bool` | Enable content scoring  | `True`               |
-
----
-
-## Migration from v0.3.x
-
-**This is a breaking change** - the SDK has been completely simplified!
-
-### Old Way (v0.3.x)
-
-```python
-from olakaisdk import init_olakai_client, olakai_supervisor
-
-# Complex setup
-init_olakai_client("api-key", "domain", debug=True, batchSize=10, enableStorage=True)
-
-# Complex decorator
-@olakai_supervisor(
-    sanitize=True,
-    priority="high",
-    send_on_function_error=True
-)
-def old_function():
-    pass
-```
-
-### New Way (v0.4.0)
-
-```python
-from olakaisdk import olakai_config, olakai_monitor
-
-# Simple setup
-olakai_config("api-key", "https://domain.ai", debug=True)
-
-# Simple decorator
-@olakai_monitor(
-    userEmail="user@example.com",
-    customDimensions={"dim1": "production"}
-)
-def new_function():
-    pass
-```
-
-### Migration Steps
-
-1. **Replace initialization:**
-
-   - `init_olakai_client()` → `olakai_config()`
-
-2. **Replace decorator:**
-
-   - `@olakai_supervisor()` → `@olakai_monitor()`
-
-3. **Update parameters:**
-
-   - Use `customDimensions={"dim1": "...", "dim2": "..."}` for string data
-   - Use `customMetrics={"metric1": 1.0, "metric2": 2.0}` for numeric data
-   - Add `userEmail` and `chatId` for user tracking
-
-4. **Remove complex options:**
-   - No more `sanitize`, `priority`, `batchSize`, etc.
-
----
-
-## Troubleshooting
-
-### Common Issues
-
-**"SDK not initialized"**
-
-```python
-# Wrong - using functions before setup
-from olakaisdk import olakai_monitor
-@olakai_monitor()  # This will fail
-def my_function():
-    pass
-
-# Correct - setup first
-from olakaisdk import olakai_config, olakai_monitor
-olakai_config("your-api-key")  # Setup first
-@olakai_monitor()  # Now this works
-def my_function():
-    pass
-```
-
-**"Import errors"**
-
-```bash
-# Make sure you have the right version
-pip install --upgrade olakai-sdk
-
-# Check Python version (3.7+ required)
-python --version
-```
-
-**"API calls not working"**
-
-```python
-# Enable debug mode to see what's happening
-olakai_config("your-api-key", debug=True)
-
-# Check your API key and endpoint
-olakai_config("your-api-key", "https://your-domain.ai", debug=True)
-```
-
-**"Monitoring seems slow"**
-
-- Monitoring happens asynchronously and won't slow down your app
-- API calls are made in the background
-- Check your network connection if issues persist
-
-### Debug Mode
-
-Enable debug mode to see what's happening:
-
-```python
-olakai_config("your-api-key", debug=True)
-
-# You'll see output like:
-# Olakai SDK initialized with endpoint: https://your-domain.ai
-# API call to https://your-domain.ai/api/monitoring/prompt: 200
-# API call successful
-```
-
----
-
-## Best Practices
-
-### Do This
-
-- **Start simple:** Begin with `@olakai_monitor()` and add options as needed
-- **Use descriptive tasks:** `task="Customer Support"` instead of `task="cs"`
-- **Track users:** Always include `userEmail` for user-specific analytics
-- **Use custom dimensions:** Track model, environment, user type, etc. with `customDimensions={"dim1": "...", "dim2": "..."}`
-- **Use custom metrics:** Track tokens, response time, costs, etc. with `customMetrics={"metric1": 1.0, "metric2": 2.0}`
-- **Group related calls:** Use consistent `task` and `subTask` names
-
-### Avoid This
-
-- **Don't monitor everything:** Only monitor important AI interactions
-- **Don't put sensitive data in task names:** Use `custom_dimensions` instead
-- **Don't monitor auth functions:** Avoid monitoring password/API key handling
-- **Don't use the old API:** It's deprecated and will be removed
-
-### Security Tips
-
-- **User emails should match Olakai accounts** for proper user tracking
-- **Use custom dimensions** to exclude sensitive parameters with `customDimensions={"dim1": "...", "dim2": "..."}`
-- **Never log passwords or API keys** in prompts/responses
-- **Consider data privacy** when tracking user interactions
-
----
-
-## Use Cases
-
-### Enterprise Applications
-
-```python
-@olakai_monitor(
-    userEmail=lambda args: get_user_email(args[0]),
-    task="Enterprise AI",
-    subTask="document-analysis",
-    customDimensions={"dim1": "acme-corp", "dim2": "legal", "dim3": "contract"},
-    customMetrics={"metric1": 10, "metric2": 0.92}
-)
-def analyze_document(user_id: str, document: str) -> dict:
-    # Document analysis logic
-    return {"summary": "...", "key_points": [...]}
-```
-
-### Educational Platforms
-
-```python
-@olakai_monitor(
-    userEmail="student@university.edu",
-    task="Educational AI",
-    subTask="homework-help",
-    customDimensions={"dim1": "computer-science", "dim2": "intermediate", "dim3": "algorithms"},
-    customMetrics={"metric1": 3, "metric2": 15.5}
-)
-def help_with_homework(question: str, student_level: str) -> str:
-    # Educational AI logic
-    return "Here's how to solve this problem..."
-```
-
-### Healthcare Applications
-
-```python
-@olakai_monitor(
-    userEmail="doctor@hospital.com",
-    task="Medical AI",
-    subTask="symptom-analysis",
-    customDimensions={"dim1": "cardiology", "dim2": "adult", "dim3": "routine"},
-    customMetrics={"metric1": 5, "metric2": 0.88}
-)
-def analyze_symptoms(symptoms: list, patient_info: dict) -> dict:
-    # Medical AI logic (with proper compliance)
-    return {"possible_conditions": [...], "recommendations": [...]}
-```
+**Key Improvements:**
+- ✅ No decorators needed
+- ✅ Model name automatically captured
+- ✅ Tokens automatically captured
+- ✅ Works with existing OpenAI code
+- ✅ Cleaner, more maintainable code
 
 ---
 
@@ -425,12 +446,127 @@ def analyze_symptoms(symptoms: list, patient_info: dict) -> dict:
 
 After setting up monitoring, visit your [Olakai dashboard](https://app.olakai.ai) to see:
 
-- **Usage Analytics** - Track API calls, users, and trends
-- **User Insights** - See individual user behavior and patterns
-- **Task Performance** - Monitor different tasks and their success rates
-- **Custom Metrics** - View your custom dimensions and metrics
-- **Content Safety** - Review flagged content and safety scores
-- **Cost Tracking** - Monitor AI usage costs and optimization opportunities
+- **Usage Analytics** - API calls, tokens, trends over time
+- **Cost Tracking** - Per-API-key usage for ROI analysis
+- **User Insights** - Individual user behavior patterns
+- **Task Performance** - Monitor different tasks and success rates
+- **Model Comparison** - Compare performance across models
+- **Custom Metrics** - Visualize your custom dimensions and metrics
+
+---
+
+## Best Practices
+
+### Do This ✅
+
+- **Initialize once**: Call `olakai_config()` at app startup
+- **Instrument early**: Call `instrument_openai()` before creating clients
+- **Use contexts**: Add metadata with `olakai_context()` for rich analytics
+- **Track users**: Always include `userEmail` when possible
+- **Organize tasks**: Use consistent `task` and `subTask` names
+- **Custom dimensions**: Track environment, region, features with `customDimensions`
+
+### Avoid This ❌
+
+- **Don't skip configuration**: Always call `olakai_config()` first
+- **Don't log secrets**: Never include passwords in prompts/responses
+- **Don't instrument twice**: Check `is_instrumented()` before re-instrumenting
+- **Don't use decorators**: The old `@olakai_monitor()` API is deprecated
+
+### Security Tips
+
+- Store API keys in environment variables
+- Use `capture_inputs=False` / `capture_outputs=False` for sensitive data
+- Review dashboard access controls
+- Consider GDPR/privacy requirements for user tracking
+
+---
+
+## Troubleshooting
+
+### SDK not initialized error
+
+```python
+RuntimeError: Olakai SDK not initialized. Call olakai_config() first.
+```
+
+**Solution:** Call `olakai_config()` before `instrument_openai()`.
+
+---
+
+### OpenAI not installed error
+
+```python
+ImportError: OpenAI SDK not installed. Install with: pip install openai
+```
+
+**Solution:** `pip install openai`
+
+---
+
+### No data in dashboard
+
+**Possible causes:**
+1. Check API key is correct
+2. Enable debug mode: `olakai_config("key", debug=True)`
+3. Verify network connectivity
+4. Check instrumentation: `is_instrumented()` should return `True`
+
+---
+
+### Streaming not working
+
+Make sure you're iterating through the entire stream:
+
+```python
+response = client.chat.completions.create(..., stream=True)
+
+# ✅ Correct - iterate fully
+for chunk in response:
+    print(chunk.choices[0].delta.content)
+# Telemetry sent after loop completes
+
+# ❌ Wrong - don't break early
+for chunk in response:
+    if some_condition:
+        break  # Telemetry won't be sent!
+```
+
+---
+
+## Examples
+
+See [USAGE.md](./USAGE.md) for more detailed examples and use cases.
+
+Try the sample script:
+```bash
+python examples/basic_example.py
+```
+
+---
+
+## Development
+
+### Setup
+
+```bash
+git clone https://github.com/olakai/olakai-sdk-python
+cd olakai-sdk-python
+pip install -e ".[dev]"
+```
+
+### Run Tests
+
+```bash
+pytest
+pytest tests/test_instrumentation.py -v
+```
+
+### Code Quality
+
+```bash
+./tests/check.sh
+```
 
 ---
 
@@ -439,7 +575,7 @@ After setting up monitoring, visit your [Olakai dashboard](https://app.olakai.ai
 - **Documentation:** [Olakai Docs](https://app.olakai.ai/docs)
 - **Support:** [support@olakai.ai](mailto:support@olakai.ai)
 - **Issues:** [GitHub Issues](https://github.com/olakai/sdk-python/issues)
-- **Examples:** [SDK Examples](https://github.com/olakai/sdk-examples-python)
+- **Changelog:** [CHANGELOG.md](./CHANGELOG.md)
 
 ---
 
@@ -449,15 +585,27 @@ MIT © [Olakai](https://olakai.ai)
 
 ---
 
-**Ready to get started?**
+## What's Next?
+
+- 🚀 Anthropic instrumentation (Claude support)
+- 🚀 Google AI instrumentation (Gemini support)
+- 🚀 Local model support (Ollama, LM Studio)
+- 🚀 Enhanced streaming analytics
+- 🚀 Cost optimization recommendations
+
+---
+
+**Ready to monitor your AI application?**
+
+```bash
+pip install olakai-sdk openai
+```
 
 ```python
-from olakaisdk import olakai_config, olakai_monitor
-
+from olakaisdk import olakai_config, instrument_openai
 olakai_config("your-api-key")
-@olakai_monitor()
-def my_first_monitored_function():
-    return "Hello, monitored world!"
+instrument_openai()
+# Start building! 🚀
 ```
 
 **Happy monitoring!**
