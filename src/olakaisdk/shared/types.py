@@ -26,6 +26,7 @@ class OlakaiEventParams:
     prompt: str
     response: str
     userEmail: Optional[str] = "anonymous@olakai.ai"
+    userId: Optional[str] = None  # SDK client's user ID for tracking
     chatId: Optional[str] = None
     task: Optional[str] = None
     subTask: Optional[str] = None
@@ -41,6 +42,7 @@ class MonitorOptions:
     """Options for monitoring functions."""
 
     userEmail: Optional[str] = "anonymous@olakai.ai"
+    userId: Optional[str] = None  # SDK client's user ID for tracking
     chatId: Optional[str] = None
     task: Optional[str] = None
     subTask: Optional[str] = None
@@ -54,9 +56,10 @@ class MonitorPayload:
     """Payload for monitoring data sent to API."""
 
     userEmail: str
-    chatId: str
-    prompt: JSONType
-    response: JSONType
+    userId: Optional[str] = None  # SDK client's user ID for tracking
+    chatId: str = ""
+    prompt: JSONType = None
+    response: JSONType = None
     blocked: Optional[bool] = False
     tokens: Optional[int] = 0
     requestTime: Optional[int] = 0

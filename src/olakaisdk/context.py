@@ -19,6 +19,7 @@ class OlakaiContextData:
     when contexts are nested.
     """
     userEmail: Optional[str] = None
+    userId: Optional[str] = None  # SDK client's user ID for tracking
     chatId: Optional[str] = None
     task: Optional[str] = None
     subTask: Optional[str] = None
@@ -37,6 +38,7 @@ class OlakaiContextData:
         """
         return OlakaiContextData(
             userEmail=other.userEmail or self.userEmail,
+            userId=other.userId or self.userId,
             chatId=other.chatId or self.chatId,
             task=other.task or self.task,
             subTask=other.subTask or self.subTask,
@@ -53,6 +55,7 @@ class OlakaiContextData:
         """
         return {
             "userEmail": self.userEmail,
+            "userId": self.userId,
             "chatId": self.chatId,
             "task": self.task,
             "subTask": self.subTask,
@@ -64,6 +67,7 @@ class OlakaiContextData:
 @contextmanager
 def olakai_context(
     userEmail: Optional[str] = None,
+    userId: Optional[str] = None,
     chatId: Optional[str] = None,
     task: Optional[str] = None,
     subTask: Optional[str] = None,
@@ -78,6 +82,7 @@ def olakai_context(
 
     Args:
         userEmail: User email for tracking
+        userId: SDK client's user ID for tracking
         chatId: Session/chat identifier
         task: High-level task category
         subTask: Specific subtask
@@ -101,6 +106,7 @@ def olakai_context(
     # Create new context
     new_context = OlakaiContextData(
         userEmail=userEmail,
+        userId=userId,
         chatId=chatId,
         task=task,
         subTask=subTask,
