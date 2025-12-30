@@ -5,6 +5,24 @@ All notable changes to the Olakai Python SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2024-12-30
+
+### Added
+
+- **`userId` field** - Added `userId` parameter to `olakai_context()` for explicit user tracking
+- **`userId` in types** - Added `userId` to `OlakaiContextData`, `OlakaiEventParams`, `MonitorOptions`, and `MonitorPayload`
+
+### Changed
+
+- Updated `OlakaiContextData.merge()` to include `userId` in context merging
+- Updated `OlakaiContextData.to_dict()` to include `userId` in payload output
+- Type definitions now align with backend monitoring API expectations
+
+### Compatibility
+
+- Backwards compatible with existing code
+- New `userId` field is optional (defaults to `None`)
+
 ## [0.5.0] - 2024-11-19
 
 ### 🎉 Major Release: Auto-Instrumentation
