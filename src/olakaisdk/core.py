@@ -4,51 +4,23 @@ Core simplified API for the Olakai SDK.
 
 import time
 import asyncio
-from typing import Callable, Optional, Dict, Any
-from .shared.types import OlakaiConfig, OlakaiEventParams, MonitorPayload
-from .shared.exceptions import APIKeyMissingError, InitializationError
+from typing import Callable, Dict, Any
+from .shared.types import OlakaiEventParams, MonitorPayload
 from .client.api import send_to_api_simple
-
-# Global configuration
-_global_config: Optional[OlakaiConfig] = None
-
-
-def olakai_config(api_key: str, endpoint: str = "https://app.olakai.ai", debug: bool = False) -> None:
-    """
-    Initialize the Olakai SDK with simplified configuration.
-    
-    Args:
-        api_key: Your Olakai API key
-        endpoint: API endpoint URL (default: https://app.olakai.ai)
-        debug: Enable debug logging (default: False)
-    """
-    global _global_config
-    
-    if not api_key:
-        raise APIKeyMissingError("API key is required to initialize the Olakai SDK.")
-    
-    _global_config = OlakaiConfig(
-        api_key=api_key,
-        endpoint=endpoint,
-        debug=debug
-    )
-    
-    if debug:
-        print(f"Olakai SDK initialized with endpoint: {endpoint}")
+from .config import require_config
 
 
 def olakai(event_type: str, event_name: str, params: OlakaiEventParams) -> None:
     """
     Track an event with the Olakai API.
-    
+
     Args:
         event_type: Type of event (e.g., "ai_activity")
         event_name: Name of the event
         params: Event parameters
     """
-    if _global_config is None:
-        raise InitializationError("Olakai SDK not initialized. Call olakai_config() first.")
-    
+    config = require_config()
+
     # Convert to MonitorPayload for API compatibility
     payload = MonitorPayload(
         userEmail=params.userEmail or "anonymous@olakai.ai",
@@ -63,14 +35,14 @@ def olakai(event_type: str, event_name: str, params: OlakaiEventParams) -> None:
         customMetrics=params.customMetrics,
         shouldScore=params.shouldScore
     )
-    
+
     # Send asynchronously in background if possible, otherwise ignore
     try:
         loop = asyncio.get_running_loop()
-        asyncio.create_task(send_to_api_simple(_global_config, payload))
+        asyncio.create_task(send_to_api_simple(config, payload))
     except RuntimeError:
         # No event loop running, skip API call
-        if _global_config.debug:
+        if config.debug:
             print(f"Skipping API call - no event loop running")
 
 
@@ -217,6 +189,3 @@ def olakai_monitor(fn: Callable = None, **options):
         return decorator(fn)
 
 
-def get_config() -> Optional[OlakaiConfig]:
-    """Get the current SDK configuration."""
-    return _global_config

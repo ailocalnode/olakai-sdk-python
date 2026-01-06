@@ -12,7 +12,7 @@ from ..shared import (
     OlakaiConfig,
 )
 from ..client import send_to_api_simple
-from ..core import get_config
+from ..config import get_config
 
 
 def olakai_monitor(**kwargs):
