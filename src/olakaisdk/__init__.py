@@ -16,7 +16,7 @@ from .monitor import olakai_supervisor
 # Types
 from .shared import OlakaiBlockedError, MonitorOptions, OlakaiEventParams, OlakaiConfig
 
-__version__ = "0.5.0"
+__version__ = "0.6.1"
 
 __all__ = [
     # Primary API (v0.5.0)
