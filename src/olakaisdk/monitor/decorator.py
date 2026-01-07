@@ -24,8 +24,7 @@ def olakai_monitor(**kwargs):
         chatId: str
         task: str
         subTask: str
-        customDimensions: Dict[str, str]
-        customMetrics: Dict[str, float]
+        customData: Dict[str, Union[str, int, float, bool]]
         shouldScore: bool
 
     Returns:
@@ -58,8 +57,7 @@ def olakai_monitor(**kwargs):
                     requestTime=0,  # Simplified - no timing
                     task=options.task,
                     subTask=options.subTask,
-                    customDimensions=options.customDimensions,
-                    customMetrics=options.customMetrics,
+                    customData=options.customData,
                     shouldScore=options.shouldScore,
                 )
 
@@ -81,8 +79,7 @@ def olakai_monitor(**kwargs):
                     requestTime=0,  # Simplified - no timing
                     task=options.task,
                     subTask=options.subTask,
-                    customDimensions=options.customDimensions,
-                    customMetrics=options.customMetrics,
+                    customData=options.customData,
                     shouldScore=options.shouldScore,
                 )
 
@@ -107,8 +104,7 @@ def olakai_monitor(**kwargs):
                     requestTime=0,  # Simplified - no timing
                     task=options.task,
                     subTask=options.subTask,
-                    customDimensions=options.customDimensions,
-                    customMetrics=options.customMetrics,
+                    customData=options.customData,
                     shouldScore=options.shouldScore,
                 )
 
@@ -130,8 +126,7 @@ def olakai_monitor(**kwargs):
                     requestTime=0,  # Simplified - no timing
                     task=options.task,
                     subTask=options.subTask,
-                    customDimensions=options.customDimensions,
-                    customMetrics=options.customMetrics,
+                    customData=options.customData,
                     shouldScore=options.shouldScore,
                 )
 

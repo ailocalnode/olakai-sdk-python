@@ -5,6 +5,35 @@ All notable changes to the Olakai Python SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2025-01-07
+
+### 🎉 First Stable Release
+
+This release marks the first stable version of the Olakai Python SDK, signaling production readiness for auto-instrumentation of LLM providers.
+
+### Changed
+
+- Version bump to 1.0.0 for production stability
+- **Breaking**: Replaced `customDimensions` and `customMetrics` with unified `customData` field for simpler payload structure
+
+### Removed
+
+- **Legacy API** - The following deprecated items from v0.4.x have been removed:
+  - `@olakai_monitor()` decorator - Use `instrument_openai()` instead
+  - `olakai_report()` - Use auto-instrumentation instead
+  - `olakai()` low-level API - Use auto-instrumentation instead
+
+### Stability
+
+The v1.0.0 API is now stable. The primary API consists of:
+- `olakai_config()` - Initialize the SDK
+- `instrument_openai()` - Auto-instrument OpenAI SDK
+- `olakai_context()` - Add metadata to tracked calls
+- `uninstrument_openai()` - Remove instrumentation
+- `is_instrumented()` - Check instrumentation status
+
+---
+
 ## [0.6.0] - 2024-12-30
 
 ### Added

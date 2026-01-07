@@ -30,8 +30,7 @@ class OlakaiEventParams:
     chatId: Optional[str] = None
     task: Optional[str] = None
     subTask: Optional[str] = None
-    customDimensions: Optional[Dict[str, str]] = None
-    customMetrics: Optional[Dict[str, float]] = None
+    customData: Optional[Dict[str, Union[str, int, float, bool]]] = None
     shouldScore: bool = True
     tokens: Optional[int] = 0
     requestTime: Optional[int] = 0
@@ -46,8 +45,7 @@ class MonitorOptions:
     chatId: Optional[str] = None
     task: Optional[str] = None
     subTask: Optional[str] = None
-    customDimensions: Optional[Dict[str, str]] = None
-    customMetrics: Optional[Dict[str, float]] = None
+    customData: Optional[Dict[str, Union[str, int, float, bool]]] = None
     shouldScore: bool = True
 
 
@@ -67,8 +65,7 @@ class MonitorPayload:
     subTask: Optional[str] = None
     errorMessage: Optional[str] = None
     sensitivity: Optional[List[str]] = None
-    customDimensions: Optional[Dict[str, str]] = None
-    customMetrics: Optional[Dict[str, float]] = None
+    customData: Optional[Dict[str, Union[str, int, float, bool]]] = None
     shouldScore: Optional[bool] = True
 
 

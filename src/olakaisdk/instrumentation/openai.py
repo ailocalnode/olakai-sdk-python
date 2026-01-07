@@ -452,18 +452,18 @@ def _send_error_telemetry(
         if capture_api_keys and hasattr(client_instance, "api_key"):
             api_key_value = client_instance.api_key
 
-        custom_dimensions = {}
+        custom_data = {}
         if context_data:
-            custom_dimensions = dict(context_data.customDimensions or {})
+            custom_data = dict(context_data.customData or {})
 
-        custom_dimensions.update({
+        custom_data.update({
             "model": request_kwargs.get("model", "unknown"),
             "provider": "openai",
             "error_type": type(error).__name__,
         })
 
         if api_key_value:
-            custom_dimensions["api_key"] = api_key_value
+            custom_data["api_key"] = api_key_value
 
         payload = MonitorPayload(
             userEmail=(context_data.userEmail if context_data else None) or "anonymous@olakai.ai",
@@ -474,8 +474,7 @@ def _send_error_telemetry(
             requestTime=duration_ms,
             task=context_data.task if context_data else None,
             subTask=context_data.subTask if context_data else None,
-            customDimensions=custom_dimensions,
-            customMetrics=context_data.customMetrics if context_data else None,
+            customData=custom_data,
             errorMessage=str(error),
             shouldScore=False
         )

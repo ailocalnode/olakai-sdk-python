@@ -148,10 +148,10 @@ def test_extractor_extracts_tokens():
 
     assert payload.tokens == 300
     assert payload.requestTime == 500
-    assert payload.customDimensions["model"] == "gpt-4"
-    assert payload.customDimensions["provider"] == "openai"
-    assert payload.customMetrics["tokens_input"] == 100.0
-    assert payload.customMetrics["tokens_output"] == 200.0
+    assert payload.customData["model"] == "gpt-4"
+    assert payload.customData["provider"] == "openai"
+    assert payload.customData["tokens_input"] == 100
+    assert payload.customData["tokens_output"] == 200
 
 
 def test_extractor_captures_api_key():
@@ -179,8 +179,8 @@ def test_extractor_captures_api_key():
         context=None
     )
 
-    assert "api_key" in payload.customDimensions
-    assert payload.customDimensions["api_key"] == "sk-test123"
+    assert "api_key" in payload.customData
+    assert payload.customData["api_key"] == "sk-test123"
 
 
 def test_extractor_redacts_when_disabled():
@@ -215,7 +215,7 @@ def test_extractor_redacts_when_disabled():
 
     assert payload.prompt == "[redacted]"
     assert payload.response == "[redacted]"
-    assert "api_key" not in payload.customDimensions
+    assert "api_key" not in payload.customData
 
 
 def test_extractor_merges_context():
@@ -237,8 +237,7 @@ def test_extractor_merges_context():
     context = OlakaiContextData(
         userEmail="user@example.com",
         task="Support",
-        customDimensions={"env": "prod"},
-        customMetrics={"tier": 5.0}
+        customData={"env": "prod", "tier": 5}
     )
 
     extractor = OpenAIExtractor()
@@ -252,7 +251,7 @@ def test_extractor_merges_context():
 
     assert payload.userEmail == "user@example.com"
     assert payload.task == "Support"
-    assert payload.customDimensions["env"] == "prod"
-    assert payload.customDimensions["model"] == "gpt-4"  # Also includes extracted data
-    assert payload.customMetrics["tier"] == 5.0
-    assert payload.customMetrics["tokens_total"] == 20.0  # Also includes extracted data
+    assert payload.customData["env"] == "prod"
+    assert payload.customData["model"] == "gpt-4"  # Also includes extracted data
+    assert payload.customData["tier"] == 5
+    assert payload.customData["tokens_total"] == 20  # Also includes extracted data

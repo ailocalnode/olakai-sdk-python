@@ -1,7 +1,7 @@
 """Context manager for metadata injection into LLM telemetry."""
 
 import contextvars
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 
@@ -23,8 +23,7 @@ class OlakaiContextData:
     chatId: Optional[str] = None
     task: Optional[str] = None
     subTask: Optional[str] = None
-    customDimensions: Dict[str, str] = field(default_factory=dict)
-    customMetrics: Dict[str, float] = field(default_factory=dict)
+    customData: Dict[str, Union[str, int, float, bool]] = field(default_factory=dict)
 
     def merge(self, other: 'OlakaiContextData') -> 'OlakaiContextData':
         """
@@ -42,8 +41,7 @@ class OlakaiContextData:
             chatId=other.chatId or self.chatId,
             task=other.task or self.task,
             subTask=other.subTask or self.subTask,
-            customDimensions={**self.customDimensions, **other.customDimensions},
-            customMetrics={**self.customMetrics, **other.customMetrics}
+            customData={**self.customData, **other.customData}
         )
 
     def to_dict(self) -> Dict:
@@ -59,8 +57,7 @@ class OlakaiContextData:
             "chatId": self.chatId,
             "task": self.task,
             "subTask": self.subTask,
-            "customDimensions": self.customDimensions if self.customDimensions else None,
-            "customMetrics": self.customMetrics if self.customMetrics else None,
+            "customData": self.customData if self.customData else None,
         }
 
 
@@ -71,14 +68,13 @@ def olakai_context(
     chatId: Optional[str] = None,
     task: Optional[str] = None,
     subTask: Optional[str] = None,
-    customDimensions: Optional[Dict[str, str]] = None,
-    customMetrics: Optional[Dict[str, float]] = None
+    customData: Optional[Dict[str, Union[str, int, float, bool]]] = None
 ):
     """
     Context manager to add metadata to all LLM calls within scope.
 
     Contexts can be nested, with inner contexts overriding outer context
-    values. Dictionary fields (customDimensions, customMetrics) are merged.
+    values. The customData dictionary is merged with parent contexts.
 
     Args:
         userEmail: User email for tracking
@@ -86,8 +82,7 @@ def olakai_context(
         chatId: Session/chat identifier
         task: High-level task category
         subTask: Specific subtask
-        customDimensions: String metadata (merged with parent)
-        customMetrics: Numeric metadata (merged with parent)
+        customData: Custom metadata (merged with parent)
 
     Example:
         >>> with olakai_context(userEmail="user@example.com", task="Support"):
@@ -110,8 +105,7 @@ def olakai_context(
         chatId=chatId,
         task=task,
         subTask=subTask,
-        customDimensions=customDimensions or {},
-        customMetrics=customMetrics or {}
+        customData=customData or {}
     )
 
     # Merge with parent context if exists

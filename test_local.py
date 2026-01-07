@@ -32,12 +32,10 @@ async def main():
         userEmail="walt.mann@gmail.com",
         tokens=150,
         chatId="cckej2lc40c0np1s3mcvef5ss",
-        customDimensions={
+        customData={
             "Department": "EMEA",
             "Location": "United Kingdom",
             "Feature": "Internal Processing",
-        },
-        customMetrics={
             "TokensUsed": 150,
             "Rating": 2.5,
         },

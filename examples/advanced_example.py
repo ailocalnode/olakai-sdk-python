@@ -57,7 +57,7 @@ def example_customer_support(client):
             chatId=f"support-{hash(user_email) % 10000}",
             task="Customer Support",
             subTask=query_type,
-            customDimensions={
+            customData={
                 "channel": "chat",
                 "priority": "normal"
             }
@@ -103,13 +103,11 @@ def example_content_generation(client):
             userEmail="content-team@example.com",
             task="Content Generation",
             subTask=content_type,
-            customDimensions={
+            customData={
                 "content_type": content_type,
                 "target_audience": target_audience,
-                "topic_category": "technology"
-            },
-            customMetrics={
-                "target_word_count": 100.0
+                "topic_category": "technology",
+                "target_word_count": 100
             }
         ):
             prompt = f"Write a {content_type} about {topic} for {target_audience} audience. Keep it under 100 words."
@@ -153,11 +151,9 @@ def example_error_handling(client):
                     userEmail="system@example.com",
                     task="Robust Call",
                     subTask="retry-example",
-                    customDimensions={
-                        "attempt": str(attempt + 1)
-                    },
-                    customMetrics={
-                        "retry_count": float(attempt)
+                    customData={
+                        "attempt": attempt + 1,
+                        "retry_count": attempt
                     }
                 ):
                     response = client.chat.completions.create(
@@ -201,7 +197,7 @@ def example_nested_contexts(client):
         userEmail="demo@example.com",
         chatId="session-789",
         task="Multi-Step Workflow",
-        customDimensions={"workflow_id": "workflow-123"}
+        customData={"workflow_id": "workflow-123"}
     ):
         print("Step 1: Understanding user intent...")
 

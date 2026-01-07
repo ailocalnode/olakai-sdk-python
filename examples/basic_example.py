@@ -108,23 +108,21 @@ def main():
     print(f"Tokens used: {response.usage.total_tokens}")
     print()
 
-    # Example 3: Call with custom dimensions and metrics
+    # Example 3: Call with custom data
     print("-" * 60)
-    print("Example 3: Call with custom dimensions and metrics")
+    print("Example 3: Call with custom data")
     print("-" * 60)
 
     with olakai_context(
         userEmail="demo@example.com",
         task="Demo",
         subTask="metadata-example",
-        customDimensions={
+        customData={
             "environment": "demo",
             "example_type": "documentation",
-            "language": "en"
-        },
-        customMetrics={
-            "user_id": 12345.0,
-            "session_number": 1.0
+            "language": "en",
+            "user_id": 12345,
+            "session_number": 1
         }
     ):
         response = client.chat.completions.create(
@@ -180,7 +178,7 @@ def main():
     print("  - API key (for cost tracking)")
     print("  - Latency")
     print("  - User context and metadata")
-    print("  - Custom dimensions and metrics")
+    print("  - Custom data")
     print()
 
 

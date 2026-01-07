@@ -33,16 +33,14 @@ def test_context_all_fields():
         chatId="chat-123",
         task="Support",
         subTask="password-reset",
-        customDimensions={"env": "prod", "region": "us"},
-        customMetrics={"tier": 3.0, "score": 0.95}
+        customData={"env": "prod", "region": "us", "tier": 3, "score": 0.95}
     ):
         context = get_current_context()
         assert context.userEmail == "user@example.com"
         assert context.chatId == "chat-123"
         assert context.task == "Support"
         assert context.subTask == "password-reset"
-        assert context.customDimensions == {"env": "prod", "region": "us"}
-        assert context.customMetrics == {"tier": 3.0, "score": 0.95}
+        assert context.customData == {"env": "prod", "region": "us", "tier": 3, "score": 0.95}
 
 
 def test_context_nested():
@@ -83,33 +81,19 @@ def test_context_nested_override():
             assert context.userEmail == "user1@example.com"
 
 
-def test_context_merge_dimensions():
-    """Test that customDimensions are merged in nested contexts."""
+def test_context_merge_custom_data():
+    """Test that customData is merged in nested contexts."""
     clear_context()
 
-    with olakai_context(customDimensions={"dim1": "value1", "dim2": "value2"}):
-        with olakai_context(customDimensions={"dim2": "override", "dim3": "value3"}):
+    with olakai_context(customData={"key1": "value1", "key2": "value2", "metric1": 1.0}):
+        with olakai_context(customData={"key2": "override", "key3": "value3", "metric1": 2.5}):
             context = get_current_context()
             # Should merge dictionaries with child taking precedence
-            assert context.customDimensions == {
-                "dim1": "value1",
-                "dim2": "override",  # overridden
-                "dim3": "value3"     # added
-            }
-
-
-def test_context_merge_metrics():
-    """Test that customMetrics are merged in nested contexts."""
-    clear_context()
-
-    with olakai_context(customMetrics={"metric1": 1.0, "metric2": 2.0}):
-        with olakai_context(customMetrics={"metric2": 2.5, "metric3": 3.0}):
-            context = get_current_context()
-            # Should merge dictionaries with child taking precedence
-            assert context.customMetrics == {
-                "metric1": 1.0,
-                "metric2": 2.5,  # overridden
-                "metric3": 3.0   # added
+            assert context.customData == {
+                "key1": "value1",
+                "key2": "override",  # overridden
+                "key3": "value3",    # added
+                "metric1": 2.5       # overridden
             }
 
 
@@ -118,13 +102,13 @@ def test_context_to_dict():
     context_data = OlakaiContextData(
         userEmail="user@example.com",
         task="Test",
-        customDimensions={"key": "value"}
+        customData={"key": "value"}
     )
 
     result = context_data.to_dict()
     assert result["userEmail"] == "user@example.com"
     assert result["task"] == "Test"
-    assert result["customDimensions"] == {"key": "value"}
+    assert result["customData"] == {"key": "value"}
     assert result["chatId"] is None
     assert result["subTask"] is None
 
@@ -134,12 +118,12 @@ def test_context_data_merge():
     parent = OlakaiContextData(
         userEmail="parent@example.com",
         task="Parent Task",
-        customDimensions={"dim1": "value1"}
+        customData={"key1": "value1"}
     )
 
     child = OlakaiContextData(
         task="Child Task",
-        customDimensions={"dim2": "value2"}
+        customData={"key2": "value2"}
     )
 
     merged = parent.merge(child)
@@ -149,7 +133,7 @@ def test_context_data_merge():
     # Parent values are preserved if not in child
     assert merged.userEmail == "parent@example.com"
     # Dictionaries are merged
-    assert merged.customDimensions == {"dim1": "value1", "dim2": "value2"}
+    assert merged.customData == {"key1": "value1", "key2": "value2"}
 
 
 def test_context_empty():
@@ -162,8 +146,7 @@ def test_context_empty():
         assert context.userEmail is None
         assert context.chatId is None
         assert context.task is None
-        assert context.customDimensions == {}
-        assert context.customMetrics == {}
+        assert context.customData == {}
 
 
 def test_get_current_context_when_none():

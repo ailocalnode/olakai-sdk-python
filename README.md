@@ -172,20 +172,19 @@ with olakai_context(
     print(response.choices[0].message.content)
 ```
 
-### With Custom Dimensions and Metrics
+### With Custom Data
 
 ```python
 with olakai_context(
     userEmail="user@example.com",
     task="Content Generation",
-    customDimensions={
+    customData={
         "environment": "production",
         "region": "us-east-1",
-        "user_tier": "premium"
-    },
-    customMetrics={
-        "user_id": 12345.0,
-        "session_length": 45.5
+        "user_tier": "premium",
+        "user_id": 12345,
+        "session_length": 45.5,
+        "is_premium": True
     }
 ):
     response = client.chat.completions.create(
@@ -325,8 +324,7 @@ Context manager to add metadata to LLM calls.
 - `chatId` (str, optional): Session/chat identifier
 - `task` (str, optional): High-level task category
 - `subTask` (str, optional): Specific subtask
-- `customDimensions` (dict, optional): String metadata
-- `customMetrics` (dict, optional): Numeric metadata
+- `customData` (dict, optional): Custom metadata (string, int, float, or bool values)
 
 **Example:**
 ```python
@@ -396,7 +394,7 @@ olakai_config("api-key")
 @olakai_monitor(
     userEmail="user@example.com",
     task="Support",
-    customDimensions={"model": "gpt-4"}
+    customData={"model": "gpt-4"}
 )
 def get_response(prompt):
     client = OpenAI(api_key="openai-key")
@@ -451,7 +449,7 @@ After setting up monitoring, visit your [Olakai dashboard](https://app.olakai.ai
 - **User Insights** - Individual user behavior patterns
 - **Task Performance** - Monitor different tasks and success rates
 - **Model Comparison** - Compare performance across models
-- **Custom Metrics** - Visualize your custom dimensions and metrics
+- **Custom Data** - Visualize your custom metadata
 
 ---
 
@@ -464,7 +462,7 @@ After setting up monitoring, visit your [Olakai dashboard](https://app.olakai.ai
 - **Use contexts**: Add metadata with `olakai_context()` for rich analytics
 - **Track users**: Always include `userEmail` when possible
 - **Organize tasks**: Use consistent `task` and `subTask` names
-- **Custom dimensions**: Track environment, region, features with `customDimensions`
+- **Custom data**: Track environment, region, features with `customData`
 
 ### Avoid This ❌
 

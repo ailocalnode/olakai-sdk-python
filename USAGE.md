@@ -110,7 +110,7 @@ def handle_support_request(user_email, session_id, user_question, conversation_h
     - Session ID
     - Task category (Customer Support)
     - Subtask (based on question type)
-    - Custom dimensions (user tier, language)
+    - Custom data (user tier, language, conversation length)
     """
 
     # Detect question type
@@ -127,12 +127,10 @@ def handle_support_request(user_email, session_id, user_question, conversation_h
         chatId=session_id,
         task="Customer Support",
         subTask=question_type,
-        customDimensions={
+        customData={
             "user_tier": get_user_tier(user_email),
             "language": "en",
-            "channel": "web-chat"
-        },
-        customMetrics={
+            "channel": "web-chat",
             "conversation_length": len(conversation_history) / 2  # num exchanges
         }
     ):
@@ -208,15 +206,13 @@ def generate_blog_post(topic, target_audience, word_count, user_id):
         userEmail=f"user-{user_id}@example.com",
         task="Content Generation",
         subTask="blog-post",
-        customDimensions={
+        customData={
             "content_type": "blog",
             "topic_category": categorize_topic(topic),
             "target_audience": target_audience,
-            "environment": os.getenv("ENV", "production")
-        },
-        customMetrics={
-            "target_word_count": float(word_count),
-            "user_id": float(user_id)
+            "environment": os.getenv("ENV", "production"),
+            "target_word_count": word_count,
+            "user_id": user_id
         }
     ):
         response = client.chat.completions.create(
@@ -246,7 +242,7 @@ def generate_social_media_post(platform, topic, tone, user_id):
         userEmail=f"user-{user_id}@example.com",
         task="Content Generation",
         subTask=f"social-{platform}",
-        customDimensions={
+        customData={
             "platform": platform,
             "tone": tone,
             "content_type": "social-media"
@@ -331,14 +327,12 @@ Answer:"""
         userEmail=user_email,
         task="RAG Query",
         subTask=f"kb-{knowledge_base}",
-        customDimensions={
+        customData={
             "knowledge_base": knowledge_base,
-            "query_type": "rag"
-        },
-        customMetrics={
-            "docs_retrieved": float(len(documents)),
+            "query_type": "rag",
+            "docs_retrieved": len(documents),
             "avg_doc_relevance": calculate_avg_relevance(documents),
-            "context_length": float(len(context))
+            "context_length": len(context)
         }
     ):
         response = client.chat.completions.create(
@@ -439,12 +433,10 @@ class UserSession:
             userEmail=self.user_email,
             chatId=f"session-{self.user_id}",
             task=task,
-            customDimensions={
+            customData={
                 "user_tier": self.user_tier,
-                "user_id": self.user_id
-            },
-            customMetrics={
-                "conversation_length": float(len(self.conversation_history))
+                "user_id": self.user_id,
+                "conversation_length": len(self.conversation_history)
             }
         ):
             response = client.chat.completions.create(
@@ -621,7 +613,7 @@ def handle_request(user_email, user_tier, request, request_type):
         with olakai_context(
             userEmail=user_email,
             task="Critical Request",
-            customDimensions={"tier": user_tier, "type": request_type}
+            customData={"tier": user_tier, "type": request_type}
         ):
             return client.chat.completions.create(...)
     else:
@@ -645,11 +637,9 @@ def robust_llm_call(prompt, user_email, max_retries=3):
             with olakai_context(
                 userEmail=user_email,
                 task="Robust Call",
-                customDimensions={
-                    "attempt": str(attempt + 1)
-                },
-                customMetrics={
-                    "retry_count": float(attempt)
+                customData={
+                    "attempt": attempt + 1,
+                    "retry_count": attempt
                 }
             ):
                 response = client.chat.completions.create(
@@ -694,7 +684,7 @@ def ab_test_prompts(question, user_email):
     with olakai_context(
         userEmail=user_email,
         task="A/B Test",
-        customDimensions={
+        customData={
             "variant": variant,
             "prompt_strategy": "direct" if variant == "A" else "step-by-step"
         }
@@ -744,7 +734,7 @@ def chat():
         userEmail=user_email,
         chatId=session_id,
         task="Web Chat",
-        customDimensions={
+        customData={
             "endpoint": "/chat",
             "method": "POST"
         }
@@ -795,7 +785,7 @@ async def chat(request: ChatRequest):
         userEmail=request.user_email,
         chatId=request.session_id,
         task="API Chat",
-        customDimensions={
+        customData={
             "endpoint": "/chat",
             "framework": "fastapi"
         }

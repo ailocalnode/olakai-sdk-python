@@ -137,8 +137,7 @@ def test_olakai_event():
         response="Test response",
         userEmail="test@example.com",
         task="test-task",
-        customDimensions={"dim1": "test"},
-        customMetrics={"metric1": 0.95}
+        customData={"dim1": "test", "metric1": 0.95}
     )
 
     # Test event tracking
@@ -232,15 +231,14 @@ def test_api_integration(mock_send):
     mock_send.assert_called_once()
 
 
-def test_custom_dimensions_and_metrics():
-    """Test custom dimensions and metrics functionality."""
+def test_custom_data():
+    """Test custom data functionality."""
     from src.olakaisdk import olakai_monitor, olakai_config, OlakaiEventParams
 
     olakai_config("test-key", "https://test.com")
 
     @olakai_monitor(
-        custom_dimensions={"model": "gpt-4", "language": "en"},
-        custom_metrics={"tokens": 150, "latency": 2.5}
+        customData={"model": "gpt-4", "language": "en", "tokens": 150, "latency": 2.5}
     )
     def test_function():
         return "response"
@@ -252,9 +250,8 @@ def test_custom_dimensions_and_metrics():
     params = OlakaiEventParams(
         prompt="test",
         response="response",
-        customDimensions={"dim1": "production"},
-        customMetrics={"metric1": 0.95}
+        customData={"dim1": "production", "metric1": 0.95}
     )
-    
-    assert params.customDimensions["dim1"] == "production"
-    assert params.customMetrics["metric1"] == 0.95
+
+    assert params.customData["dim1"] == "production"
+    assert params.customData["metric1"] == 0.95
