@@ -159,7 +159,7 @@ examples/
 **`src/olakaisdk/shared/types.py`**
 - `OlakaiConfig`: SDK configuration
 - `OlakaiEventParams`: Event parameters
-- `MonitorPayload`: API payload (customDimensions, customMetrics)
+- `MonitorPayload`: API payload (customData)
 - Response types
 
 ### Design Patterns
