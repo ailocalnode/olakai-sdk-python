@@ -40,7 +40,6 @@ def olakai(params: OlakaiEventParams) -> None:
     except RuntimeError:
         # No event loop running, skip API call
         if config.debug:
-            print(f"Skipping API call - no event loop running")
             print(f"[Olakai SDK] Skipping API call - no event loop running")
 
 
