@@ -94,7 +94,6 @@ def main():
 
     with olakai_context(
         userEmail="demo@example.com",
-        chatId="demo-session-123",
         task="Demo",
         subTask="basic-chat"
     ):

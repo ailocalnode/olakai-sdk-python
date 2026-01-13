@@ -101,13 +101,12 @@ instrument_openai()
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-def handle_support_request(user_email, session_id, user_question, conversation_history):
+def handle_support_request(user_email, user_question, conversation_history):
     """
     Handle a customer support request.
 
     Tracks:
     - User email
-    - Session ID
     - Task category (Customer Support)
     - Subtask (based on question type)
     - Custom data (user tier, language, conversation length)
@@ -124,7 +123,6 @@ def handle_support_request(user_email, session_id, user_question, conversation_h
     # Add metadata context
     with olakai_context(
         userEmail=user_email,
-        chatId=session_id,
         task="Customer Support",
         subTask=question_type,
         customData={
@@ -431,7 +429,6 @@ class UserSession:
         # Create context for this user
         with olakai_context(
             userEmail=self.user_email,
-            chatId=f"session-{self.user_id}",
             task=task,
             customData={
                 "user_tier": self.user_tier,
@@ -727,12 +724,10 @@ def chat():
     data = request.json
     user_email = data.get("user_email")
     message = data.get("message")
-    session_id = data.get("session_id")
 
     # Add context for this request
     with olakai_context(
         userEmail=user_email,
-        chatId=session_id,
         task="Web Chat",
         customData={
             "endpoint": "/chat",
@@ -772,7 +767,6 @@ client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 class ChatRequest(BaseModel):
     user_email: str
     message: str
-    session_id: str
 
 class ChatResponse(BaseModel):
     response: str
@@ -783,7 +777,6 @@ async def chat(request: ChatRequest):
 
     with olakai_context(
         userEmail=request.user_email,
-        chatId=request.session_id,
         task="API Chat",
         customData={
             "endpoint": "/chat",

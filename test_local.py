@@ -42,7 +42,7 @@ async def main():
     )
 
     # Send event - this should NOT raise "Olakai SDK not initialized" anymore
-    olakai("event", "ai_activity", params)
+    olakai(params)
 
     print("SUCCESS: Event sent without initialization error!")
 

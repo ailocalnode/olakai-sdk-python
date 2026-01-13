@@ -54,7 +54,6 @@ def example_customer_support(client):
 
         with olakai_context(
             userEmail=user_email,
-            chatId=f"support-{hash(user_email) % 10000}",
             task="Customer Support",
             subTask=query_type,
             customData={
@@ -195,7 +194,6 @@ def example_nested_contexts(client):
     # Outer context: User session
     with olakai_context(
         userEmail="demo@example.com",
-        chatId="session-789",
         task="Multi-Step Workflow",
         customData={"workflow_id": "workflow-123"}
     ):

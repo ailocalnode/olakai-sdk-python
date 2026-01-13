@@ -10,7 +10,7 @@ from .context import olakai_context, get_current_context
 from .instrumentation import instrument_openai, uninstrument_openai, is_instrumented
 
 # Legacy API (will be deprecated in future versions)
-from .core import olakai, olakai_report, olakai_monitor
+from .core import olakai, olakai_event, olakai_monitor
 from .monitor import olakai_supervisor
 
 # Types
@@ -19,7 +19,7 @@ from .shared import OlakaiBlockedError, MonitorOptions, OlakaiEventParams, Olaka
 __version__ = "1.0.0"
 
 __all__ = [
-    # Primary API (v0.5.0)
+    # Primary API (1.0.0)
     "olakai_config",           # Initialize SDK
     "instrument_openai",       # Auto-instrument OpenAI
     "uninstrument_openai",     # Remove instrumentation
@@ -28,9 +28,9 @@ __all__ = [
     "is_initialized",          # Check if initialized
     "is_instrumented",         # Check if OpenAI is instrumented
     "get_current_context",     # Get current context data
+    "olakai_event",
     # Legacy API (for backward compatibility)
     "olakai",
-    "olakai_report",
     "olakai_monitor",
     "olakai_supervisor",
     # Types

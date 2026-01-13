@@ -13,11 +13,11 @@ def test_version():
 
 def test_import():
     """Test that main functions can be imported."""
-    from src.olakaisdk import olakai_config, olakai_monitor, olakai_report, olakai
+    from src.olakaisdk import olakai_config, olakai_monitor, olakai_event, olakai
 
     assert callable(olakai_config)
     assert callable(olakai_monitor)
-    assert callable(olakai_report)
+    assert callable(olakai_event)
     assert callable(olakai)
 
 
@@ -109,14 +109,14 @@ def test_async_monitor_decorator():
     assert result == 12
 
 
-def test_olakai_report():
-    """Test olakai_report function."""
-    from src.olakaisdk import olakai_report, olakai_config
+def test_olakai_event():
+    """Test olakai_event function."""
+    from src.olakaisdk import olakai_event, olakai_config
 
     olakai_config("test-key", "https://test.com")
 
     # Test basic reporting
-    olakai_report(
+    olakai_event(
         prompt="Test prompt",
         response="Test response",
         options={
@@ -141,7 +141,7 @@ def test_olakai_event():
     )
 
     # Test event tracking
-    olakai("ai_activity", "test_event", params)
+    olakai(params)
 
 
 def test_types_import():
@@ -198,7 +198,7 @@ def test_all_exports():
     expected_exports = [
         "olakai_config",
         "olakai_monitor",
-        "olakai_report",
+        "olakai_event",
         "olakai",
         "get_config",
         "MonitorOptions",

@@ -151,7 +151,7 @@ from olakaisdk import (
 ```python
 from olakaisdk import (
     olakai_monitor,     # Use instrument_openai() instead
-    olakai_report,      # Use auto-instrumentation
+    olakai_event,      # Use auto-instrumentation
     olakai,             # Use auto-instrumentation
     olakai_supervisor,  # Legacy alias
 )

@@ -30,14 +30,12 @@ def test_context_all_fields():
 
     with olakai_context(
         userEmail="user@example.com",
-        chatId="chat-123",
         task="Support",
         subTask="password-reset",
         customData={"env": "prod", "region": "us", "tier": 3, "score": 0.95}
     ):
         context = get_current_context()
         assert context.userEmail == "user@example.com"
-        assert context.chatId == "chat-123"
         assert context.task == "Support"
         assert context.subTask == "password-reset"
         assert context.customData == {"env": "prod", "region": "us", "tier": 3, "score": 0.95}
@@ -71,12 +69,12 @@ def test_context_nested_override():
     clear_context()
 
     with olakai_context(task="Task1", userEmail="user1@example.com"):
-        with olakai_context(task="Task2", chatId="chat-123"):
+        with olakai_context(task="Task2", subTask="sub-123"):
             context = get_current_context()
             # Task should be overridden
             assert context.task == "Task2"
-            # chatId should be added
-            assert context.chatId == "chat-123"
+            # subTask should be added
+            assert context.subTask == "sub-123"
             # userEmail should be inherited
             assert context.userEmail == "user1@example.com"
 
@@ -109,7 +107,6 @@ def test_context_to_dict():
     assert result["userEmail"] == "user@example.com"
     assert result["task"] == "Test"
     assert result["customData"] == {"key": "value"}
-    assert result["chatId"] is None
     assert result["subTask"] is None
 
 
@@ -144,7 +141,6 @@ def test_context_empty():
         context = get_current_context()
         assert context is not None
         assert context.userEmail is None
-        assert context.chatId is None
         assert context.task is None
         assert context.customData == {}
 

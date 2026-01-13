@@ -4,6 +4,7 @@ from typing import Any, Dict, Optional
 from ..shared.types import MonitorPayload
 from ..context import OlakaiContextData
 from .base_extractor import BaseExtractor
+from ..config import require_config
 
 
 class OpenAIExtractor(BaseExtractor):
@@ -70,10 +71,14 @@ class OpenAIExtractor(BaseExtractor):
         if api_key_value:
             custom_data["api_key"] = api_key_value
 
+        # Get chatId from config sessionId
+        config = require_config()
+        chatId = config.sessionId;
+
         # Build payload
         payload = MonitorPayload(
             userEmail=context_data.userEmail or "anonymous@olakai.ai",
-            chatId=context_data.chatId or "anonymous",
+            chatId=chatId,
             prompt=prompt_text,
             response=response_text,
             tokens=tokens_total,
