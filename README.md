@@ -8,16 +8,16 @@
 
 ---
 
-## What's New in v0.5.0 🎉
+## What's New in v1.0.0 🎉
 
-**Automatic instrumentation is here!** No more manual decorators or payload construction. Just install, configure once, and monitor all your LLM calls automatically.
+**First stable release!** The Olakai Python SDK is now production-ready with a stable API for auto-instrumentation of LLM providers.
 
+- ✅ **Production stable** - v1.0.0 marks the first stable release
+- ✅ **Simplified payload** - Unified `customData` field replaces `customDimensions` and `customMetrics`
+- ✅ **New `olakai_event()` function** - Manually send event reports when needed
+- ✅ **Streamlined session management** - `chatId` removed from context; sessions managed internally via `sessionId`
 - ✅ **Auto-instrument OpenAI** - One line to monitor all OpenAI calls
 - ✅ **Zero code changes** - Works with existing OpenAI code
-- ✅ **Automatic data extraction** - Tokens, costs, models, API keys
-- ✅ **Streaming support** - Handles both regular and streaming responses
-- ✅ **Context-based metadata** - Add user/session data with context managers
-- ✅ **Server-focused** - Designed for backend Python applications
 
 ---
 
@@ -287,13 +287,14 @@ instrument_openai(
 
 ## API Reference
 
-### Primary API (v0.5.0)
+### Primary API (v1.0.0)
 
 #### `olakai_config(api_key, endpoint="https://app.olakai.ai", debug=False)`
 
 Initialize the Olakai SDK. Must be called before instrumentation.
 
 **Parameters:**
+
 - `api_key` (str): Your Olakai API key
 - `endpoint` (str, optional): API endpoint URL
 - `debug` (bool, optional): Enable debug logging
@@ -305,11 +306,13 @@ Initialize the Olakai SDK. Must be called before instrumentation.
 Auto-instrument OpenAI SDK for monitoring.
 
 **Parameters:**
+
 - `capture_inputs` (bool): Capture prompt/messages
 - `capture_outputs` (bool): Capture responses
 - `capture_api_keys` (bool): Track API keys for cost analysis
 
 **Raises:**
+
 - `RuntimeError`: If SDK not configured with `olakai_config()`
 - `ImportError`: If OpenAI SDK not installed
 
@@ -320,6 +323,7 @@ Auto-instrument OpenAI SDK for monitoring.
 Context manager to add metadata to LLM calls.
 
 **Parameters:**
+
 - `userEmail` (str, optional): User email for tracking
 - `chatId` (str, optional): Session/chat identifier
 - `task` (str, optional): High-level task category
@@ -327,6 +331,7 @@ Context manager to add metadata to LLM calls.
 - `customData` (dict, optional): Custom metadata (string, int, float, or bool values)
 
 **Example:**
+
 ```python
 with olakai_context(userEmail="user@example.com", task="Support"):
     # Your OpenAI calls here
@@ -346,6 +351,39 @@ Remove OpenAI instrumentation. Restores original OpenAI behavior.
 Check if OpenAI is currently instrumented.
 
 **Returns:** `bool`
+
+---
+
+#### `olakai_event(params)`
+
+Send manual report of AI interaction.
+
+**Parameters:**
+
+- `params` (OlakaiEventParams)
+
+Where `OlakaiEventParams` has the fields:
+
+- `prompt` (str): Interaction prompt
+- `response` (str): Interaction response
+- `userEmail` (str, optional): User email for tracking
+- `task` (str, optional): High-level task category
+- `subTask` (str, optional): Specific subtask
+- `customData` (dict, optional): Custom metadata (string, int, float, or bool values)
+- `shouldScore` (bool, optional): Whether scoring should be applied to the data
+- `tokens` (int, optional): Number of tokens used
+- `requestTime` (int, optional): Time in milliseconds of the interaction
+
+**Example:**
+
+```python
+    olakai_event(OlakaiEventParams(
+        prompt="Test prompt",
+        response="Test response",
+        userEmail="test@example.com",
+        task="test-task"
+    ))
+```
 
 ---
 
@@ -432,6 +470,7 @@ with olakai_context(userEmail="user@example.com", task="Support"):
 ```
 
 **Key Improvements:**
+
 - ✅ No decorators needed
 - ✅ Model name automatically captured
 - ✅ Tokens automatically captured
@@ -505,6 +544,7 @@ ImportError: OpenAI SDK not installed. Install with: pip install openai
 ### No data in dashboard
 
 **Possible causes:**
+
 1. Check API key is correct
 2. Enable debug mode: `olakai_config("key", debug=True)`
 3. Verify network connectivity
@@ -537,6 +577,7 @@ for chunk in response:
 See [USAGE.md](./USAGE.md) for more detailed examples and use cases.
 
 Try the sample script:
+
 ```bash
 python examples/basic_example.py
 ```

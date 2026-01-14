@@ -1,8 +1,8 @@
-# Olakai SDK v0.5.0 - Implementation Summary
+# Olakai SDK v1.0.0 - Implementation Summary
 
-## 🎉 Refactor Complete!
+## 🎉 First Stable Release!
 
-The Olakai Python SDK has been successfully refactored from a decorator-based monitoring tool to a modern **auto-instrumentation SDK** for LLM monitoring.
+The Olakai Python SDK v1.0.0 is now production-ready, providing a modern **auto-instrumentation SDK** for LLM monitoring with a stable API.
 
 ---
 
@@ -107,7 +107,7 @@ src/olakaisdk/
    - Production best practices
 
 3. **CHANGELOG.md** - Version history
-   - v0.5.0 release notes
+   - v1.0.0 stable release notes
    - Breaking changes
    - Migration guide
 
@@ -126,7 +126,7 @@ src/olakaisdk/
 
 ## API Changes
 
-### New Public API (v0.5.0)
+### Public API (v1.0.0)
 
 ```python
 from olakaisdk import (
@@ -143,16 +143,18 @@ from olakaisdk import (
     # Context
     olakai_context,
     get_current_context,
+
+    # Manual Event Reporting
+    olakai_event,       # New in v1.0.0 - send manual event reports
 )
 ```
 
-### Deprecated (Still Available)
+### Legacy (Still Available)
 
 ```python
 from olakaisdk import (
     olakai_monitor,     # Use instrument_openai() instead
-    olakai_event,      # Use auto-instrumentation
-    olakai,             # Use auto-instrumentation
+    olakai,             # Low-level API
     olakai_supervisor,  # Legacy alias
 )
 ```
@@ -175,7 +177,7 @@ def get_response(prompt):
     return response.choices[0].message.content
 ```
 
-### After (v0.5.0)
+### After (v1.0.0)
 
 ```python
 from olakaisdk import olakai_config, instrument_openai, olakai_context
@@ -190,6 +192,17 @@ client = OpenAI(api_key="openai-key")
 with olakai_context(userEmail="user@example.com", task="Support"):
     response = client.chat.completions.create(...)
     # Automatically tracked with tokens, model, latency, etc.
+
+# Or use olakai_event() for manual reporting
+from olakaisdk import olakai_event, OlakaiEventParams
+
+olakai_event(OlakaiEventParams(
+    prompt="Hello",
+    response="Hi there!",
+    userEmail="user@example.com",
+    task="Support",
+    customData={"model": "gpt-4", "tokens": 50}
+))
 ```
 
 ---
@@ -266,8 +279,8 @@ The refactor addressed all your original requirements:
 - `CHANGELOG.md`
 
 ### Updated Files (5)
-- `src/olakaisdk/__init__.py` - New public API
-- `pyproject.toml` - Version 0.5.0, new dependencies
+- `src/olakaisdk/__init__.py` - Public API (v1.0.0)
+- `pyproject.toml` - Version 1.0.0
 - `README.md` - Complete rewrite
 - `USAGE.md` - New comprehensive guide
 - `CLAUDE.md` - Updated development guide
@@ -294,7 +307,7 @@ The refactor addressed all your original requirements:
 
 ## Next Steps (Future Enhancements)
 
-### Planned for v0.6.0+
+### Planned for v1.1.0+
 1. **Anthropic instrumentation** - `instrument_anthropic()` for Claude
 2. **Google AI instrumentation** - `instrument_google()` for Gemini
 3. **Local model support** - Ollama, LM Studio
@@ -319,23 +332,20 @@ The refactor addressed all your original requirements:
 
 ---
 
-## Breaking Changes
+## Breaking Changes (v0.5.0 → v1.0.0)
 
-v0.5.0 is **not backward compatible** with v0.4.0:
+### Changed in v1.0.0
+- **`customDimensions` and `customMetrics`** replaced with unified `customData` field
+- **`chatId`** removed from `OlakaiContextData`; session tracking now uses internal `sessionId` (UUID)
+- **`olakai_report()`** renamed to `olakai_event()` with simplified signature
+- **`olakai()`** signature simplified to take only `params` (removed `event_type` and `event_name`)
 
-### Removed
-- Complex initialization options
-- Batching
-- Local storage
-- Priority queuing
-
-### Changed
-- Complete API redesign
-- Focus on auto-instrumentation
-- Server-side only
+### Added in v1.0.0
+- `olakai_event()` - New function for manual event reporting
+- `sessionId` - Auto-generated UUID in `OlakaiConfig` for session tracking
 
 ### Migration Path
-The old decorator-based API is still available for backward compatibility but will be removed in v1.0.0. Users should migrate to the new auto-instrumentation API.
+The v1.0.0 API is now stable. Legacy functions (`olakai_monitor`, `olakai_supervisor`) remain available for backward compatibility.
 
 ---
 
@@ -362,19 +372,20 @@ The old decorator-based API is still available for backward compatibility but wi
 
 ## Conclusion
 
-The Olakai SDK v0.5.0 refactor successfully transforms the SDK into a modern auto-instrumentation library that:
+The Olakai SDK v1.0.0 is the first stable production release, providing a modern auto-instrumentation library that:
 
 1. **Dramatically improves DX** - From decorating every function to one-line setup
 2. **Captures rich telemetry** - Automatic extraction of all LLM-specific data
 3. **Enables cost tracking** - API key tracking for ROI analysis
 4. **Maintains simplicity** - Server-focused, no unnecessary complexity
-5. **Sets foundation** - Clean architecture for adding more providers
+5. **Provides flexibility** - `olakai_event()` for manual reporting when needed
+6. **Sets foundation** - Clean architecture for adding more providers
 
-The implementation is complete, tested, documented, and ready for release! 🚀
+The implementation is complete, tested, documented, and production-ready! 🚀
 
 ---
 
 **Built by**: Claude Code
-**Date**: November 19, 2024
-**Version**: 0.5.0
-**Status**: ✅ Complete & Ready for Release
+**Date**: January 2025
+**Version**: 1.0.0
+**Status**: ✅ Stable Production Release

@@ -1,6 +1,6 @@
 # Olakai SDK - Usage Guide
 
-Comprehensive guide with real-world examples for the Olakai Python SDK v0.5.0.
+Comprehensive guide with real-world examples for the Olakai Python SDK v1.0.0.
 
 ---
 
@@ -8,6 +8,7 @@ Comprehensive guide with real-world examples for the Olakai Python SDK v0.5.0.
 
 - [Getting Started](#getting-started)
 - [Basic Usage](#basic-usage)
+- [Manual Event Reporting](#manual-event-reporting)
 - [Real-World Examples](#real-world-examples)
   - [Customer Support Chatbot](#customer-support-chatbot)
   - [Content Generation Service](#content-generation-service)
@@ -81,6 +82,180 @@ print(response.choices[0].message.content)
 ```
 
 That's it! All metrics are automatically tracked.
+
+---
+
+## Manual Event Reporting
+
+While auto-instrumentation handles most use cases, you can use `olakai_event()` to manually report events when you need more control or when working with non-instrumented LLM providers.
+
+### Basic Manual Reporting
+
+```python
+import os
+from olakaisdk import olakai_config, olakai_event, OlakaiEventParams
+
+# Configure Olakai
+olakai_config(os.getenv("OLAKAI_API_KEY"))
+
+# Send a manual event report
+olakai_event(OlakaiEventParams(
+    prompt="What is the capital of France?",
+    response="The capital of France is Paris.",
+    userEmail="user@example.com",
+    task="Geography Q&A"
+))
+```
+
+### With Custom Metadata
+
+```python
+from olakaisdk import olakai_event, OlakaiEventParams
+
+# Report with full metadata
+olakai_event(OlakaiEventParams(
+    prompt="Generate a product description for wireless headphones",
+    response="Experience crystal-clear sound with our premium wireless headphones...",
+    userEmail="marketing@company.com",
+    userId="user-12345",
+    task="Content Generation",
+    subTask="product-description",
+    customData={
+        "product_category": "electronics",
+        "target_audience": "consumers",
+        "word_count": 150,
+        "model": "gpt-4",
+        "temperature": 0.7
+    },
+    tokens=200,
+    requestTime=1500  # milliseconds
+))
+```
+
+### Tracking Non-OpenAI Providers
+
+Use `olakai_event()` to track LLM calls from providers that aren't auto-instrumented:
+
+```python
+import anthropic
+import time
+from olakaisdk import olakai_config, olakai_event, OlakaiEventParams
+
+olakai_config(os.getenv("OLAKAI_API_KEY"))
+
+def call_claude_with_tracking(prompt: str, user_email: str):
+    """Call Claude API with manual tracking."""
+
+    client = anthropic.Anthropic()
+
+    start_time = time.time()
+
+    # Make the API call
+    response = client.messages.create(
+        model="claude-3-opus-20240229",
+        max_tokens=1024,
+        messages=[{"role": "user", "content": prompt}]
+    )
+
+    duration_ms = int((time.time() - start_time) * 1000)
+    response_text = response.content[0].text
+
+    # Report the event manually
+    olakai_event(OlakaiEventParams(
+        prompt=prompt,
+        response=response_text,
+        userEmail=user_email,
+        task="Claude Chat",
+        customData={
+            "provider": "anthropic",
+            "model": "claude-3-opus-20240229",
+            "input_tokens": response.usage.input_tokens,
+            "output_tokens": response.usage.output_tokens
+        },
+        tokens=response.usage.input_tokens + response.usage.output_tokens,
+        requestTime=duration_ms
+    ))
+
+    return response_text
+
+# Example usage
+result = call_claude_with_tracking(
+    prompt="Explain quantum computing in simple terms",
+    user_email="researcher@university.edu"
+)
+print(result)
+```
+
+### Batch Processing with Manual Events
+
+```python
+from olakaisdk import olakai_event, OlakaiEventParams
+import asyncio
+
+async def process_batch_with_tracking(items: list, user_email: str):
+    """Process a batch of items and report each as an event."""
+
+    results = []
+
+    for i, item in enumerate(items):
+        # Your processing logic here
+        prompt = item["prompt"]
+        response = await your_llm_call(prompt)
+
+        # Report each item
+        olakai_event(OlakaiEventParams(
+            prompt=prompt,
+            response=response,
+            userEmail=user_email,
+            task="Batch Processing",
+            customData={
+                "batch_index": i,
+                "batch_size": len(items),
+                "item_id": item.get("id")
+            }
+        ))
+
+        results.append(response)
+
+    return results
+```
+
+### Combining Auto-Instrumentation and Manual Events
+
+You can use both approaches in the same application:
+
+```python
+from olakaisdk import (
+    olakai_config,
+    instrument_openai,
+    olakai_context,
+    olakai_event,
+    OlakaiEventParams
+)
+from openai import OpenAI
+
+olakai_config(os.getenv("OLAKAI_API_KEY"))
+instrument_openai()  # Auto-track OpenAI calls
+
+client = OpenAI()
+
+# Auto-instrumented OpenAI call
+with olakai_context(userEmail="user@example.com", task="Chat"):
+    response = client.chat.completions.create(
+        model="gpt-4",
+        messages=[{"role": "user", "content": "Hello!"}]
+    )
+    # ^ This is automatically tracked
+
+# Manual event for custom processing
+olakai_event(OlakaiEventParams(
+    prompt="Custom pipeline input",
+    response="Custom pipeline output",
+    userEmail="user@example.com",
+    task="Custom Processing",
+    customData={"pipeline": "custom-v2"}
+))
+```
 
 ---
 

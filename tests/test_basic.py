@@ -3,7 +3,7 @@
 import pytest
 import asyncio
 from unittest.mock import Mock, patch
-from src.olakaisdk import __version__
+from src.olakaisdk import OlakaiEventParams, __version__
 
 
 def test_version():
@@ -115,15 +115,15 @@ def test_olakai_event():
 
     olakai_config("test-key", "https://test.com")
 
-    # Test basic reporting
-    olakai_event(
+    params = OlakaiEventParams(
         prompt="Test prompt",
         response="Test response",
-        options={
-            "email": "test@example.com",
-            "task": "test-task"
-        }
+        userEmail="test@example.com",
+        task="test-task"
     )
+
+    # Test basic reporting
+    olakai_event(params)
 
 
 def test_olakai_event():

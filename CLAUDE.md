@@ -4,11 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Olakai Python SDK v0.5.0 is an **auto-instrumentation SDK** for monitoring LLM usage in server-side Python applications. It automatically tracks OpenAI API calls with zero code changes, capturing tokens, costs, models, and custom metadata.
+Olakai Python SDK v1.0.0 is an **auto-instrumentation SDK** for monitoring LLM usage in server-side Python applications. It automatically tracks OpenAI API calls with zero code changes, capturing tokens, costs, models, and custom metadata.
 
-**Key Concepts (v0.5.0):**
+**Key Concepts (v1.0.0):**
+
 - **Auto-instrumentation**: Monkey-patches OpenAI SDK to automatically track all calls
-- **Context-based metadata**: Use `olakai_context()` to add user/session data
+- **Context-based metadata**: Use `olakai_context()` to add user/custom data
+- **Manual event reporting**: Use `olakai_event()` to send custom event reports
+- **Unified customData**: Single `customData` field for all custom metadata (replaces `customDimensions`/`customMetrics`)
 - **Streaming support**: Buffers streaming responses and sends telemetry when complete
 - **Server-focused**: Designed for backend applications (FastAPI, Flask, Django)
 - **Thread-safe**: Uses Python's contextvars for async safety
@@ -17,6 +20,7 @@ Olakai Python SDK v0.5.0 is an **auto-instrumentation SDK** for monitoring LLM u
 ## Commands
 
 ### Development Setup
+
 ```bash
 # Install with development dependencies
 pip install -e ".[dev]"
@@ -26,6 +30,7 @@ pip install -e ".[dev]"
 ```
 
 ### Testing
+
 ```bash
 # Run all tests
 /usr/bin/python3 -m pytest
@@ -43,6 +48,7 @@ pip install -e ".[dev]"
 ```
 
 ### Code Quality
+
 ```bash
 # Run all checks (formatting, linting, type checking, tests)
 ./tests/check.sh
@@ -58,6 +64,7 @@ mypy --ignore-missing-imports src/olakaisdk tests
 ```
 
 ### Building & Publishing
+
 ```bash
 # Build distribution packages
 python -m build
@@ -70,6 +77,7 @@ twine upload dist/*
 ```
 
 ### Running Examples
+
 ```bash
 # Set API keys
 export OLAKAI_API_KEY=your-olakai-key
@@ -82,13 +90,13 @@ export OPENAI_API_KEY=your-openai-key
 /usr/bin/python3 examples/advanced_example.py
 ```
 
-## Architecture (v0.5.0)
+## Architecture (v1.0.0)
 
 ### Module Structure
 
 ```
 src/olakaisdk/
-├── __init__.py              # Public API exports (v0.5.0 + legacy)
+├── __init__.py              # Public API exports (v1.0.0 + legacy)
 ├── config.py                # Global configuration (olakai_config, get_config)
 ├── context.py               # Context manager (olakai_context, thread-safe)
 ├── instrumentation/         # Provider-specific instrumentation
@@ -99,7 +107,7 @@ src/olakaisdk/
 │   ├── __init__.py
 │   ├── base_extractor.py    # Base extractor interface
 │   └── openai_extractor.py  # Extract tokens, model, API key, etc.
-├── client/                  # API communication (unchanged)
+├── client/                  # API communication
 │   ├── __init__.py
 │   ├── api.py               # HTTP client with retry logic
 │   └── client.py
@@ -107,17 +115,17 @@ src/olakaisdk/
 │   ├── __init__.py
 │   ├── types.py             # OlakaiConfig, MonitorPayload, etc.
 │   └── exceptions.py
-├── core.py                  # Legacy API (olakai, olakai_report, olakai_monitor)
+├── core.py                  # Core API (olakai, olakai_event, olakai_monitor)
 └── monitor/                 # Legacy decorator (olakai_supervisor)
     ├── __init__.py
     └── decorator.py
 
 tests/
 ├── __init__.py
-├── test_basic.py            # Legacy tests (some failing - expected)
-├── test_config.py           # Config module tests (9 tests, all passing)
-├── test_context.py          # Context module tests (12 tests, all passing)
-├── test_instrumentation.py  # Instrumentation tests (8 tests, all passing)
+├── test_basic.py            # Basic tests
+├── test_config.py           # Config module tests
+├── test_context.py          # Context module tests
+├── test_instrumentation.py  # Instrumentation tests
 └── check.sh                 # Code quality script
 
 examples/
@@ -129,6 +137,7 @@ examples/
 ### Key Files
 
 **`src/olakaisdk/config.py`**
+
 - Global configuration management via `_global_config`
 - `olakai_config(api_key, endpoint, debug)`: Initialize SDK
 - `get_config()`: Get current configuration
@@ -136,13 +145,16 @@ examples/
 - `is_initialized()`: Check if SDK is configured
 
 **`src/olakaisdk/context.py`**
+
 - Thread-safe context storage using `contextvars`
-- `OlakaiContextData`: Dataclass for context metadata
+- `OlakaiContextData`: Dataclass for context metadata (userEmail, userId, task, subTask, customData)
 - `olakai_context(**metadata)`: Context manager for adding metadata
 - `get_current_context()`: Get current context (used by instrumentation)
 - Supports nested contexts with merging
+- Note: `chatId` removed in v1.0.0; session tracking via `config.sessionId`
 
 **`src/olakaisdk/instrumentation/openai.py`**
+
 - Monkey patches OpenAI SDK methods
 - `instrument_openai()`: Wrap OpenAI's chat.completions.create
 - `uninstrument_openai()`: Restore original methods
@@ -151,36 +163,42 @@ examples/
 - Fire-and-forget telemetry (non-blocking)
 
 **`src/olakaisdk/extractors/openai_extractor.py`**
+
 - `OpenAIExtractor`: Extract telemetry from OpenAI responses
 - Extracts: tokens (input/output), model, API key, latency
 - Merges with context metadata
 - Privacy controls for redacting data
 
 **`src/olakaisdk/shared/types.py`**
-- `OlakaiConfig`: SDK configuration
-- `OlakaiEventParams`: Event parameters
-- `MonitorPayload`: API payload (customData)
+
+- `OlakaiConfig`: SDK configuration (api_key, endpoint, debug, sessionId as UUID)
+- `OlakaiEventParams`: Event parameters (prompt, response, userEmail, userId, task, subTask, customData)
+- `MonitorPayload`: API payload (customData replaces customDimensions/customMetrics)
 - Response types
 
 ### Design Patterns
 
 **Monkey Patching for Auto-Instrumentation**
+
 - Wraps `openai.resources.chat.completions.Completions.create`
 - Stores original methods in module-level variables
 - Restores originals on `uninstrument_openai()`
 
 **Context Manager Pattern**
+
 - `olakai_context()` uses Python's contextvar for thread safety
 - Supports nesting with automatic merging
 - Context survives async boundaries
 
 **Streaming Buffering**
+
 - Wraps streaming generators/async generators
 - Buffers all chunks while yielding to user
 - Sends telemetry after stream completes
 - Reconstructs complete response from chunks
 
 **Fire-and-Forget Telemetry**
+
 - Sync calls: Try to create asyncio task, skip if no loop
 - Async calls: Properly await API calls
 - Errors in telemetry don't affect user code
@@ -190,6 +208,7 @@ examples/
 ### Thread Safety
 
 The SDK uses `contextvars.ContextVar` for thread-safe context storage. This ensures:
+
 - Each async task has its own context
 - Nested contexts work correctly
 - No race conditions in multi-threaded applications
@@ -197,6 +216,7 @@ The SDK uses `contextvars.ContextVar` for thread-safe context storage. This ensu
 ### Streaming Support
 
 Streaming responses are handled specially:
+
 1. Detect `stream=True` in kwargs
 2. Wrap the generator/async generator
 3. Buffer chunks while yielding to user
@@ -208,6 +228,7 @@ Streaming responses are handled specially:
 ### API Key Tracking
 
 The SDK captures the full API key for backend cost tracking. This is intentional for:
+
 - Per-API-key usage analysis
 - Cost attribution
 - ROI measurement per agent
@@ -239,6 +260,7 @@ The API key is sent in `customDimensions["api_key"]`.
 6. Add tests in `tests/test_instrumentation.py`
 
 Example structure:
+
 ```python
 # instrumentation/anthropic.py
 def instrument_anthropic():
@@ -262,6 +284,7 @@ class AnthropicExtractor(BaseExtractor):
 ### Debugging Instrumentation
 
 Enable debug mode to see what's happening:
+
 ```python
 from olakaisdk import olakai_config, is_instrumented
 
@@ -295,39 +318,37 @@ All tests use mocks to avoid network calls.
 ### Test Coverage
 
 Current: 35 passing tests covering:
+
 - Configuration management
 - Context nesting and merging
 - Data extraction from responses
 - Privacy controls (redaction)
 - Error handling
 
-## Migration Notes (v0.4.0 → v0.5.0)
+## Migration Notes (v0.5.0 → v1.0.0)
 
-This is a **breaking change**. The entire API has been redesigned:
+### Breaking Changes
 
-### Removed
-- `@olakai_monitor()` decorator (use `instrument_openai()` instead)
-- `olakai_report()` function (use auto-instrumentation)
-- `olakai()` low-level API (use auto-instrumentation)
+- **`customDimensions` and `customMetrics` replaced** with unified `customData` field
+- **`chatId` removed** from `OlakaiContextData` and `olakai_context()`; session tracking now uses internal `sessionId` (UUID)
+- **`olakai_report()` renamed** to `olakai_event()` with simplified signature: `olakai_event(params: OlakaiEventParams)`
+- **`olakai()` signature changed**: now takes only `params` (removed `event_type` and `event_name`)
 
 ### Added
-- `instrument_openai()` - Auto-instrumentation
-- `olakai_context()` - Context manager
-- `uninstrument_openai()` - Remove instrumentation
-- `is_instrumented()` - Check status
+
+- `olakai_event()` - New function for manually sending event reports
+- `sessionId` - Auto-generated UUID in `OlakaiConfig` for session tracking
 
 ### Changed
-- Version: 0.4.0 → 0.5.0
-- Description: Focus on auto-instrumentation
-- Architecture: New modular design
 
-The old decorator-based API is still available for backward compatibility but is deprecated.
+- Version: 0.5.0 → 1.0.0
+- Stable production-ready API
 
 ## Package Distribution
 
 - **Package name**: `olakai-sdk` (PyPI)
 - **Import name**: `olakaisdk`
-- **Version**: 0.5.0
+- **Version**: 1.0.0
 - **Python**: 3.7+
 - **Dependencies**: `requests>=2.25.0`, `typing-extensions>=3.7.4` (for Python < 3.8)
 - **Optional**: `openai>=1.0.0` (for OpenAI instrumentation)
@@ -335,6 +356,7 @@ The old decorator-based API is still available for backward compatibility but is
 ## Future Enhancements
 
 Planned for future releases:
+
 - **Anthropic instrumentation**: `instrument_anthropic()` for Claude
 - **Google AI instrumentation**: `instrument_google()` for Gemini
 - **Local models**: Support for Ollama, LM Studio
