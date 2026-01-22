@@ -2,8 +2,9 @@
 Simplified types for the Olakai SDK.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional, List, Union, Dict
+import uuid
 
 JSONType = Union[
     None, bool, int, float, str, Dict[str, "JSONType"], List["JSONType"]
@@ -17,6 +18,7 @@ class OlakaiConfig:
     api_key: str
     endpoint: str = "https://app.olakai.ai"
     debug: bool = False
+    sessionId: str = field(default_factory=lambda: str(uuid.uuid4()))
 
 
 @dataclass
@@ -27,11 +29,9 @@ class OlakaiEventParams:
     response: str
     userEmail: Optional[str] = "anonymous@olakai.ai"
     userId: Optional[str] = None  # SDK client's user ID for tracking
-    chatId: Optional[str] = None
     task: Optional[str] = None
     subTask: Optional[str] = None
-    customDimensions: Optional[Dict[str, str]] = None
-    customMetrics: Optional[Dict[str, float]] = None
+    customData: Optional[Dict[str, Union[str, int, float, bool]]] = None
     shouldScore: bool = True
     tokens: Optional[int] = 0
     requestTime: Optional[int] = 0
@@ -43,11 +43,9 @@ class MonitorOptions:
 
     userEmail: Optional[str] = "anonymous@olakai.ai"
     userId: Optional[str] = None  # SDK client's user ID for tracking
-    chatId: Optional[str] = None
     task: Optional[str] = None
     subTask: Optional[str] = None
-    customDimensions: Optional[Dict[str, str]] = None
-    customMetrics: Optional[Dict[str, float]] = None
+    customData: Optional[Dict[str, Union[str, int, float, bool]]] = None
     shouldScore: bool = True
 
 
@@ -67,8 +65,7 @@ class MonitorPayload:
     subTask: Optional[str] = None
     errorMessage: Optional[str] = None
     sensitivity: Optional[List[str]] = None
-    customDimensions: Optional[Dict[str, str]] = None
-    customMetrics: Optional[Dict[str, float]] = None
+    customData: Optional[Dict[str, Union[str, int, float, bool]]] = None
     shouldScore: Optional[bool] = True
 
 
@@ -78,7 +75,6 @@ class ControlPayload:
 
     prompt: JSONType
     email: Optional[str] = "anonymous@olakai.ai"
-    chatId: Optional[str] = "123"
     task: Optional[str] = None
     subTask: Optional[str] = None
     tokens: Optional[int] = 0

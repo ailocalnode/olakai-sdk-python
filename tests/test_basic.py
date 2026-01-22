@@ -3,7 +3,7 @@
 import pytest
 import asyncio
 from unittest.mock import Mock, patch
-from src.olakaisdk import __version__
+from src.olakaisdk import OlakaiEventParams, __version__
 
 
 def test_version():
@@ -13,11 +13,11 @@ def test_version():
 
 def test_import():
     """Test that main functions can be imported."""
-    from src.olakaisdk import olakai_config, olakai_monitor, olakai_report, olakai
+    from src.olakaisdk import olakai_config, olakai_monitor, olakai_event, olakai
 
     assert callable(olakai_config)
     assert callable(olakai_monitor)
-    assert callable(olakai_report)
+    assert callable(olakai_event)
     assert callable(olakai)
 
 
@@ -109,21 +109,21 @@ def test_async_monitor_decorator():
     assert result == 12
 
 
-def test_olakai_report():
-    """Test olakai_report function."""
-    from src.olakaisdk import olakai_report, olakai_config
+def test_olakai_event():
+    """Test olakai_event function."""
+    from src.olakaisdk import olakai_event, olakai_config
 
     olakai_config("test-key", "https://test.com")
 
-    # Test basic reporting
-    olakai_report(
+    params = OlakaiEventParams(
         prompt="Test prompt",
         response="Test response",
-        options={
-            "email": "test@example.com",
-            "task": "test-task"
-        }
+        userEmail="test@example.com",
+        task="test-task"
     )
+
+    # Test basic reporting
+    olakai_event(params)
 
 
 def test_olakai_event():
@@ -137,12 +137,11 @@ def test_olakai_event():
         response="Test response",
         userEmail="test@example.com",
         task="test-task",
-        customDimensions={"dim1": "test"},
-        customMetrics={"metric1": 0.95}
+        customData={"dim1": "test", "metric1": 0.95}
     )
 
     # Test event tracking
-    olakai("ai_activity", "test_event", params)
+    olakai(params)
 
 
 def test_types_import():
@@ -199,7 +198,7 @@ def test_all_exports():
     expected_exports = [
         "olakai_config",
         "olakai_monitor",
-        "olakai_report",
+        "olakai_event",
         "olakai",
         "get_config",
         "MonitorOptions",
@@ -232,15 +231,14 @@ def test_api_integration(mock_send):
     mock_send.assert_called_once()
 
 
-def test_custom_dimensions_and_metrics():
-    """Test custom dimensions and metrics functionality."""
+def test_custom_data():
+    """Test custom data functionality."""
     from src.olakaisdk import olakai_monitor, olakai_config, OlakaiEventParams
 
     olakai_config("test-key", "https://test.com")
 
     @olakai_monitor(
-        custom_dimensions={"model": "gpt-4", "language": "en"},
-        custom_metrics={"tokens": 150, "latency": 2.5}
+        customData={"model": "gpt-4", "language": "en", "tokens": 150, "latency": 2.5}
     )
     def test_function():
         return "response"
@@ -252,9 +250,8 @@ def test_custom_dimensions_and_metrics():
     params = OlakaiEventParams(
         prompt="test",
         response="response",
-        customDimensions={"dim1": "production"},
-        customMetrics={"metric1": 0.95}
+        customData={"dim1": "production", "metric1": 0.95}
     )
-    
-    assert params.customDimensions["dim1"] == "production"
-    assert params.customMetrics["metric1"] == 0.95
+
+    assert params.customData["dim1"] == "production"
+    assert params.customData["metric1"] == 0.95

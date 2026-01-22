@@ -21,11 +21,9 @@ def olakai_monitor(**kwargs):
 
     Kwargs:
         userEmail: str
-        chatId: str
         task: str
         subTask: str
-        customDimensions: Dict[str, str]
-        customMetrics: Dict[str, float]
+        customData: Dict[str, Union[str, int, float, bool]]
         shouldScore: bool
 
     Returns:
@@ -38,9 +36,9 @@ def olakai_monitor(**kwargs):
                 try:
                     setattr(options, key, value)
                 except Exception as e:
-                    print(f"Error setting attribute, check the type of the value: {e}")
+                    print(f"[Olakai SDK] Error setting attribute, check the type of the value: {e}")
             else:
-                print(f"Invalid keyword argument: {key}")
+                print(f"[Olakai SDK] Invalid keyword argument: {key}")
 
     def wrap(f: Callable) -> Callable:
         async def async_wrapped_f(*args, **kwargs):
@@ -58,14 +56,14 @@ def olakai_monitor(**kwargs):
                     requestTime=0,  # Simplified - no timing
                     task=options.task,
                     subTask=options.subTask,
-                    customDimensions=options.customDimensions,
-                    customMetrics=options.customMetrics,
+                    customData=options.customData,
                     shouldScore=options.shouldScore,
                 )
 
                 # Send to API
                 config = get_config()
                 if config:
+                    payload.chatId = config.sessionId
                     await send_to_api_simple(config, payload)
 
                 return result
@@ -76,19 +74,18 @@ def olakai_monitor(**kwargs):
                     prompt=str(args) + str(kwargs),
                     response=f"Error: {str(error)}",
                     userEmail=options.userEmail or "anonymous@olakai.ai",
-                    chatId=options.chatId or "anonymous",
                     tokens=0,
                     requestTime=0,  # Simplified - no timing
                     task=options.task,
                     subTask=options.subTask,
-                    customDimensions=options.customDimensions,
-                    customMetrics=options.customMetrics,
+                    customData=options.customData,
                     shouldScore=options.shouldScore,
                 )
 
                 # Send error to API
                 config = get_config()
                 if config:
+                    payload.chatId = config.sessionId
                     await send_to_api_simple(config, payload)
                 
                 raise error  # Re-raise the original error
@@ -102,19 +99,18 @@ def olakai_monitor(**kwargs):
                     prompt=str(args) + str(kwargs),
                     response=str(result),
                     userEmail=options.userEmail or "anonymous@olakai.ai",
-                    chatId=options.chatId or "anonymous",
                     tokens=0,
                     requestTime=0,  # Simplified - no timing
                     task=options.task,
                     subTask=options.subTask,
-                    customDimensions=options.customDimensions,
-                    customMetrics=options.customMetrics,
+                    customData=options.customData,
                     shouldScore=options.shouldScore,
                 )
 
                 # Send to API asynchronously
                 config = get_config()
                 if config:
+                    payload.chatId = config.sessionId
                     asyncio.create_task(send_to_api_simple(config, payload))
                 
                 return result
@@ -125,19 +121,18 @@ def olakai_monitor(**kwargs):
                     prompt=str(args) + str(kwargs),
                     response=f"Error: {str(error)}",
                     userEmail=options.userEmail or "anonymous@olakai.ai",
-                    chatId=options.chatId or "anonymous",
                     tokens=0,
                     requestTime=0,  # Simplified - no timing
                     task=options.task,
                     subTask=options.subTask,
-                    customDimensions=options.customDimensions,
-                    customMetrics=options.customMetrics,
+                    customData=options.customData,
                     shouldScore=options.shouldScore,
                 )
 
                 # Send error to API asynchronously
                 config = get_config()
                 if config:
+                    payload.chatId = config.sessionId
                     asyncio.create_task(send_to_api_simple(config, payload))
                 
                 raise error

@@ -10,13 +10,11 @@ from .client.api import send_to_api_simple
 from .config import require_config
 
 
-def olakai(event_type: str, event_name: str, params: OlakaiEventParams) -> None:
+def olakai(params: OlakaiEventParams) -> None:
     """
     Track an event with the Olakai API.
 
     Args:
-        event_type: Type of event (e.g., "ai_activity")
-        event_name: Name of the event
         params: Event parameters
     """
     config = require_config()
@@ -24,15 +22,14 @@ def olakai(event_type: str, event_name: str, params: OlakaiEventParams) -> None:
     # Convert to MonitorPayload for API compatibility
     payload = MonitorPayload(
         userEmail=params.userEmail or "anonymous@olakai.ai",
-        chatId=params.chatId or "anonymous",
+        chatId=config.sessionId,
         prompt=params.prompt,
         response=params.response,
         tokens=params.tokens,
         requestTime=params.requestTime,
         task=params.task,
         subTask=params.subTask,
-        customDimensions=params.customDimensions,
-        customMetrics=params.customMetrics,
+        customData=params.customData,
         shouldScore=params.shouldScore
     )
 
@@ -43,36 +40,18 @@ def olakai(event_type: str, event_name: str, params: OlakaiEventParams) -> None:
     except RuntimeError:
         # No event loop running, skip API call
         if config.debug:
-            print(f"Skipping API call - no event loop running")
+            print(f"[Olakai SDK] Skipping API call - no event loop running")
 
 
-def olakai_report(prompt: str, response: str, options: Dict[str, Any] = None) -> None:
+def olakai_event(params: OlakaiEventParams) -> None:
     """
     Direct reporting function for simple event tracking.
     
     Args:
-        prompt: The input prompt
-        response: The response
-        options: Optional parameters (email, chatId, task, subTask, etc.)
+        params: The input data  
     """
-    if options is None:
-        options = {}
     
-    params = OlakaiEventParams(
-        prompt=prompt,
-        response=response,
-        userEmail=options.get("userEmail", "anonymous@olakai.ai"),
-        chatId=options.get("chatId"),
-        task=options.get("task"),
-        subTask=options.get("subTask"),
-        customDimensions=options.get("customDimensions"),
-        customMetrics=options.get("customMetrics"),
-        shouldScore=options.get("shouldScore", True),
-        tokens=options.get("tokens", 0),
-        requestTime=options.get("requestTime", 0)
-    )
-    
-    olakai("ai_activity", "direct_report", params)
+    olakai(params)
 
 
 def olakai_monitor(fn: Callable = None, **options):
@@ -99,18 +78,17 @@ def olakai_monitor(fn: Callable = None, **options):
                     chatId=options.get("chatId"),
                     task=options.get("task"),
                     subTask=options.get("subTask"),
-                    customDimensions=options.get("customDimensions"),
-                    customMetrics=options.get("customMetrics"),
+                    customData=options.get("customData"),
                     shouldScore=options.get("shouldScore", True),
                     tokens=0,
                     requestTime=int(time.time() * 1000 - start_time)
                 )
                 
                 # Track the event
-                olakai("ai_activity", func.__name__, params)
-                
+                olakai(params)
+
                 return result
-                
+
             except Exception as e:
                 # Track error event
                 params = OlakaiEventParams(
@@ -120,16 +98,15 @@ def olakai_monitor(fn: Callable = None, **options):
                     chatId=options.get("chatId"),
                     task=options.get("task"),
                     subTask=options.get("subTask"),
-                    customDimensions=options.get("customDimensions"),
-                    customMetrics=options.get("customMetrics"),
+                    customData=options.get("customData"),
                     shouldScore=options.get("shouldScore", True),
                     tokens=0,
                     requestTime=int(time.time() * 1000 - start_time)
                 )
-                
-                olakai("ai_activity", f"{func.__name__}_error", params)
+
+                olakai(params)
                 raise
-        
+
         async def async_wrapper(*args, **kwargs):
             start_time = time.time() * 1000
             
@@ -145,18 +122,17 @@ def olakai_monitor(fn: Callable = None, **options):
                     chatId=options.get("chatId"),
                     task=options.get("task"),
                     subTask=options.get("subTask"),
-                    customDimensions=options.get("customDimensions"),
-                    customMetrics=options.get("customMetrics"),
+                    customData=options.get("customData"),
                     shouldScore=options.get("shouldScore", True),
                     tokens=0,
                     requestTime=int(time.time() * 1000 - start_time)
                 )
                 
                 # Track the event
-                olakai("ai_activity", func.__name__, params)
-                
+                olakai(params)
+
                 return result
-                
+
             except Exception as e:
                 # Track error event
                 params = OlakaiEventParams(
@@ -166,16 +142,15 @@ def olakai_monitor(fn: Callable = None, **options):
                     chatId=options.get("chatId"),
                     task=options.get("task"),
                     subTask=options.get("subTask"),
-                    customDimensions=options.get("customDimensions"),
-                    customMetrics=options.get("customMetrics"),
+                    customData=options.get("customData"),
                     shouldScore=options.get("shouldScore", True),
                     tokens=0,
                     requestTime=int(time.time() * 1000 - start_time)
                 )
-                
-                olakai("ai_activity", f"{func.__name__}_error", params)
+
+                olakai(params)
                 raise
-        
+
         # Return appropriate wrapper based on function type
         if asyncio.iscoroutinefunction(func):
             return async_wrapper

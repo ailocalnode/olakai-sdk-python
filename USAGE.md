@@ -1,6 +1,6 @@
 # Olakai SDK - Usage Guide
 
-Comprehensive guide with real-world examples for the Olakai Python SDK v0.5.0.
+Comprehensive guide with real-world examples for the Olakai Python SDK v1.0.0.
 
 ---
 
@@ -8,6 +8,7 @@ Comprehensive guide with real-world examples for the Olakai Python SDK v0.5.0.
 
 - [Getting Started](#getting-started)
 - [Basic Usage](#basic-usage)
+- [Manual Event Reporting](#manual-event-reporting)
 - [Real-World Examples](#real-world-examples)
   - [Customer Support Chatbot](#customer-support-chatbot)
   - [Content Generation Service](#content-generation-service)
@@ -84,6 +85,180 @@ That's it! All metrics are automatically tracked.
 
 ---
 
+## Manual Event Reporting
+
+While auto-instrumentation handles most use cases, you can use `olakai_event()` to manually report events when you need more control or when working with non-instrumented LLM providers.
+
+### Basic Manual Reporting
+
+```python
+import os
+from olakaisdk import olakai_config, olakai_event, OlakaiEventParams
+
+# Configure Olakai
+olakai_config(os.getenv("OLAKAI_API_KEY"))
+
+# Send a manual event report
+olakai_event(OlakaiEventParams(
+    prompt="What is the capital of France?",
+    response="The capital of France is Paris.",
+    userEmail="user@example.com",
+    task="Geography Q&A"
+))
+```
+
+### With Custom Metadata
+
+```python
+from olakaisdk import olakai_event, OlakaiEventParams
+
+# Report with full metadata
+olakai_event(OlakaiEventParams(
+    prompt="Generate a product description for wireless headphones",
+    response="Experience crystal-clear sound with our premium wireless headphones...",
+    userEmail="marketing@company.com",
+    userId="user-12345",
+    task="Content Generation",
+    subTask="product-description",
+    customData={
+        "product_category": "electronics",
+        "target_audience": "consumers",
+        "word_count": 150,
+        "model": "gpt-4",
+        "temperature": 0.7
+    },
+    tokens=200,
+    requestTime=1500  # milliseconds
+))
+```
+
+### Tracking Non-OpenAI Providers
+
+Use `olakai_event()` to track LLM calls from providers that aren't auto-instrumented:
+
+```python
+import anthropic
+import time
+from olakaisdk import olakai_config, olakai_event, OlakaiEventParams
+
+olakai_config(os.getenv("OLAKAI_API_KEY"))
+
+def call_claude_with_tracking(prompt: str, user_email: str):
+    """Call Claude API with manual tracking."""
+
+    client = anthropic.Anthropic()
+
+    start_time = time.time()
+
+    # Make the API call
+    response = client.messages.create(
+        model="claude-3-opus-20240229",
+        max_tokens=1024,
+        messages=[{"role": "user", "content": prompt}]
+    )
+
+    duration_ms = int((time.time() - start_time) * 1000)
+    response_text = response.content[0].text
+
+    # Report the event manually
+    olakai_event(OlakaiEventParams(
+        prompt=prompt,
+        response=response_text,
+        userEmail=user_email,
+        task="Claude Chat",
+        customData={
+            "provider": "anthropic",
+            "model": "claude-3-opus-20240229",
+            "input_tokens": response.usage.input_tokens,
+            "output_tokens": response.usage.output_tokens
+        },
+        tokens=response.usage.input_tokens + response.usage.output_tokens,
+        requestTime=duration_ms
+    ))
+
+    return response_text
+
+# Example usage
+result = call_claude_with_tracking(
+    prompt="Explain quantum computing in simple terms",
+    user_email="researcher@university.edu"
+)
+print(result)
+```
+
+### Batch Processing with Manual Events
+
+```python
+from olakaisdk import olakai_event, OlakaiEventParams
+import asyncio
+
+async def process_batch_with_tracking(items: list, user_email: str):
+    """Process a batch of items and report each as an event."""
+
+    results = []
+
+    for i, item in enumerate(items):
+        # Your processing logic here
+        prompt = item["prompt"]
+        response = await your_llm_call(prompt)
+
+        # Report each item
+        olakai_event(OlakaiEventParams(
+            prompt=prompt,
+            response=response,
+            userEmail=user_email,
+            task="Batch Processing",
+            customData={
+                "batch_index": i,
+                "batch_size": len(items),
+                "item_id": item.get("id")
+            }
+        ))
+
+        results.append(response)
+
+    return results
+```
+
+### Combining Auto-Instrumentation and Manual Events
+
+You can use both approaches in the same application:
+
+```python
+from olakaisdk import (
+    olakai_config,
+    instrument_openai,
+    olakai_context,
+    olakai_event,
+    OlakaiEventParams
+)
+from openai import OpenAI
+
+olakai_config(os.getenv("OLAKAI_API_KEY"))
+instrument_openai()  # Auto-track OpenAI calls
+
+client = OpenAI()
+
+# Auto-instrumented OpenAI call
+with olakai_context(userEmail="user@example.com", task="Chat"):
+    response = client.chat.completions.create(
+        model="gpt-4",
+        messages=[{"role": "user", "content": "Hello!"}]
+    )
+    # ^ This is automatically tracked
+
+# Manual event for custom processing
+olakai_event(OlakaiEventParams(
+    prompt="Custom pipeline input",
+    response="Custom pipeline output",
+    userEmail="user@example.com",
+    task="Custom Processing",
+    customData={"pipeline": "custom-v2"}
+))
+```
+
+---
+
 ## Real-World Examples
 
 ### Customer Support Chatbot
@@ -101,16 +276,15 @@ instrument_openai()
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-def handle_support_request(user_email, session_id, user_question, conversation_history):
+def handle_support_request(user_email, user_question, conversation_history):
     """
     Handle a customer support request.
 
     Tracks:
     - User email
-    - Session ID
     - Task category (Customer Support)
     - Subtask (based on question type)
-    - Custom dimensions (user tier, language)
+    - Custom data (user tier, language, conversation length)
     """
 
     # Detect question type
@@ -124,15 +298,12 @@ def handle_support_request(user_email, session_id, user_question, conversation_h
     # Add metadata context
     with olakai_context(
         userEmail=user_email,
-        chatId=session_id,
         task="Customer Support",
         subTask=question_type,
-        customDimensions={
+        customData={
             "user_tier": get_user_tier(user_email),
             "language": "en",
-            "channel": "web-chat"
-        },
-        customMetrics={
+            "channel": "web-chat",
             "conversation_length": len(conversation_history) / 2  # num exchanges
         }
     ):
@@ -208,15 +379,13 @@ def generate_blog_post(topic, target_audience, word_count, user_id):
         userEmail=f"user-{user_id}@example.com",
         task="Content Generation",
         subTask="blog-post",
-        customDimensions={
+        customData={
             "content_type": "blog",
             "topic_category": categorize_topic(topic),
             "target_audience": target_audience,
-            "environment": os.getenv("ENV", "production")
-        },
-        customMetrics={
-            "target_word_count": float(word_count),
-            "user_id": float(user_id)
+            "environment": os.getenv("ENV", "production"),
+            "target_word_count": word_count,
+            "user_id": user_id
         }
     ):
         response = client.chat.completions.create(
@@ -246,7 +415,7 @@ def generate_social_media_post(platform, topic, tone, user_id):
         userEmail=f"user-{user_id}@example.com",
         task="Content Generation",
         subTask=f"social-{platform}",
-        customDimensions={
+        customData={
             "platform": platform,
             "tone": tone,
             "content_type": "social-media"
@@ -331,14 +500,12 @@ Answer:"""
         userEmail=user_email,
         task="RAG Query",
         subTask=f"kb-{knowledge_base}",
-        customDimensions={
+        customData={
             "knowledge_base": knowledge_base,
-            "query_type": "rag"
-        },
-        customMetrics={
-            "docs_retrieved": float(len(documents)),
+            "query_type": "rag",
+            "docs_retrieved": len(documents),
             "avg_doc_relevance": calculate_avg_relevance(documents),
-            "context_length": float(len(context))
+            "context_length": len(context)
         }
     ):
         response = client.chat.completions.create(
@@ -437,14 +604,11 @@ class UserSession:
         # Create context for this user
         with olakai_context(
             userEmail=self.user_email,
-            chatId=f"session-{self.user_id}",
             task=task,
-            customDimensions={
+            customData={
                 "user_tier": self.user_tier,
-                "user_id": self.user_id
-            },
-            customMetrics={
-                "conversation_length": float(len(self.conversation_history))
+                "user_id": self.user_id,
+                "conversation_length": len(self.conversation_history)
             }
         ):
             response = client.chat.completions.create(
@@ -621,7 +785,7 @@ def handle_request(user_email, user_tier, request, request_type):
         with olakai_context(
             userEmail=user_email,
             task="Critical Request",
-            customDimensions={"tier": user_tier, "type": request_type}
+            customData={"tier": user_tier, "type": request_type}
         ):
             return client.chat.completions.create(...)
     else:
@@ -645,11 +809,9 @@ def robust_llm_call(prompt, user_email, max_retries=3):
             with olakai_context(
                 userEmail=user_email,
                 task="Robust Call",
-                customDimensions={
-                    "attempt": str(attempt + 1)
-                },
-                customMetrics={
-                    "retry_count": float(attempt)
+                customData={
+                    "attempt": attempt + 1,
+                    "retry_count": attempt
                 }
             ):
                 response = client.chat.completions.create(
@@ -694,7 +856,7 @@ def ab_test_prompts(question, user_email):
     with olakai_context(
         userEmail=user_email,
         task="A/B Test",
-        customDimensions={
+        customData={
             "variant": variant,
             "prompt_strategy": "direct" if variant == "A" else "step-by-step"
         }
@@ -737,14 +899,12 @@ def chat():
     data = request.json
     user_email = data.get("user_email")
     message = data.get("message")
-    session_id = data.get("session_id")
 
     # Add context for this request
     with olakai_context(
         userEmail=user_email,
-        chatId=session_id,
         task="Web Chat",
-        customDimensions={
+        customData={
             "endpoint": "/chat",
             "method": "POST"
         }
@@ -782,7 +942,6 @@ client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 class ChatRequest(BaseModel):
     user_email: str
     message: str
-    session_id: str
 
 class ChatResponse(BaseModel):
     response: str
@@ -793,9 +952,8 @@ async def chat(request: ChatRequest):
 
     with olakai_context(
         userEmail=request.user_email,
-        chatId=request.session_id,
         task="API Chat",
-        customDimensions={
+        customData={
             "endpoint": "/chat",
             "framework": "fastapi"
         }

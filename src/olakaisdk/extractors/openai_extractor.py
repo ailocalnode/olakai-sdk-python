@@ -4,6 +4,7 @@ from typing import Any, Dict, Optional
 from ..shared.types import MonitorPayload
 from ..context import OlakaiContextData
 from .base_extractor import BaseExtractor
+from ..config import require_config
 
 
 class OpenAIExtractor(BaseExtractor):
@@ -56,39 +57,35 @@ class OpenAIExtractor(BaseExtractor):
         # Get context data or use defaults
         context_data = context or OlakaiContextData()
 
-        # Build custom dimensions (merge with context)
-        custom_dimensions = dict(context_data.customDimensions or {})
-        custom_dimensions.update({
+        # Build custom data (merge with context)
+        custom_data = dict(context_data.customData or {})
+        custom_data.update({
             "model": model,
             "provider": "openai",
-            "tokens_input": str(tokens_input),
-            "tokens_output": str(tokens_output),
+            "tokens_input": tokens_input,
+            "tokens_output": tokens_output,
+            "tokens_total": tokens_total,
         })
 
         # Add API key if captured
         if api_key_value:
-            custom_dimensions["api_key"] = api_key_value
+            custom_data["api_key"] = api_key_value
 
-        # Build custom metrics (merge with context)
-        custom_metrics = dict(context_data.customMetrics or {})
-        custom_metrics.update({
-            "tokens_input": float(tokens_input),
-            "tokens_output": float(tokens_output),
-            "tokens_total": float(tokens_total),
-        })
+        # Get chatId from config sessionId
+        config = require_config()
+        chatId = config.sessionId;
 
         # Build payload
         payload = MonitorPayload(
             userEmail=context_data.userEmail or "anonymous@olakai.ai",
-            chatId=context_data.chatId or "anonymous",
+            chatId=chatId,
             prompt=prompt_text,
             response=response_text,
             tokens=tokens_total,
             requestTime=duration_ms,
             task=context_data.task,
             subTask=context_data.subTask,
-            customDimensions=custom_dimensions,
-            customMetrics=custom_metrics,
+            customData=custom_data,
             shouldScore=True
         )
 

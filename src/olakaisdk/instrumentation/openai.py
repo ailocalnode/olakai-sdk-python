@@ -49,7 +49,7 @@ def instrument_openai(
     if _is_instrumented:
         config = get_config()
         if config and config.debug:
-            print("[Olakai] OpenAI already instrumented, skipping")
+            print("[Olakai SDK] OpenAI already instrumented, skipping")
         return
 
     # Verify SDK is configured
@@ -110,7 +110,7 @@ def instrument_openai(
     _is_instrumented = True
 
     if config.debug:
-        print("[Olakai] OpenAI SDK instrumented successfully")
+        print("[Olakai SDK] OpenAI SDK instrumented successfully")
 
 
 def uninstrument_openai() -> None:
@@ -138,7 +138,7 @@ def uninstrument_openai() -> None:
 
         config = get_config()
         if config and config.debug:
-            print("[Olakai] OpenAI SDK uninstrumented")
+            print("[Olakai SDK] OpenAI SDK uninstrumented")
 
     except ImportError:
         pass
@@ -261,6 +261,8 @@ async def _trace_openai_call_async(
                 duration_ms=duration_ms,
                 context=get_current_context()
             )
+            # Get sessionId from config
+            payload.chatId = config.sessionId
 
             # Send telemetry (await in async context)
             await send_to_api_simple(config, payload)
@@ -356,6 +358,8 @@ async def _wrap_stream_async(
 
             config = get_config()
             if config:
+                # Get sessionId from config
+                payload.chatId = config.sessionId
                 await send_to_api_simple(config, payload)
 
     except Exception as e:
@@ -429,7 +433,7 @@ def _send_telemetry_sync(payload: MonitorPayload) -> None:
     except RuntimeError:
         # No event loop, skip (or could use threading)
         if config.debug:
-            print("[Olakai] No event loop running, skipping telemetry")
+            print("[Olakai SDK] No event loop running, skipping telemetry")
 
 
 def _send_error_telemetry(
@@ -452,30 +456,29 @@ def _send_error_telemetry(
         if capture_api_keys and hasattr(client_instance, "api_key"):
             api_key_value = client_instance.api_key
 
-        custom_dimensions = {}
+        custom_data = {}
         if context_data:
-            custom_dimensions = dict(context_data.customDimensions or {})
+            custom_data = dict(context_data.customData or {})
 
-        custom_dimensions.update({
+        custom_data.update({
             "model": request_kwargs.get("model", "unknown"),
             "provider": "openai",
             "error_type": type(error).__name__,
         })
 
         if api_key_value:
-            custom_dimensions["api_key"] = api_key_value
+            custom_data["api_key"] = api_key_value
 
         payload = MonitorPayload(
             userEmail=(context_data.userEmail if context_data else None) or "anonymous@olakai.ai",
-            chatId=(context_data.chatId if context_data else None) or "anonymous",
+            chatId=config.sessionId,
             prompt=str(request_kwargs.get("messages", [])),
             response=f"Error: {str(error)}",
             tokens=0,
             requestTime=duration_ms,
             task=context_data.task if context_data else None,
             subTask=context_data.subTask if context_data else None,
-            customDimensions=custom_dimensions,
-            customMetrics=context_data.customMetrics if context_data else None,
+            customData=custom_data,
             errorMessage=str(error),
             shouldScore=False
         )
@@ -485,4 +488,4 @@ def _send_error_telemetry(
     except Exception:
         # Don't let telemetry errors affect the application
         if config.debug:
-            print(f"[Olakai] Failed to send error telemetry: {error}")
+            print(f"[Olakai SDK] Failed to send error telemetry: {error}")

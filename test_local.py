@@ -32,19 +32,17 @@ async def main():
         userEmail="walt.mann@gmail.com",
         tokens=150,
         chatId="cckej2lc40c0np1s3mcvef5ss",
-        customDimensions={
+        customData={
             "Department": "EMEA",
             "Location": "United Kingdom",
             "Feature": "Internal Processing",
-        },
-        customMetrics={
             "TokensUsed": 150,
             "Rating": 2.5,
         },
     )
 
     # Send event - this should NOT raise "Olakai SDK not initialized" anymore
-    olakai("event", "ai_activity", params)
+    olakai(params)
 
     print("SUCCESS: Event sent without initialization error!")
 

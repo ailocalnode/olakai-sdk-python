@@ -5,6 +5,35 @@ All notable changes to the Olakai Python SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2025-01-07
+
+### 🎉 First Stable Release
+
+This release marks the first stable version of the Olakai Python SDK, signaling production readiness for auto-instrumentation of LLM providers.
+
+### Changed
+
+- Version bump to 1.0.0 for production stability
+- **Breaking**: Replaced `customDimensions` and `customMetrics` with unified `customData` field for simpler payload structure
+- **Breaking**: Remove chatId from `OlakaiEventParams`; chat/session information is now managed internally
+
+### Added
+
+- `olakai_event()` - New function for manually sending event reports
+
+### Stability
+
+The v1.0.0 API is now stable. The primary API consists of:
+
+- `olakai_config()` - Initialize the SDK
+- `instrument_openai()` - Auto-instrument OpenAI SDK
+- `olakai_context()` - Add metadata to tracked calls
+- `uninstrument_openai()` - Remove instrumentation
+- `is_instrumented()` - Check instrumentation status
+- `olakai_event()` - Send event report manually
+
+---
+
 ## [0.6.0] - 2024-12-30
 
 ### Added
@@ -59,6 +88,7 @@ These will be removed in v1.0.0.
 ### Migration Guide
 
 **Old way (v0.4.0):**
+
 ```python
 from olakaisdk import olakai_config, olakai_monitor
 
@@ -71,6 +101,7 @@ def get_response(prompt):
 ```
 
 **New way (v0.5.0):**
+
 ```python
 from olakaisdk import olakai_config, instrument_openai, olakai_context
 
@@ -86,12 +117,14 @@ with olakai_context(userEmail="user@example.com", task="Support"):
 ### Technical Details
 
 **New Architecture:**
+
 - `config.py` - Global configuration management
 - `context.py` - Thread-safe context manager using contextvars
 - `instrumentation/` - Provider-specific instrumentation (OpenAI)
 - `extractors/` - Data extraction from LLM responses
 
 **Test Coverage:**
+
 - 35+ passing tests
 - Config tests
 - Context tests
@@ -101,6 +134,7 @@ with olakai_context(userEmail="user@example.com", task="Support"):
 ### What's Next
 
 Planned for future releases:
+
 - Anthropic (Claude) instrumentation
 - Google AI (Gemini) instrumentation
 - Local model support (Ollama, LM Studio)

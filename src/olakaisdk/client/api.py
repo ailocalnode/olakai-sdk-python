@@ -45,10 +45,8 @@ async def make_api_call(
             del data_dict["task"]
         if "subTask" in data_dict and data_dict["subTask"] is None:
             del data_dict["subTask"]
-        if "customDimensions" in data_dict and data_dict["customDimensions"] is None:
-            del data_dict["customDimensions"]
-        if "customMetrics" in data_dict and data_dict["customMetrics"] is None:
-            del data_dict["customMetrics"]
+        if "customData" in data_dict and data_dict["customData"] is None:
+            del data_dict["customData"]
         if "shouldScore" in data_dict and data_dict["shouldScore"] is None:
             del data_dict["shouldScore"]
     else:
@@ -74,7 +72,7 @@ async def make_api_call(
         )
         
         if config.debug:
-            print(f"API call to {url}: {response.status_code}")
+            print(f"[Olakai SDK] API call to {url}: {response.status_code}")
         
         response.raise_for_status()
         result = response.json()
@@ -111,20 +109,20 @@ async def send_with_retry(
         try:
             result = await make_api_call(config, payload, call_type)
             if config.debug:
-                print("API call successful")
+                print("[Olakai SDK] API call successful")
             return result
         except (APITimeoutError, APIResponseError) as err:
             last_error = err
 
             if config.debug:
-                print(f"Attempt {attempt + 1}/{max_retries + 1} failed: {err}")
+                print(f"[Olakai SDK] Attempt {attempt + 1}/{max_retries + 1} failed: {err}")
 
             if attempt < max_retries:
                 delay = min(1000 * (2**attempt), 30000)  # Exponential backoff
                 await asyncio.sleep(delay / 1000)  # Convert to seconds
 
     if config.debug:
-        print(f"All retry attempts failed: {last_error}")
+        print(f"[Olakai SDK] All retry attempts failed: {last_error}")
     raise RetryExhaustedError(
         f"All {max_retries + 1} retry attempts failed. Last error: {last_error}"
     ) from last_error
@@ -139,7 +137,7 @@ async def send_to_api_simple(
         return await send_with_retry(config, payload, "monitoring")
     except Exception as e:
         if config.debug:
-            print(f"Error sending payload to API: {e}")
+            print(f"[Olakai SDK] Error sending payload to API: {e}")
         raise e
 
 

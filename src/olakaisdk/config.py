@@ -43,7 +43,7 @@ def olakai_config(
     )
 
     if debug:
-        print(f"[Olakai] SDK initialized with endpoint: {endpoint}")
+        print(f"[Olakai SDK] SDK initialized with endpoint: {endpoint}")
 
 
 def get_config() -> Optional[OlakaiConfig]:
