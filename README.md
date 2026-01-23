@@ -76,19 +76,21 @@ After calling `instrument_openai()`, the SDK automatically captures:
 
 ### Context-Based Metadata
 
-Add user and session metadata using context managers:
+Add user and task metadata using context managers:
 
 ```python
 from olakaisdk import olakai_context
 
 with olakai_context(
     userEmail="user@example.com",
-    chatId="session-123",
+    userId="user-123",
     task="Customer Support"
 ):
     # All OpenAI calls within this context include the metadata
     response = client.chat.completions.create(...)
 ```
+
+**Note:** Session tracking is handled automatically via an internal `sessionId`.
 
 ### Streaming Support
 
@@ -159,7 +161,7 @@ client = OpenAI(api_key="openai-key")
 # Add user metadata
 with olakai_context(
     userEmail="customer@example.com",
-    chatId="support-session-456",
+    userId="customer-456",
     task="Customer Support",
     subTask="password-reset"
 ):
@@ -325,15 +327,17 @@ Context manager to add metadata to LLM calls.
 **Parameters:**
 
 - `userEmail` (str, optional): User email for tracking
-- `chatId` (str, optional): Session/chat identifier
+- `userId` (str, optional): User ID for explicit user tracking
 - `task` (str, optional): High-level task category
 - `subTask` (str, optional): Specific subtask
 - `customData` (dict, optional): Custom metadata (string, int, float, or bool values)
 
+**Note:** Session tracking is handled automatically via an internal `sessionId`.
+
 **Example:**
 
 ```python
-with olakai_context(userEmail="user@example.com", task="Support"):
+with olakai_context(userEmail="user@example.com", userId="user-123", task="Support"):
     # Your OpenAI calls here
     pass
 ```
@@ -367,6 +371,7 @@ Where `OlakaiEventParams` has the fields:
 - `prompt` (str): Interaction prompt
 - `response` (str): Interaction response
 - `userEmail` (str, optional): User email for tracking
+- `userId` (str, optional): User ID for explicit user tracking
 - `task` (str, optional): High-level task category
 - `subTask` (str, optional): Specific subtask
 - `customData` (dict, optional): Custom metadata (string, int, float, or bool values)
@@ -377,23 +382,24 @@ Where `OlakaiEventParams` has the fields:
 **Example:**
 
 ```python
-    olakai_event(OlakaiEventParams(
-        prompt="Test prompt",
-        response="Test response",
-        userEmail="test@example.com",
-        task="test-task"
-    ))
+olakai_event(OlakaiEventParams(
+    prompt="Test prompt",
+    response="Test response",
+    userEmail="test@example.com",
+    userId="user-123",
+    task="test-task"
+))
 ```
 
 ---
 
 ### Legacy API (Deprecated)
 
-The v0.4.0 decorator-based API is still available but will be removed in v1.0.0:
+The v0.4.0 decorator-based API is still available but deprecated. Use the primary API above instead:
 
 - `@olakai_monitor()` - Manual decorator (use `instrument_openai()` instead)
-- `olakai_report()` - Manual reporting (use auto-instrumentation instead)
-- `olakai()` - Low-level API (use auto-instrumentation instead)
+- `@olakai_supervisor()` - Alias for `olakai_monitor()` (deprecated)
+- `olakai()` - Low-level API (use `olakai_event()` instead)
 
 ---
 

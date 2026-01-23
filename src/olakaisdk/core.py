@@ -22,6 +22,7 @@ def olakai(params: OlakaiEventParams) -> None:
     # Convert to MonitorPayload for API compatibility
     payload = MonitorPayload(
         userEmail=params.userEmail or "anonymous@olakai.ai",
+        userId=params.userId,
         chatId=config.sessionId,
         prompt=params.prompt,
         response=params.response,
@@ -30,7 +31,7 @@ def olakai(params: OlakaiEventParams) -> None:
         task=params.task,
         subTask=params.subTask,
         customData=params.customData,
-        shouldScore=params.shouldScore
+        shouldScore=params.shouldScore,
     )
 
     # Send asynchronously in background if possible, otherwise ignore
@@ -65,25 +66,25 @@ def olakai_monitor(fn: Callable = None, **options):
     def decorator(func: Callable) -> Callable:
         def sync_wrapper(*args, **kwargs):
             start_time = time.time() * 1000
-            
+
             try:
                 # Execute the function
                 result = func(*args, **kwargs)
-                
+
                 # Create event parameters
                 params = OlakaiEventParams(
                     prompt=str(args) + str(kwargs),
                     response=str(result),
                     userEmail=options.get("userEmail", "anonymous@olakai.ai"),
-                    chatId=options.get("chatId"),
+                    userId=options.get("userId"),
                     task=options.get("task"),
                     subTask=options.get("subTask"),
                     customData=options.get("customData"),
                     shouldScore=options.get("shouldScore", True),
                     tokens=0,
-                    requestTime=int(time.time() * 1000 - start_time)
+                    requestTime=int(time.time() * 1000 - start_time),
                 )
-                
+
                 # Track the event
                 olakai(params)
 
@@ -95,13 +96,13 @@ def olakai_monitor(fn: Callable = None, **options):
                     prompt=str(args) + str(kwargs),
                     response=f"Error: {str(e)}",
                     userEmail=options.get("userEmail", "anonymous@olakai.ai"),
-                    chatId=options.get("chatId"),
+                    userId=options.get("userId"),
                     task=options.get("task"),
                     subTask=options.get("subTask"),
                     customData=options.get("customData"),
                     shouldScore=options.get("shouldScore", True),
                     tokens=0,
-                    requestTime=int(time.time() * 1000 - start_time)
+                    requestTime=int(time.time() * 1000 - start_time),
                 )
 
                 olakai(params)
@@ -109,25 +110,25 @@ def olakai_monitor(fn: Callable = None, **options):
 
         async def async_wrapper(*args, **kwargs):
             start_time = time.time() * 1000
-            
+
             try:
                 # Execute the async function
                 result = await func(*args, **kwargs)
-                
+
                 # Create event parameters
                 params = OlakaiEventParams(
                     prompt=str(args) + str(kwargs),
                     response=str(result),
                     userEmail=options.get("userEmail", "anonymous@olakai.ai"),
-                    chatId=options.get("chatId"),
+                    userId=options.get("userId"),
                     task=options.get("task"),
                     subTask=options.get("subTask"),
                     customData=options.get("customData"),
                     shouldScore=options.get("shouldScore", True),
                     tokens=0,
-                    requestTime=int(time.time() * 1000 - start_time)
+                    requestTime=int(time.time() * 1000 - start_time),
                 )
-                
+
                 # Track the event
                 olakai(params)
 
@@ -139,13 +140,13 @@ def olakai_monitor(fn: Callable = None, **options):
                     prompt=str(args) + str(kwargs),
                     response=f"Error: {str(e)}",
                     userEmail=options.get("userEmail", "anonymous@olakai.ai"),
-                    chatId=options.get("chatId"),
+                    userId=options.get("userId"),
                     task=options.get("task"),
                     subTask=options.get("subTask"),
                     customData=options.get("customData"),
                     shouldScore=options.get("shouldScore", True),
                     tokens=0,
-                    requestTime=int(time.time() * 1000 - start_time)
+                    requestTime=int(time.time() * 1000 - start_time),
                 )
 
                 olakai(params)

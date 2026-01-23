@@ -47,11 +47,13 @@ def olakai_monitor(**kwargs):
                 result = await f(*args, **kwargs)
 
                 # Create monitoring payload
+                config = get_config()
                 payload = MonitorPayload(
                     prompt=str(args) + str(kwargs),
                     response=str(result),
                     userEmail=options.userEmail or "anonymous@olakai.ai",
-                    chatId=options.chatId or "anonymous",
+                    userId=options.userId,
+                    chatId=config.sessionId if config else "",
                     tokens=0,
                     requestTime=0,  # Simplified - no timing
                     task=options.task,
@@ -61,19 +63,20 @@ def olakai_monitor(**kwargs):
                 )
 
                 # Send to API
-                config = get_config()
                 if config:
-                    payload.chatId = config.sessionId
                     await send_to_api_simple(config, payload)
 
                 return result
 
             except Exception as error:
                 # Create error payload
+                config = get_config()
                 payload = MonitorPayload(
                     prompt=str(args) + str(kwargs),
                     response=f"Error: {str(error)}",
                     userEmail=options.userEmail or "anonymous@olakai.ai",
+                    userId=options.userId,
+                    chatId=config.sessionId if config else "",
                     tokens=0,
                     requestTime=0,  # Simplified - no timing
                     task=options.task,
@@ -83,22 +86,23 @@ def olakai_monitor(**kwargs):
                 )
 
                 # Send error to API
-                config = get_config()
                 if config:
-                    payload.chatId = config.sessionId
                     await send_to_api_simple(config, payload)
-                
+
                 raise error  # Re-raise the original error
 
         def sync_wrapped_f(*args, **kwargs):
             try:
                 result = f(*args, **kwargs)
-                
+
                 # Create monitoring payload
+                config = get_config()
                 payload = MonitorPayload(
                     prompt=str(args) + str(kwargs),
                     response=str(result),
                     userEmail=options.userEmail or "anonymous@olakai.ai",
+                    userId=options.userId,
+                    chatId=config.sessionId if config else "",
                     tokens=0,
                     requestTime=0,  # Simplified - no timing
                     task=options.task,
@@ -107,20 +111,26 @@ def olakai_monitor(**kwargs):
                     shouldScore=options.shouldScore,
                 )
 
-                # Send to API asynchronously
-                config = get_config()
+                # Send to API asynchronously (if event loop available)
                 if config:
-                    payload.chatId = config.sessionId
-                    asyncio.create_task(send_to_api_simple(config, payload))
-                
+                    try:
+                        asyncio.get_running_loop()
+                        asyncio.create_task(send_to_api_simple(config, payload))
+                    except RuntimeError:
+                        # No event loop running, skip API call
+                        pass
+
                 return result
-                
+
             except Exception as error:
                 # Create error payload
+                config = get_config()
                 payload = MonitorPayload(
                     prompt=str(args) + str(kwargs),
                     response=f"Error: {str(error)}",
                     userEmail=options.userEmail or "anonymous@olakai.ai",
+                    userId=options.userId,
+                    chatId=config.sessionId if config else "",
                     tokens=0,
                     requestTime=0,  # Simplified - no timing
                     task=options.task,
@@ -129,12 +139,15 @@ def olakai_monitor(**kwargs):
                     shouldScore=options.shouldScore,
                 )
 
-                # Send error to API asynchronously
-                config = get_config()
+                # Send error to API asynchronously (if event loop available)
                 if config:
-                    payload.chatId = config.sessionId
-                    asyncio.create_task(send_to_api_simple(config, payload))
-                
+                    try:
+                        asyncio.get_running_loop()
+                        asyncio.create_task(send_to_api_simple(config, payload))
+                    except RuntimeError:
+                        # No event loop running, skip API call
+                        pass
+
                 raise error
 
         # Check if the decorated function is async or sync
