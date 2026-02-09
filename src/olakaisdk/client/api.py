@@ -41,6 +41,8 @@ async def make_api_call(
     if call_type == "monitoring":
         if "errorMessage" in data_dict and data_dict["errorMessage"] is None:
             del data_dict["errorMessage"]
+        if "taskExecutionId" in data_dict and data_dict["taskExecutionId"] is None:
+            del data_dict["taskExecutionId"]
         if "task" in data_dict and data_dict["task"] is None:
             del data_dict["task"]
         if "subTask" in data_dict and data_dict["subTask"] is None:

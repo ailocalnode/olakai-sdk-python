@@ -29,6 +29,7 @@ class OlakaiEventParams:
     response: str
     userEmail: Optional[str] = "anonymous@olakai.ai"
     userId: Optional[str] = None  # SDK client's user ID for tracking
+    taskExecutionId: Optional[str] = None
     task: Optional[str] = None
     subTask: Optional[str] = None
     customData: Optional[Dict[str, Union[str, int, float, bool]]] = None
@@ -56,6 +57,7 @@ class MonitorPayload:
     userEmail: str
     userId: Optional[str] = None  # SDK client's user ID for tracking
     chatId: str = ""
+    taskExecutionId: Optional[str] = None
     prompt: JSONType = None
     response: JSONType = None
     blocked: Optional[bool] = False

@@ -24,6 +24,7 @@ def olakai(params: OlakaiEventParams) -> None:
         userEmail=params.userEmail or "anonymous@olakai.ai",
         userId=params.userId,
         chatId=config.sessionId,
+        taskExecutionId=params.taskExecutionId,
         prompt=params.prompt,
         response=params.response,
         tokens=params.tokens,
