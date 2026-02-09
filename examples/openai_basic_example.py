@@ -15,14 +15,14 @@ Usage:
 
 import os
 import sys
+import asyncio
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from olakaisdk import olakai_config, instrument_openai, olakai_context, is_instrumented
+from olakaisdk import olakai_config, instrument_openai, olakai_context, is_openai_instrumented
 
-
-def main():
+async def main():
     """Run basic examples."""
 
     print("=" * 60)
@@ -54,7 +54,7 @@ def main():
     print("Step 2: Instrumenting OpenAI...")
     instrument_openai()
 
-    if is_instrumented():
+    if is_openai_instrumented():
         print("✅ OpenAI instrumented successfully")
     else:
         print("❌ Failed to instrument OpenAI")
@@ -84,7 +84,7 @@ def main():
     )
 
     print(f"Response: {response.choices[0].message.content}")
-    print(f"Tokens used: {response.usage.total_tokens}")
+    print(f"Tokens used: {response.usage.total_tokens if response.usage != None else None}")
     print()
 
     # Example 2: Call with user context
@@ -103,8 +103,8 @@ def main():
             max_tokens=100
         )
 
-    print(f"Response: {response.choices[0].message.content[:200]}...")
-    print(f"Tokens used: {response.usage.total_tokens}")
+    print(f"Response: {response.choices[0].message.content[:200]}..." if response.choices[0].message.content != None else None)
+    print(f"Tokens used: {response.usage.total_tokens if response.usage != None else None}")
     print()
 
     # Example 3: Call with custom data
@@ -134,7 +134,7 @@ def main():
         )
 
     print(f"Response: {response.choices[0].message.content}")
-    print(f"Tokens used: {response.usage.total_tokens}")
+    print(f"Tokens used: {response.usage.total_tokens if response.usage != None else None}")
     print()
 
     # Example 4: Streaming
@@ -182,4 +182,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

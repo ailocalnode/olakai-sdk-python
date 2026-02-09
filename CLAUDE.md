@@ -38,7 +38,7 @@ pip install -e ".[dev]"
 # Run specific test modules
 /usr/bin/python3 -m pytest tests/test_config.py -v
 /usr/bin/python3 -m pytest tests/test_context.py -v
-/usr/bin/python3 -m pytest tests/test_instrumentation.py -v
+/usr/bin/python3 -m pytest tests/test_openai_instrumentation.py -v
 
 # Run specific test
 /usr/bin/python3 -m pytest tests/test_config.py::test_olakai_config_basic -v
@@ -125,7 +125,7 @@ tests/
 ├── test_basic.py            # Basic tests
 ├── test_config.py           # Config module tests
 ├── test_context.py          # Context module tests
-├── test_instrumentation.py  # Instrumentation tests
+├── test_openai_instrumentation.py  # Instrumentation tests
 └── check.sh                 # Code quality script
 
 examples/
@@ -257,7 +257,7 @@ The API key is sent in `customDimensions["api_key"]`.
 3. Create `extractors/provider_name_extractor.py`
 4. Export from `instrumentation/__init__.py`
 5. Export from main `__init__.py`
-6. Add tests in `tests/test_instrumentation.py`
+6. Add tests in `tests/test_openai_instrumentation.py`
 
 Example structure:
 
@@ -301,7 +301,7 @@ print(f"Instrumented: {is_instrumented()}")
 
 - `test_config.py`: Config module (9 tests)
 - `test_context.py`: Context manager (12 tests)
-- `test_instrumentation.py`: Instrumentation and extractors (8 tests)
+- `test_openai_instrumentation.py`: Instrumentation and extractors (8 tests)
 
 All tests use mocks to avoid network calls.
 
@@ -309,7 +309,7 @@ All tests use mocks to avoid network calls.
 
 ```bash
 # All new tests (should pass)
-/usr/bin/python3 -m pytest tests/test_config.py tests/test_context.py tests/test_instrumentation.py -v
+/usr/bin/python3 -m pytest tests/test_config.py tests/test_context.py tests/test_openai_instrumentation.py -v
 
 # Legacy tests (some fail - expected due to breaking changes)
 /usr/bin/python3 -m pytest tests/test_basic.py -v

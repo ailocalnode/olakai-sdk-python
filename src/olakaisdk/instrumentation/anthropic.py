@@ -1,13 +1,12 @@
-"""OpenAI SDK instrumentation via monkey patching."""
+"""Anthropic SDK instrumentation via monkey patching."""
 
 import time
 import asyncio
-from typing import Any, Callable, Optional, Iterator
-from functools import wraps
+from typing import Any, Callable, Iterator
 
 from ..config import require_config, get_config
 from ..context import get_current_context
-from ..extractors.openai_extractor import OpenAIExtractor
+from ..extractors.anthropic_extractor import AnthropicExtractor
 from ..client.api import send_to_api_simple
 from ..shared.types import MonitorPayload
 
@@ -18,15 +17,15 @@ _is_instrumented = False
 _instrumentation_options = {}
 
 
-def instrument_openai(
+def instrument_anthropic(
     capture_inputs: bool = True,
     capture_outputs: bool = True,
-    capture_api_keys: bool = True
+    capture_api_keys: bool = True,
 ) -> None:
     """
-    Instrument OpenAI SDK for automatic monitoring.
+    Instrument Anthropic SDK for automatic monitoring.
 
-    This uses monkey patching to wrap OpenAI's chat.completions.create
+    This uses monkey patching to wrap Messages.create
     methods (both sync and async) to automatically capture telemetry.
 
     Args:
@@ -36,20 +35,21 @@ def instrument_openai(
 
     Raises:
         RuntimeError: If SDK not configured with olakai_config()
-        ImportError: If OpenAI SDK is not installed
+        ImportError: If Anthropic SDK is not installed
 
     Example:
-        >>> from olakaisdk import olakai_config, instrument_openai
+        >>> from olakaisdk import olakai_config, instrument_anthropic
         >>> olakai_config("your-api-key")
-        >>> instrument_openai()
-        >>> # Now all OpenAI calls are automatically monitored
+        >>> instrument_anthropic()
+        >>> # Now all Anthropic calls are automatically monitored
     """
-    global _original_sync_create, _original_async_create, _is_instrumented, _instrumentation_options
+    global _original_sync_create, _original_async_create
+    global _is_instrumented, _instrumentation_options
 
     if _is_instrumented:
         config = get_config()
         if config and config.debug:
-            print("[Olakai SDK] OpenAI already instrumented, skipping")
+            print("[Olakai SDK] Anthropic already instrumented, skipping")
         return
 
     # Verify SDK is configured
@@ -63,90 +63,97 @@ def instrument_openai(
     }
 
     try:
-        import openai
-        from openai.resources.chat import completions
+        from anthropic.resources.messages import (
+            Messages,
+            AsyncMessages,
+        )
     except ImportError:
         raise ImportError(
-            "OpenAI SDK not installed. Install with: pip install openai"
+            "Anthropic SDK not installed. Install with: pip install anthropic"
         )
 
-    # Store originals
-    _original_sync_create = completions.Completions.create
+    # Store original sync method
+    _original_sync_create = Messages.create
 
     # Wrap sync method
     def wrapped_sync_create(self, *args, **kwargs):
-        """Wrapped synchronous create method."""
-        return _trace_openai_call_sync(
+        """Wrapped synchronous messages.create method."""
+        return _trace_anthropic_call_sync(
             self,
             _original_sync_create,
             args,
             kwargs,
             capture_inputs,
             capture_outputs,
-            capture_api_keys
+            capture_api_keys,
         )
 
     # Apply sync patch
-    completions.Completions.create = wrapped_sync_create
+    Messages.create = wrapped_sync_create
 
-    # Wrap async method if it exists
-    if hasattr(completions, "AsyncCompletions"):
-        _original_async_create = completions.AsyncCompletions.create
+    # Store original async method
+    _original_async_create = AsyncMessages.create
 
-        async def wrapped_async_create(self, *args, **kwargs):
-            """Wrapped asynchronous create method."""
-            return await _trace_openai_call_async(
-                self,
-                _original_async_create,
-                args,
-                kwargs,
-                capture_inputs,
-                capture_outputs,
-                capture_api_keys
-            )
+    # Wrap async method
+    async def wrapped_async_create(self, *args, **kwargs):
+        """Wrapped asynchronous messages.create method."""
+        return await _trace_anthropic_call_async(
+            self,
+            _original_async_create,
+            args,
+            kwargs,
+            capture_inputs,
+            capture_outputs,
+            capture_api_keys,
+        )
 
-        completions.AsyncCompletions.create = wrapped_async_create
+    # Apply async patch
+    AsyncMessages.create = wrapped_async_create
 
     _is_instrumented = True
 
     if config.debug:
-        print("[Olakai SDK] OpenAI SDK instrumented successfully")
+        print("[Olakai SDK] Anthropic SDK instrumented successfully")
 
 
-def uninstrument_openai() -> None:
+def uninstrument_anthropic() -> None:
     """
-    Remove OpenAI instrumentation.
+    Remove Anthropic instrumentation.
 
-    Restores original OpenAI methods.
+    Restores original Messages methods.
     """
-    global _is_instrumented, _original_sync_create, _original_async_create
+    global _is_instrumented
+    global _original_sync_create, _original_async_create
 
     if not _is_instrumented:
         return
 
     try:
-        from openai.resources.chat import completions
+        from anthropic.resources.messages import (
+            Messages,
+            AsyncMessages,
+        )
 
         # Restore originals
         if _original_sync_create:
-            completions.Completions.create = _original_sync_create
+            Messages.create = _original_sync_create
 
-        if _original_async_create and hasattr(completions, "AsyncCompletions"):
-            completions.AsyncCompletions.create = _original_async_create
+        if _original_async_create:
+            AsyncMessages.create = _original_async_create
 
         _is_instrumented = False
 
         config = get_config()
         if config and config.debug:
-            print("[Olakai SDK] OpenAI SDK uninstrumented")
+            print("[Olakai SDK] Anthropic SDK uninstrumented")
 
     except ImportError:
         pass
 
 
-def is_openai_instrumented() -> bool:
+def is_anthropic_instrumented() -> bool:
     """
-    Check if OpenAI is currently instrumented.
+    Check if Anthropic is currently instrumented.
 
     Returns:
         True if instrumented, False otherwise
@@ -154,17 +161,17 @@ def is_openai_instrumented() -> bool:
     return _is_instrumented
 
 
-def _trace_openai_call_sync(
+def _trace_anthropic_call_sync(
     client_instance: Any,
     original_method: Callable,
     args: tuple,
     kwargs: dict,
     capture_inputs: bool,
     capture_outputs: bool,
-    capture_api_keys: bool
+    capture_api_keys: bool,
 ) -> Any:
     """
-    Trace a synchronous OpenAI call.
+    Trace a synchronous Anthropic call.
 
     Handles both regular and streaming responses.
     """
@@ -174,32 +181,35 @@ def _trace_openai_call_sync(
     # Check if streaming
     is_streaming = kwargs.get("stream", False)
 
+    # Build request_kwargs for the extractor
+    request_kwargs = dict(kwargs)
+
     try:
         if is_streaming:
-            # Handle streaming: wrap the generator
             response_stream = original_method(client_instance, *args, **kwargs)
             return _wrap_stream_sync(
                 response_stream,
                 client_instance,
-                kwargs,
+                request_kwargs,
                 start_time,
                 capture_inputs,
                 capture_outputs,
-                capture_api_keys
+                capture_api_keys,
             )
         else:
-            # Regular non-streaming call
             response = original_method(client_instance, *args, **kwargs)
 
             # Extract and send telemetry
             duration_ms = int((time.time() - start_time) * 1000)
-            extractor = OpenAIExtractor(capture_inputs, capture_outputs, capture_api_keys)
+            extractor = AnthropicExtractor(
+                capture_inputs, capture_outputs, capture_api_keys
+            )
             payload = extractor.extract(
-                request_kwargs=kwargs,
+                request_kwargs=request_kwargs,
                 response=response,
                 client_instance=client_instance,
                 duration_ms=duration_ms,
-                context=get_current_context()
+                context=get_current_context(),
             )
 
             # Send telemetry (fire-and-forget)
@@ -208,23 +218,28 @@ def _trace_openai_call_sync(
             return response
 
     except Exception as e:
-        # Track error
         duration_ms = int((time.time() - start_time) * 1000)
-        _send_error_telemetry(kwargs, client_instance, e, duration_ms, capture_api_keys)
+        _send_error_telemetry(
+            request_kwargs,
+            client_instance,
+            e,
+            duration_ms,
+            capture_api_keys,
+        )
         raise
 
 
-async def _trace_openai_call_async(
+async def _trace_anthropic_call_async(
     client_instance: Any,
     original_method: Callable,
     args: tuple,
     kwargs: dict,
     capture_inputs: bool,
     capture_outputs: bool,
-    capture_api_keys: bool
+    capture_api_keys: bool,
 ) -> Any:
     """
-    Trace an asynchronous OpenAI call.
+    Trace an asynchronous Anthropic call.
 
     Handles both regular and streaming responses.
     """
@@ -234,33 +249,39 @@ async def _trace_openai_call_async(
     # Check if streaming
     is_streaming = kwargs.get("stream", False)
 
+    # Build request_kwargs for the extractor
+    request_kwargs = dict(kwargs)
+
     try:
         if is_streaming:
-            # Handle streaming: wrap the async generator
-            response_stream = await original_method(client_instance, *args, **kwargs)
+            response_stream = await original_method(
+                client_instance, *args, **kwargs
+            )
             return _wrap_stream_async(
                 response_stream,
                 client_instance,
-                kwargs,
+                request_kwargs,
                 start_time,
                 capture_inputs,
                 capture_outputs,
-                capture_api_keys
+                capture_api_keys,
             )
         else:
-            # Regular non-streaming call
             response = await original_method(client_instance, *args, **kwargs)
 
             # Extract and send telemetry
             duration_ms = int((time.time() - start_time) * 1000)
-            extractor = OpenAIExtractor(capture_inputs, capture_outputs, capture_api_keys)
+            extractor = AnthropicExtractor(
+                capture_inputs, capture_outputs, capture_api_keys
+            )
             payload = extractor.extract(
-                request_kwargs=kwargs,
+                request_kwargs=request_kwargs,
                 response=response,
                 client_instance=client_instance,
                 duration_ms=duration_ms,
-                context=get_current_context()
+                context=get_current_context(),
             )
+
             # Get sessionId from config
             payload.chatId = config.sessionId
 
@@ -270,9 +291,14 @@ async def _trace_openai_call_async(
             return response
 
     except Exception as e:
-        # Track error
         duration_ms = int((time.time() - start_time) * 1000)
-        _send_error_telemetry(kwargs, client_instance, e, duration_ms, capture_api_keys)
+        _send_error_telemetry(
+            request_kwargs,
+            client_instance,
+            e,
+            duration_ms,
+            capture_api_keys,
+        )
         raise
 
 
@@ -283,7 +309,7 @@ def _wrap_stream_sync(
     start_time: float,
     capture_inputs: bool,
     capture_outputs: bool,
-    capture_api_keys: bool
+    capture_api_keys: bool,
 ) -> Iterator:
     """
     Wrap a synchronous streaming response to collect telemetry.
@@ -296,27 +322,35 @@ def _wrap_stream_sync(
     try:
         for chunk in stream:
             chunks.append(chunk)
-            yield chunk  # Pass through to user
+            yield chunk
 
         # Stream complete - reconstruct response and send telemetry
         if chunks:
             complete_response = _reconstruct_from_chunks(chunks)
             duration_ms = int((time.time() - start_time) * 1000)
 
-            extractor = OpenAIExtractor(capture_inputs, capture_outputs, capture_api_keys)
+            extractor = AnthropicExtractor(
+                capture_inputs, capture_outputs, capture_api_keys
+            )
             payload = extractor.extract(
                 request_kwargs=request_kwargs,
                 response=complete_response,
                 client_instance=client_instance,
                 duration_ms=duration_ms,
-                context=get_current_context()
+                context=get_current_context(),
             )
 
             _send_telemetry_sync(payload)
 
     except Exception as e:
         duration_ms = int((time.time() - start_time) * 1000)
-        _send_error_telemetry(request_kwargs, client_instance, e, duration_ms, capture_api_keys)
+        _send_error_telemetry(
+            request_kwargs,
+            client_instance,
+            e,
+            duration_ms,
+            capture_api_keys,
+        )
         raise
 
 
@@ -327,7 +361,7 @@ async def _wrap_stream_async(
     start_time: float,
     capture_inputs: bool,
     capture_outputs: bool,
-    capture_api_keys: bool
+    capture_api_keys: bool,
 ) -> Any:
     """
     Wrap an asynchronous streaming response to collect telemetry.
@@ -340,31 +374,38 @@ async def _wrap_stream_async(
     try:
         async for chunk in stream:
             chunks.append(chunk)
-            yield chunk  # Pass through to user
+            yield chunk
 
-        # Stream complete - reconstruct response and send telemetry
+        # Stream complete - reconstruct and send telemetry
         if chunks:
             complete_response = _reconstruct_from_chunks(chunks)
             duration_ms = int((time.time() - start_time) * 1000)
 
-            extractor = OpenAIExtractor(capture_inputs, capture_outputs, capture_api_keys)
+            extractor = AnthropicExtractor(
+                capture_inputs, capture_outputs, capture_api_keys
+            )
             payload = extractor.extract(
                 request_kwargs=request_kwargs,
                 response=complete_response,
                 client_instance=client_instance,
                 duration_ms=duration_ms,
-                context=get_current_context()
+                context=get_current_context(),
             )
 
             config = get_config()
             if config:
-                # Get sessionId from config
                 payload.chatId = config.sessionId
                 await send_to_api_simple(config, payload)
 
     except Exception as e:
         duration_ms = int((time.time() - start_time) * 1000)
-        _send_error_telemetry(request_kwargs, client_instance, e, duration_ms, capture_api_keys)
+        _send_error_telemetry(
+            request_kwargs,
+            client_instance,
+            e,
+            duration_ms,
+            capture_api_keys,
+        )
         raise
 
 
@@ -372,53 +413,65 @@ def _reconstruct_from_chunks(chunks: list) -> Any:
     """
     Reconstruct a complete response object from streaming chunks.
 
-    This creates a mock response object that looks like a regular
-    OpenAI response for the extractor to process.
+    Creates a mock response object that looks like a regular
+    Anthropic response for the extractor to process.
+
+    Anthropic streaming events include:
+    - message_start: contains the message object with model info
+    - content_block_start: starts a content block
+    - content_block_delta: contains text delta
+    - content_block_stop: ends a content block
+    - message_delta: contains stop_reason and usage
+    - message_stop: end of message
     """
-    # Aggregate content from all chunks
     content_parts = []
     model = None
-    finish_reason = None
+    input_tokens = 0
+    output_tokens = 0
 
     for chunk in chunks:
-        if hasattr(chunk, "model"):
-            model = chunk.model
+        # Extract text from content_block_delta events
+        if hasattr(chunk, "type"):
+            if chunk.type == "content_block_delta":
+                delta = getattr(chunk, "delta", None)
+                if delta and hasattr(delta, "text"):
+                    text = delta.text
+                    if text:
+                        content_parts.append(text)
 
-        if hasattr(chunk, "choices") and len(chunk.choices) > 0:
-            choice = chunk.choices[0]
-            if hasattr(choice, "delta") and hasattr(choice.delta, "content"):
-                if choice.delta.content:
-                    content_parts.append(choice.delta.content)
-            if hasattr(choice, "finish_reason") and choice.finish_reason:
-                finish_reason = choice.finish_reason
+            elif chunk.type == "message_start":
+                message = getattr(chunk, "message", None)
+                if message:
+                    model = getattr(message, "model", None)
+                    usage = getattr(message, "usage", None)
+                    if usage:
+                        input_tokens = getattr(usage, "input_tokens", 0) or 0
 
-    # Build a mock response object
-    class MockMessage:
-        def __init__(self, content):
-            self.content = content
-            self.role = "assistant"
+            elif chunk.type == "message_delta":
+                usage = getattr(chunk, "usage", None)
+                if usage:
+                    output_tokens = getattr(usage, "output_tokens", 0) or 0
 
-    class MockChoice:
-        def __init__(self, message, finish_reason):
-            self.message = message
-            self.finish_reason = finish_reason or "stop"
+    class MockTextBlock:
+        def __init__(self, text):
+            self.text = text
+            self.type = "text"
 
     class MockUsage:
-        def __init__(self):
-            # Note: Streaming doesn't provide token counts in chunks
-            # These will be 0, backend will need to calculate
-            self.prompt_tokens = 0
-            self.completion_tokens = 0
-            self.total_tokens = 0
+        def __init__(self, input_tokens, output_tokens):
+            self.input_tokens = input_tokens
+            self.output_tokens = output_tokens
 
     class MockResponse:
-        def __init__(self, content, model):
-            self.choices = [MockChoice(MockMessage(content), finish_reason)]
+        def __init__(self, text, model, input_tokens, output_tokens):
+            self.content = [MockTextBlock(text)]
             self.model = model or "unknown"
-            self.usage = MockUsage()
+            self.usage = MockUsage(input_tokens, output_tokens)
+            self.role = "assistant"
+            self.stop_reason = "end_turn"
 
-    complete_content = "".join(content_parts)
-    return MockResponse(complete_content, model)
+    complete_text = "".join(content_parts)
+    return MockResponse(complete_text, model, input_tokens, output_tokens)
 
 
 def _send_telemetry_sync(payload: MonitorPayload) -> None:
@@ -431,7 +484,6 @@ def _send_telemetry_sync(payload: MonitorPayload) -> None:
         loop = asyncio.get_running_loop()
         asyncio.create_task(send_to_api_simple(config, payload))
     except RuntimeError:
-        # No event loop, skip (or could use threading)
         if config.debug:
             print("[Olakai SDK] No event loop running, skipping telemetry")
 
@@ -441,7 +493,7 @@ def _send_error_telemetry(
     client_instance: Any,
     error: Exception,
     duration_ms: int,
-    capture_api_keys: bool
+    capture_api_keys: bool,
 ) -> None:
     """Send error telemetry."""
     config = get_config()
@@ -449,30 +501,42 @@ def _send_error_telemetry(
         return
 
     try:
+        from ..extractors.anthropic_extractor import (
+            _get_anthropic_api_key,
+        )
+
         context_data = get_current_context()
 
         # Extract API key if enabled
         api_key_value = None
-        if capture_api_keys and hasattr(client_instance, "api_key"):
-            api_key_value = client_instance.api_key
+        if capture_api_keys:
+            api_key_value = _get_anthropic_api_key(client_instance)
 
         custom_data = {}
         if context_data:
             custom_data = dict(context_data.customData or {})
 
-        custom_data.update({
-            "model": request_kwargs.get("model", "unknown"),
-            "provider": "openai",
-            "error_type": type(error).__name__,
-        })
+        model = request_kwargs.get("model", "unknown")
+        custom_data.update(
+            {
+                "model": model,
+                "provider": "anthropic",
+                "error_type": type(error).__name__,
+            }
+        )
 
         if api_key_value:
             custom_data["api_key"] = api_key_value
 
+        # Extract prompt text from messages
+        messages = request_kwargs.get("messages", [])
+        prompt_str = str(messages) if messages else ""
+
         payload = MonitorPayload(
-            userEmail=(context_data.userEmail if context_data else None) or "anonymous@olakai.ai",
+            userEmail=(context_data.userEmail if context_data else None)
+            or "anonymous@olakai.ai",
             chatId=config.sessionId,
-            prompt=str(request_kwargs.get("messages", [])),
+            prompt=prompt_str,
             response=f"Error: {str(error)}",
             tokens=0,
             requestTime=duration_ms,
@@ -480,12 +544,11 @@ def _send_error_telemetry(
             subTask=context_data.subTask if context_data else None,
             customData=custom_data,
             errorMessage=str(error),
-            shouldScore=False
+            shouldScore=False,
         )
 
         _send_telemetry_sync(payload)
 
     except Exception:
-        # Don't let telemetry errors affect the application
         if config.debug:
             print(f"[Olakai SDK] Failed to send error telemetry: {error}")

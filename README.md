@@ -604,7 +604,7 @@ pip install -e ".[dev]"
 
 ```bash
 pytest
-pytest tests/test_instrumentation.py -v
+pytest tests/test_openai_instrumentation.py -v
 ```
 
 ### Code Quality

@@ -1,4 +1,4 @@
-"""OpenAI SDK instrumentation via monkey patching."""
+"""Google Generative AI SDK instrumentation via monkey patching."""
 
 import time
 import asyncio
@@ -7,26 +7,26 @@ from functools import wraps
 
 from ..config import require_config, get_config
 from ..context import get_current_context
-from ..extractors.openai_extractor import OpenAIExtractor
+from ..extractors.google_extractor import GoogleExtractor
 from ..client.api import send_to_api_simple
 from ..shared.types import MonitorPayload
 
 # Store original methods
-_original_sync_create = None
-_original_async_create = None
+_original_sync_generate = None
+_original_async_generate = None
 _is_instrumented = False
 _instrumentation_options = {}
 
 
-def instrument_openai(
+def instrument_google(
     capture_inputs: bool = True,
     capture_outputs: bool = True,
-    capture_api_keys: bool = True
+    capture_api_keys: bool = True,
 ) -> None:
     """
-    Instrument OpenAI SDK for automatic monitoring.
+    Instrument Google Generative AI SDK for automatic monitoring.
 
-    This uses monkey patching to wrap OpenAI's chat.completions.create
+    This uses monkey patching to wrap GenerativeModel.generate_content
     methods (both sync and async) to automatically capture telemetry.
 
     Args:
@@ -36,20 +36,23 @@ def instrument_openai(
 
     Raises:
         RuntimeError: If SDK not configured with olakai_config()
-        ImportError: If OpenAI SDK is not installed
+        ImportError: If Google Generative AI SDK is not installed
 
     Example:
-        >>> from olakaisdk import olakai_config, instrument_openai
+        >>> from olakaisdk import olakai_config, instrument_google
         >>> olakai_config("your-api-key")
-        >>> instrument_openai()
-        >>> # Now all OpenAI calls are automatically monitored
+        >>> instrument_google()
+        >>> # Now all Google GenAI calls are automatically monitored
     """
-    global _original_sync_create, _original_async_create, _is_instrumented, _instrumentation_options
+    global _original_sync_generate, _original_async_generate
+    global _is_instrumented, _instrumentation_options
 
     if _is_instrumented:
         config = get_config()
         if config and config.debug:
-            print("[Olakai SDK] OpenAI already instrumented, skipping")
+            print(
+                "[Olakai SDK] Google GenAI already instrumented, skipping"
+            )
         return
 
     # Verify SDK is configured
@@ -63,90 +66,107 @@ def instrument_openai(
     }
 
     try:
-        import openai
-        from openai.resources.chat import completions
+        import google.generativeai as genai
+        from google.generativeai import GenerativeModel
     except ImportError:
         raise ImportError(
-            "OpenAI SDK not installed. Install with: pip install openai"
+            "Google Generative AI SDK not installed. "
+            "Install with: pip install google-generativeai"
         )
 
-    # Store originals
-    _original_sync_create = completions.Completions.create
+    # Store original sync method
+    _original_sync_generate = GenerativeModel.generate_content
 
     # Wrap sync method
-    def wrapped_sync_create(self, *args, **kwargs):
-        """Wrapped synchronous create method."""
-        return _trace_openai_call_sync(
+    def wrapped_sync_generate(self, *args, **kwargs):
+        """Wrapped synchronous generate_content method."""
+        return _trace_google_call_sync(
             self,
-            _original_sync_create,
+            _original_sync_generate,
             args,
             kwargs,
             capture_inputs,
             capture_outputs,
-            capture_api_keys
+            capture_api_keys,
         )
 
     # Apply sync patch
-    completions.Completions.create = wrapped_sync_create
+    GenerativeModel.generate_content = wrapped_sync_generate
 
     # Wrap async method if it exists
-    if hasattr(completions, "AsyncCompletions"):
-        _original_async_create = completions.AsyncCompletions.create
+    if hasattr(GenerativeModel, "generate_content_async"):
+        _original_async_generate = (
+            GenerativeModel.generate_content_async
+        )
 
-        async def wrapped_async_create(self, *args, **kwargs):
-            """Wrapped asynchronous create method."""
-            return await _trace_openai_call_async(
+        async def wrapped_async_generate(self, *args, **kwargs):
+            """Wrapped asynchronous generate_content method."""
+            return await _trace_google_call_async(
                 self,
-                _original_async_create,
+                _original_async_generate,
                 args,
                 kwargs,
                 capture_inputs,
                 capture_outputs,
-                capture_api_keys
+                capture_api_keys,
             )
 
-        completions.AsyncCompletions.create = wrapped_async_create
+        GenerativeModel.generate_content_async = (
+            wrapped_async_generate
+        )
 
     _is_instrumented = True
 
     if config.debug:
-        print("[Olakai SDK] OpenAI SDK instrumented successfully")
+        print(
+            "[Olakai SDK] Google Generative AI SDK "
+            "instrumented successfully"
+        )
 
 
-def uninstrument_openai() -> None:
+def uninstrument_google() -> None:
     """
-    Remove OpenAI instrumentation.
+    Remove Google Generative AI instrumentation.
 
-    Restores original OpenAI methods.
+    Restores original GenerativeModel methods.
     """
-    global _is_instrumented, _original_sync_create, _original_async_create
+    global _is_instrumented
+    global _original_sync_generate, _original_async_generate
 
     if not _is_instrumented:
         return
 
     try:
-        from openai.resources.chat import completions
+        from google.generativeai import GenerativeModel
 
         # Restore originals
-        if _original_sync_create:
-            completions.Completions.create = _original_sync_create
+        if _original_sync_generate:
+            GenerativeModel.generate_content = (
+                _original_sync_generate
+            )
 
-        if _original_async_create and hasattr(completions, "AsyncCompletions"):
-            completions.AsyncCompletions.create = _original_async_create
+        if _original_async_generate and hasattr(
+            GenerativeModel, "generate_content_async"
+        ):
+            GenerativeModel.generate_content_async = (
+                _original_async_generate
+            )
 
         _is_instrumented = False
 
         config = get_config()
         if config and config.debug:
-            print("[Olakai SDK] OpenAI SDK uninstrumented")
+            print(
+                "[Olakai SDK] Google Generative AI SDK uninstrumented"
+            )
 
     except ImportError:
         pass
 
 
-def is_openai_instrumented() -> bool:
+def is_google_instrumented() -> bool:
     """
-    Check if OpenAI is currently instrumented.
+    Check if Google Generative AI is currently instrumented.
 
     Returns:
         True if instrumented, False otherwise
@@ -154,17 +174,17 @@ def is_openai_instrumented() -> bool:
     return _is_instrumented
 
 
-def _trace_openai_call_sync(
+def _trace_google_call_sync(
     client_instance: Any,
     original_method: Callable,
     args: tuple,
     kwargs: dict,
     capture_inputs: bool,
     capture_outputs: bool,
-    capture_api_keys: bool
+    capture_api_keys: bool,
 ) -> Any:
     """
-    Trace a synchronous OpenAI call.
+    Trace a synchronous Google GenAI call.
 
     Handles both regular and streaming responses.
     """
@@ -174,32 +194,42 @@ def _trace_openai_call_sync(
     # Check if streaming
     is_streaming = kwargs.get("stream", False)
 
+    # Build request_kwargs for the extractor
+    # The first positional arg is the contents
+    request_kwargs = dict(kwargs)
+    if args:
+        request_kwargs["contents"] = args[0]
+
     try:
         if is_streaming:
-            # Handle streaming: wrap the generator
-            response_stream = original_method(client_instance, *args, **kwargs)
+            response_stream = original_method(
+                client_instance, *args, **kwargs
+            )
             return _wrap_stream_sync(
                 response_stream,
                 client_instance,
-                kwargs,
+                request_kwargs,
                 start_time,
                 capture_inputs,
                 capture_outputs,
-                capture_api_keys
+                capture_api_keys,
             )
         else:
-            # Regular non-streaming call
-            response = original_method(client_instance, *args, **kwargs)
+            response = original_method(
+                client_instance, *args, **kwargs
+            )
 
             # Extract and send telemetry
             duration_ms = int((time.time() - start_time) * 1000)
-            extractor = OpenAIExtractor(capture_inputs, capture_outputs, capture_api_keys)
+            extractor = GoogleExtractor(
+                capture_inputs, capture_outputs, capture_api_keys
+            )
             payload = extractor.extract(
-                request_kwargs=kwargs,
+                request_kwargs=request_kwargs,
                 response=response,
                 client_instance=client_instance,
                 duration_ms=duration_ms,
-                context=get_current_context()
+                context=get_current_context(),
             )
 
             # Send telemetry (fire-and-forget)
@@ -208,23 +238,28 @@ def _trace_openai_call_sync(
             return response
 
     except Exception as e:
-        # Track error
         duration_ms = int((time.time() - start_time) * 1000)
-        _send_error_telemetry(kwargs, client_instance, e, duration_ms, capture_api_keys)
+        _send_error_telemetry(
+            request_kwargs,
+            client_instance,
+            e,
+            duration_ms,
+            capture_api_keys,
+        )
         raise
 
 
-async def _trace_openai_call_async(
+async def _trace_google_call_async(
     client_instance: Any,
     original_method: Callable,
     args: tuple,
     kwargs: dict,
     capture_inputs: bool,
     capture_outputs: bool,
-    capture_api_keys: bool
+    capture_api_keys: bool,
 ) -> Any:
     """
-    Trace an asynchronous OpenAI call.
+    Trace an asynchronous Google GenAI call.
 
     Handles both regular and streaming responses.
     """
@@ -234,33 +269,43 @@ async def _trace_openai_call_async(
     # Check if streaming
     is_streaming = kwargs.get("stream", False)
 
+    # Build request_kwargs for the extractor
+    request_kwargs = dict(kwargs)
+    if args:
+        request_kwargs["contents"] = args[0]
+
     try:
         if is_streaming:
-            # Handle streaming: wrap the async generator
-            response_stream = await original_method(client_instance, *args, **kwargs)
+            response_stream = await original_method(
+                client_instance, *args, **kwargs
+            )
             return _wrap_stream_async(
                 response_stream,
                 client_instance,
-                kwargs,
+                request_kwargs,
                 start_time,
                 capture_inputs,
                 capture_outputs,
-                capture_api_keys
+                capture_api_keys,
             )
         else:
-            # Regular non-streaming call
-            response = await original_method(client_instance, *args, **kwargs)
+            response = await original_method(
+                client_instance, *args, **kwargs
+            )
 
             # Extract and send telemetry
             duration_ms = int((time.time() - start_time) * 1000)
-            extractor = OpenAIExtractor(capture_inputs, capture_outputs, capture_api_keys)
+            extractor = GoogleExtractor(
+                capture_inputs, capture_outputs, capture_api_keys
+            )
             payload = extractor.extract(
-                request_kwargs=kwargs,
+                request_kwargs=request_kwargs,
                 response=response,
                 client_instance=client_instance,
                 duration_ms=duration_ms,
-                context=get_current_context()
+                context=get_current_context(),
             )
+
             # Get sessionId from config
             payload.chatId = config.sessionId
 
@@ -270,9 +315,14 @@ async def _trace_openai_call_async(
             return response
 
     except Exception as e:
-        # Track error
         duration_ms = int((time.time() - start_time) * 1000)
-        _send_error_telemetry(kwargs, client_instance, e, duration_ms, capture_api_keys)
+        _send_error_telemetry(
+            request_kwargs,
+            client_instance,
+            e,
+            duration_ms,
+            capture_api_keys,
+        )
         raise
 
 
@@ -283,7 +333,7 @@ def _wrap_stream_sync(
     start_time: float,
     capture_inputs: bool,
     capture_outputs: bool,
-    capture_api_keys: bool
+    capture_api_keys: bool,
 ) -> Iterator:
     """
     Wrap a synchronous streaming response to collect telemetry.
@@ -296,27 +346,35 @@ def _wrap_stream_sync(
     try:
         for chunk in stream:
             chunks.append(chunk)
-            yield chunk  # Pass through to user
+            yield chunk
 
         # Stream complete - reconstruct response and send telemetry
         if chunks:
             complete_response = _reconstruct_from_chunks(chunks)
             duration_ms = int((time.time() - start_time) * 1000)
 
-            extractor = OpenAIExtractor(capture_inputs, capture_outputs, capture_api_keys)
+            extractor = GoogleExtractor(
+                capture_inputs, capture_outputs, capture_api_keys
+            )
             payload = extractor.extract(
                 request_kwargs=request_kwargs,
                 response=complete_response,
                 client_instance=client_instance,
                 duration_ms=duration_ms,
-                context=get_current_context()
+                context=get_current_context(),
             )
 
             _send_telemetry_sync(payload)
 
     except Exception as e:
         duration_ms = int((time.time() - start_time) * 1000)
-        _send_error_telemetry(request_kwargs, client_instance, e, duration_ms, capture_api_keys)
+        _send_error_telemetry(
+            request_kwargs,
+            client_instance,
+            e,
+            duration_ms,
+            capture_api_keys,
+        )
         raise
 
 
@@ -327,7 +385,7 @@ async def _wrap_stream_async(
     start_time: float,
     capture_inputs: bool,
     capture_outputs: bool,
-    capture_api_keys: bool
+    capture_api_keys: bool,
 ) -> Any:
     """
     Wrap an asynchronous streaming response to collect telemetry.
@@ -340,31 +398,38 @@ async def _wrap_stream_async(
     try:
         async for chunk in stream:
             chunks.append(chunk)
-            yield chunk  # Pass through to user
+            yield chunk
 
-        # Stream complete - reconstruct response and send telemetry
+        # Stream complete - reconstruct and send telemetry
         if chunks:
             complete_response = _reconstruct_from_chunks(chunks)
             duration_ms = int((time.time() - start_time) * 1000)
 
-            extractor = OpenAIExtractor(capture_inputs, capture_outputs, capture_api_keys)
+            extractor = GoogleExtractor(
+                capture_inputs, capture_outputs, capture_api_keys
+            )
             payload = extractor.extract(
                 request_kwargs=request_kwargs,
                 response=complete_response,
                 client_instance=client_instance,
                 duration_ms=duration_ms,
-                context=get_current_context()
+                context=get_current_context(),
             )
 
             config = get_config()
             if config:
-                # Get sessionId from config
                 payload.chatId = config.sessionId
                 await send_to_api_simple(config, payload)
 
     except Exception as e:
         duration_ms = int((time.time() - start_time) * 1000)
-        _send_error_telemetry(request_kwargs, client_instance, e, duration_ms, capture_api_keys)
+        _send_error_telemetry(
+            request_kwargs,
+            client_instance,
+            e,
+            duration_ms,
+            capture_api_keys,
+        )
         raise
 
 
@@ -372,53 +437,56 @@ def _reconstruct_from_chunks(chunks: list) -> Any:
     """
     Reconstruct a complete response object from streaming chunks.
 
-    This creates a mock response object that looks like a regular
-    OpenAI response for the extractor to process.
+    Creates a mock response object that looks like a regular
+    Google GenAI response for the extractor to process.
     """
-    # Aggregate content from all chunks
     content_parts = []
     model = None
-    finish_reason = None
 
     for chunk in chunks:
-        if hasattr(chunk, "model"):
-            model = chunk.model
+        # Extract text from chunk
+        if hasattr(chunk, "text"):
+            try:
+                text = chunk.text
+                if text:
+                    content_parts.append(text)
+            except Exception:
+                pass
 
-        if hasattr(chunk, "choices") and len(chunk.choices) > 0:
-            choice = chunk.choices[0]
-            if hasattr(choice, "delta") and hasattr(choice.delta, "content"):
-                if choice.delta.content:
-                    content_parts.append(choice.delta.content)
-            if hasattr(choice, "finish_reason") and choice.finish_reason:
-                finish_reason = choice.finish_reason
+        if hasattr(chunk, "candidates") and chunk.candidates:
+            for candidate in chunk.candidates:
+                if hasattr(candidate, "content"):
+                    parts = getattr(candidate.content, "parts", [])
+                    for part in parts:
+                        if hasattr(part, "text") and part.text:
+                            content_parts.append(part.text)
 
-    # Build a mock response object
-    class MockMessage:
-        def __init__(self, content):
-            self.content = content
-            self.role = "assistant"
-
-    class MockChoice:
-        def __init__(self, message, finish_reason):
-            self.message = message
-            self.finish_reason = finish_reason or "stop"
-
-    class MockUsage:
+    class MockUsageMetadata:
         def __init__(self):
-            # Note: Streaming doesn't provide token counts in chunks
-            # These will be 0, backend will need to calculate
-            self.prompt_tokens = 0
-            self.completion_tokens = 0
-            self.total_tokens = 0
+            self.prompt_token_count = 0
+            self.candidates_token_count = 0
+            self.total_token_count = 0
+
+    class MockPart:
+        def __init__(self, text):
+            self.text = text
+
+    class MockContent:
+        def __init__(self, text):
+            self.parts = [MockPart(text)]
+
+    class MockCandidate:
+        def __init__(self, text):
+            self.content = MockContent(text)
 
     class MockResponse:
-        def __init__(self, content, model):
-            self.choices = [MockChoice(MockMessage(content), finish_reason)]
-            self.model = model or "unknown"
-            self.usage = MockUsage()
+        def __init__(self, text):
+            self.text = text
+            self.candidates = [MockCandidate(text)]
+            self.usage_metadata = MockUsageMetadata()
 
-    complete_content = "".join(content_parts)
-    return MockResponse(complete_content, model)
+    complete_text = "".join(content_parts)
+    return MockResponse(complete_text)
 
 
 def _send_telemetry_sync(payload: MonitorPayload) -> None:
@@ -431,9 +499,11 @@ def _send_telemetry_sync(payload: MonitorPayload) -> None:
         loop = asyncio.get_running_loop()
         asyncio.create_task(send_to_api_simple(config, payload))
     except RuntimeError:
-        # No event loop, skip (or could use threading)
         if config.debug:
-            print("[Olakai SDK] No event loop running, skipping telemetry")
+            print(
+                "[Olakai SDK] No event loop running, "
+                "skipping telemetry"
+            )
 
 
 def _send_error_telemetry(
@@ -441,7 +511,7 @@ def _send_error_telemetry(
     client_instance: Any,
     error: Exception,
     duration_ms: int,
-    capture_api_keys: bool
+    capture_api_keys: bool,
 ) -> None:
     """Send error telemetry."""
     config = get_config()
@@ -449,30 +519,44 @@ def _send_error_telemetry(
         return
 
     try:
+        from ..extractors.google_extractor import _get_google_api_key
+
         context_data = get_current_context()
 
         # Extract API key if enabled
         api_key_value = None
-        if capture_api_keys and hasattr(client_instance, "api_key"):
-            api_key_value = client_instance.api_key
+        if capture_api_keys:
+            api_key_value = _get_google_api_key(client_instance)
 
         custom_data = {}
         if context_data:
             custom_data = dict(context_data.customData or {})
 
-        custom_data.update({
-            "model": request_kwargs.get("model", "unknown"),
-            "provider": "openai",
-            "error_type": type(error).__name__,
-        })
+        model = getattr(client_instance, "model_name", "unknown")
+        custom_data.update(
+            {
+                "model": model,
+                "provider": "google",
+                "error_type": type(error).__name__,
+            }
+        )
 
         if api_key_value:
             custom_data["api_key"] = api_key_value
 
+        # Extract prompt text
+        contents = request_kwargs.get("contents", "")
+        prompt_str = (
+            contents if isinstance(contents, str) else str(contents)
+        )
+
         payload = MonitorPayload(
-            userEmail=(context_data.userEmail if context_data else None) or "anonymous@olakai.ai",
+            userEmail=(
+                context_data.userEmail if context_data else None
+            )
+            or "anonymous@olakai.ai",
             chatId=config.sessionId,
-            prompt=str(request_kwargs.get("messages", [])),
+            prompt=prompt_str,
             response=f"Error: {str(error)}",
             tokens=0,
             requestTime=duration_ms,
@@ -480,12 +564,14 @@ def _send_error_telemetry(
             subTask=context_data.subTask if context_data else None,
             customData=custom_data,
             errorMessage=str(error),
-            shouldScore=False
+            shouldScore=False,
         )
 
         _send_telemetry_sync(payload)
 
     except Exception:
-        # Don't let telemetry errors affect the application
         if config.debug:
-            print(f"[Olakai SDK] Failed to send error telemetry: {error}")
+            print(
+                f"[Olakai SDK] Failed to send error "
+                f"telemetry: {error}"
+            )
