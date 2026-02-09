@@ -10,7 +10,7 @@ from .context import olakai_context, get_current_context
 from .instrumentation import (
     instrument_openai,
     uninstrument_openai,
-    is_instrumented,
+    is_openai_instrumented,
     instrument_google,
     uninstrument_google,
     is_google_instrumented,
@@ -42,7 +42,7 @@ __all__ = [
     "olakai_context",  # Context manager for metadata
     "get_config",  # Get current config
     "is_initialized",  # Check if initialized
-    "is_instrumented",  # Check if OpenAI is instrumented
+    "is_openai_instrumented",  # Check if OpenAI is instrumented
     "get_current_context",  # Get current context data
     "olakai_event",
     # Legacy API (for backward compatibility)

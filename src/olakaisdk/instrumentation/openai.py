@@ -144,7 +144,7 @@ def uninstrument_openai() -> None:
         pass
 
 
-def is_instrumented() -> bool:
+def is_openai_instrumented() -> bool:
     """
     Check if OpenAI is currently instrumented.
 

@@ -6,7 +6,7 @@ from src.olakaisdk import (
     olakai_config,
     instrument_openai,
     uninstrument_openai,
-    is_instrumented,
+    is_openai_instrumented,
     olakai_context
 )
 
@@ -42,7 +42,7 @@ def test_instrument_openai_requires_openai():
     # Test that we get appropriate error without OpenAI installed
     # (In real usage, OpenAI would be installed)
     # For now, just verify is_instrumented returns False initially
-    assert is_instrumented() is False
+    assert is_openai_instrumented() is False
 
 
 @patch('src.olakaisdk.client.api.send_to_api_simple')

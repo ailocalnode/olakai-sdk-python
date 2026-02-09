@@ -20,7 +20,7 @@ import asyncio
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from olakaisdk import olakai_config, instrument_openai, olakai_context, is_instrumented
+from olakaisdk import olakai_config, instrument_openai, olakai_context, is_openai_instrumented
 
 async def main():
     """Run basic examples."""
@@ -54,7 +54,7 @@ async def main():
     print("Step 2: Instrumenting OpenAI...")
     instrument_openai()
 
-    if is_instrumented():
+    if is_openai_instrumented():
         print("✅ OpenAI instrumented successfully")
     else:
         print("❌ Failed to instrument OpenAI")
