@@ -13,6 +13,7 @@ Usage:
     python examples/advanced_example.py
 """
 
+import asyncio
 import os
 import sys
 import time
@@ -235,7 +236,7 @@ def example_nested_contexts(client):
     print()
 
 
-def main():
+async def main():
     """Run all advanced examples."""
 
     print("\n" + "=" * 60)
@@ -265,4 +266,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
