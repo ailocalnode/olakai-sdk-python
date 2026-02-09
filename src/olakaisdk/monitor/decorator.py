@@ -3,13 +3,10 @@ Simplified monitoring decorator functionality.
 """
 
 import asyncio
-import time
-from dataclasses import asdict
-from typing import Any, Callable
+from typing import Callable
 from ..shared import (
     MonitorOptions,
     MonitorPayload,
-    OlakaiConfig,
 )
 from ..client import send_to_api_simple
 from ..config import get_config

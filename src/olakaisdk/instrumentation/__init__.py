@@ -6,6 +6,11 @@ from .google import (
     uninstrument_google,
     is_google_instrumented,
 )
+from .anthropic import (
+    instrument_anthropic,
+    uninstrument_anthropic,
+    is_anthropic_instrumented,
+)
 
 
 __all__ = [
@@ -15,4 +20,7 @@ __all__ = [
     "instrument_google",
     "uninstrument_google",
     "is_google_instrumented",
+    "instrument_anthropic",
+    "uninstrument_anthropic",
+    "is_anthropic_instrumented",
 ]

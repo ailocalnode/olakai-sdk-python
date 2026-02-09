@@ -14,6 +14,9 @@ from .instrumentation import (
     instrument_google,
     uninstrument_google,
     is_google_instrumented,
+    instrument_anthropic,
+    uninstrument_anthropic,
+    is_anthropic_instrumented,
 )
 
 # Legacy API (will be deprecated in future versions)
@@ -27,17 +30,20 @@ __version__ = "1.0.0"
 
 __all__ = [
     # Primary API (1.0.0)
-    "olakai_config",           # Initialize SDK
-    "instrument_openai",       # Auto-instrument OpenAI
-    "uninstrument_openai",     # Remove OpenAI instrumentation
-    "instrument_google",       # Auto-instrument Google GenAI
-    "uninstrument_google",     # Remove Google GenAI instrumentation
+    "olakai_config",  # Initialize SDK
+    "instrument_openai",  # Auto-instrument OpenAI
+    "uninstrument_openai",  # Remove OpenAI instrumentation
+    "instrument_google",  # Auto-instrument Google GenAI
+    "uninstrument_google",  # Remove Google GenAI instrumentation
     "is_google_instrumented",  # Check if Google GenAI is instrumented
-    "olakai_context",         # Context manager for metadata
-    "get_config",              # Get current config
-    "is_initialized",          # Check if initialized
-    "is_instrumented",         # Check if OpenAI is instrumented
-    "get_current_context",     # Get current context data
+    "instrument_anthropic",  # Auto-instrument Anthropic
+    "uninstrument_anthropic",  # Remove Anthropic instrumentation
+    "is_anthropic_instrumented",  # Check if Anthropic is instrumented
+    "olakai_context",  # Context manager for metadata
+    "get_config",  # Get current config
+    "is_initialized",  # Check if initialized
+    "is_instrumented",  # Check if OpenAI is instrumented
+    "get_current_context",  # Get current context data
     "olakai_event",
     # Legacy API (for backward compatibility)
     "olakai",
