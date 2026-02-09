@@ -20,6 +20,7 @@ class OlakaiContextData:
     """
     userEmail: Optional[str] = None
     userId: Optional[str] = None  # SDK client's user ID for tracking
+    taskExecutionId: Optional[str] = None
     task: Optional[str] = None
     subTask: Optional[str] = None
     customData: Dict[str, Union[str, int, float, bool]] = field(default_factory=dict)
@@ -37,6 +38,7 @@ class OlakaiContextData:
         return OlakaiContextData(
             userEmail=other.userEmail or self.userEmail,
             userId=other.userId or self.userId,
+            taskExecutionId=other.taskExecutionId or self.taskExecutionId,
             task=other.task or self.task,
             subTask=other.subTask or self.subTask,
             customData={**self.customData, **other.customData}
@@ -52,6 +54,7 @@ class OlakaiContextData:
         return {
             "userEmail": self.userEmail,
             "userId": self.userId,
+            "taskExecutionId": self.taskExecutionId,
             "task": self.task,
             "subTask": self.subTask,
             "customData": self.customData if self.customData else None,
@@ -62,6 +65,7 @@ class OlakaiContextData:
 def olakai_context(
     userEmail: Optional[str] = None,
     userId: Optional[str] = None,
+    taskExecutionId: Optional[str] = None,
     task: Optional[str] = None,
     subTask: Optional[str] = None,
     customData: Optional[Dict[str, Union[str, int, float, bool]]] = None
@@ -75,6 +79,7 @@ def olakai_context(
     Args:
         userEmail: User email for tracking
         userId: SDK client's user ID for tracking
+        taskExecutionId: Groups prompt requests by task execution
         task: High-level task category
         subTask: Specific subtask
         customData: Custom metadata (merged with parent)
@@ -97,6 +102,7 @@ def olakai_context(
     new_context = OlakaiContextData(
         userEmail=userEmail,
         userId=userId,
+        taskExecutionId=taskExecutionId,
         task=task,
         subTask=subTask,
         customData=customData or {}

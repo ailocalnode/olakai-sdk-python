@@ -79,6 +79,7 @@ class OpenAIExtractor(BaseExtractor):
         payload = MonitorPayload(
             userEmail=context_data.userEmail or "anonymous@olakai.ai",
             chatId=chatId,
+            taskExecutionId=context_data.taskExecutionId,
             prompt=prompt_text,
             response=response_text,
             tokens=tokens_total,
