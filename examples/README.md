@@ -17,7 +17,7 @@ export OPENAI_API_KEY=your-openai-api-key
 
 ## Examples
 
-### basic_example.py
+### openai_basic_example.py
 
 Demonstrates core SDK functionality:
 - SDK configuration
@@ -28,10 +28,10 @@ Demonstrates core SDK functionality:
 
 **Run it:**
 ```bash
-python examples/basic_example.py
+python examples/openai_basic_example.py
 ```
 
-### advanced_example.py
+### openai_advanced_example.py
 
 Shows real-world use cases:
 - Customer support chatbot
@@ -41,7 +41,7 @@ Shows real-world use cases:
 
 **Run it:**
 ```bash
-python examples/advanced_example.py
+python examples/openai_advanced_example.py
 ```
 
 ## What Gets Tracked

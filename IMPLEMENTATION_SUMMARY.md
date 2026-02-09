@@ -73,7 +73,7 @@ src/olakaisdk/
 
 - **9 tests** - Configuration module (`test_config.py`)
 - **12 tests** - Context manager (`test_context.py`)
-- **8 tests** - Instrumentation & extraction (`test_instrumentation.py`)
+- **8 tests** - Instrumentation & extraction (`test_openai_instrumentation.py`)
 
 ### Test Coverage Includes
 
@@ -272,7 +272,7 @@ The refactor addressed all your original requirements:
 - `src/olakaisdk/extractors/openai_extractor.py`
 - `tests/test_config.py`
 - `tests/test_context.py`
-- `tests/test_instrumentation.py`
+- `tests/test_openai_instrumentation.py`
 - `examples/basic_example.py`
 - `examples/advanced_example.py`
 - `examples/README.md`
