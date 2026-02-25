@@ -28,7 +28,7 @@ class OlakaiEventParams:
     prompt: str
     response: str
     userEmail: Optional[str] = "anonymous@olakai.ai"
-    userId: Optional[str] = None  # SDK client's user ID for tracking
+    sessionId: Optional[str] = None  # Groups activities into a session/conversation
     taskExecutionId: Optional[str] = None
     task: Optional[str] = None
     subTask: Optional[str] = None
