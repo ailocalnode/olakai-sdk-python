@@ -87,7 +87,8 @@ class OpenAIExtractor(BaseExtractor):
             task=context_data.task,
             subTask=context_data.subTask,
             customData=custom_data,
-            shouldScore=True
+            shouldScore=True,
+            modelName=model,
         )
 
         return payload
