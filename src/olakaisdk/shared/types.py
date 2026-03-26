@@ -69,6 +69,7 @@ class MonitorPayload:
     sensitivity: Optional[List[str]] = None
     customData: Optional[Dict[str, Union[str, int, float, bool]]] = None
     shouldScore: Optional[bool] = True
+    modelName: Optional[str] = None
 
 
 @dataclass
