@@ -8,7 +8,7 @@ from src.olakaisdk import OlakaiEventParams, __version__
 
 def test_version():
     """Test that version is accessible."""
-    assert __version__ == "1.0.0"
+    assert __version__ == "1.4.0"
 
 
 def test_import():
