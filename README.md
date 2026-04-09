@@ -393,6 +393,44 @@ olakai_event(OlakaiEventParams(
 
 ---
 
+#### `olakai_feedback(session_id, rating, *, turn_index=None, comment=None, user_email=None, custom_data=None)`
+
+Report explicit user feedback (thumbs up/down) on a prior agent
+interaction. Fire-and-forget, like `olakai_event()` — never raises.
+
+Feedback is reported against a session, so `session_id` should
+match the session/chat ID used when the original interaction was
+reported. Optionally, `turn_index` can be used for turn-level
+feedback correlation within a multi-turn conversation.
+
+**Parameters:**
+
+- `session_id` (str): The session/conversation ID of the interaction being rated
+- `rating` (`"UP"` | `"DOWN"`): The user's feedback
+- `turn_index` (int, optional): Zero-based turn index within the session
+- `comment` (str, optional): Free-text comment alongside the rating
+- `user_email` (str, optional): Override for the user who gave the feedback
+- `custom_data` (dict, optional): Customer-defined fields for domain context
+
+**Example:**
+
+```python
+from olakaisdk import olakai_feedback
+
+# Thumbs-up on turn 3 of a specific chat session
+olakai_feedback(
+    session_id="chat_abc123",
+    rating="UP",
+    turn_index=3,
+    comment="Very helpful answer",
+)
+
+# Thumbs-down without a comment
+olakai_feedback(session_id="chat_abc123", rating="DOWN")
+```
+
+---
+
 ### Legacy API (Deprecated)
 
 The v0.4.0 decorator-based API is still available but deprecated. Use the primary API above instead:

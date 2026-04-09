@@ -20,13 +20,13 @@ from .instrumentation import (
 )
 
 # Legacy API (will be deprecated in future versions)
-from .core import olakai, olakai_event, olakai_monitor
+from .core import olakai, olakai_event, olakai_feedback, olakai_monitor
 from .monitor import olakai_supervisor
 
 # Types
 from .shared import OlakaiBlockedError, MonitorOptions, OlakaiEventParams, OlakaiConfig
 
-__version__ = "1.0.0"
+__version__ = "1.4.0"
 
 __all__ = [
     # Primary API (1.0.0)
@@ -45,6 +45,7 @@ __all__ = [
     "is_openai_instrumented",  # Check if OpenAI is instrumented
     "get_current_context",  # Get current context data
     "olakai_event",
+    "olakai_feedback",  # Report explicit user feedback
     # Legacy API (for backward compatibility)
     "olakai",
     "olakai_monitor",

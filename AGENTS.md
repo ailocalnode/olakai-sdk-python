@@ -11,6 +11,7 @@ Olakai Python SDK v1.0.0 is an **auto-instrumentation SDK** for monitoring LLM u
 - **Auto-instrumentation**: Monkey-patches OpenAI SDK to automatically track all calls
 - **Context-based metadata**: Use `olakai_context()` to add user/custom data
 - **Manual event reporting**: Use `olakai_event()` to send custom event reports
+- **User feedback reporting**: Use `olakai_feedback()` to report thumbs up/down on a prior interaction
 - **Unified customData**: Single `customData` field for all custom metadata (replaces `customDimensions`/`customMetrics`)
 - **Streaming support**: Buffers streaming responses and sends telemetry when complete
 - **Server-focused**: Designed for backend applications (FastAPI, Flask, Django)
@@ -115,7 +116,7 @@ src/olakaisdk/
 │   ├── __init__.py
 │   ├── types.py             # OlakaiConfig, MonitorPayload, etc.
 │   └── exceptions.py
-├── core.py                  # Core API (olakai, olakai_event, olakai_monitor)
+├── core.py                  # Core API (olakai, olakai_event, olakai_feedback, olakai_monitor)
 └── monitor/                 # Legacy decorator (olakai_supervisor)
     ├── __init__.py
     └── decorator.py
