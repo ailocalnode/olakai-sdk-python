@@ -1,7 +1,7 @@
 """Integration tests for Google Generative AI instrumentation."""
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from src.olakaisdk import (
     olakai_config,
     instrument_google,

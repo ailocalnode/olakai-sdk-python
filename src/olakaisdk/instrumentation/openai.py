@@ -2,8 +2,7 @@
 
 import time
 import asyncio
-from typing import Any, Callable, Optional, Iterator
-from functools import wraps
+from typing import Any, Callable, Iterator
 
 from ..config import require_config, get_config
 from ..context import get_current_context

@@ -2,7 +2,6 @@
 
 import pytest
 import asyncio
-from unittest.mock import Mock, patch
 from src.olakaisdk import OlakaiEventParams, __version__
 
 

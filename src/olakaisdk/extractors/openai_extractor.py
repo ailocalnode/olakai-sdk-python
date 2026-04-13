@@ -73,7 +73,7 @@ class OpenAIExtractor(BaseExtractor):
 
         # Get chatId from config sessionId
         config = require_config()
-        chatId = config.sessionId;
+        chatId = config.sessionId
 
         # Build payload
         payload = MonitorPayload(
