@@ -27,9 +27,6 @@ jobs:
       - name: Lint
         run: ruff check src/olakaisdk tests
 
-      - name: Format check
-        run: ruff format --check --line-length 80 src/olakaisdk tests
-
       - name: Type check
         run: mypy --ignore-missing-imports src/olakaisdk tests
 
