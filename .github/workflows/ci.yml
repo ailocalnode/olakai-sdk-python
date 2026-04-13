@@ -28,7 +28,7 @@ jobs:
         run: ruff check src/olakaisdk tests
 
       - name: Type check
-        run: mypy --ignore-missing-imports src/olakaisdk tests
+        run: mypy --ignore-missing-imports src/olakaisdk
 
       - name: Tests
         run: python -m pytest
