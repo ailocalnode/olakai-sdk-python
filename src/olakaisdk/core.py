@@ -36,7 +36,7 @@ def olakai(params: OlakaiEventParams) -> None:
 
     # Send asynchronously in background if possible, otherwise ignore
     try:
-        loop = asyncio.get_running_loop()
+        asyncio.get_running_loop()
         asyncio.create_task(send_to_api_simple(config, payload))
     except RuntimeError:
         # No event loop running, skip API call

@@ -62,7 +62,6 @@ def instrument_openai(
     }
 
     try:
-        import openai
         from openai.resources.chat import completions
     except ImportError:
         raise ImportError(
@@ -200,6 +199,9 @@ def _trace_openai_call_sync(
                 duration_ms=duration_ms,
                 context=get_current_context()
             )
+
+            # Get sessionId from config
+            payload.chatId = config.sessionId
 
             # Send telemetry (fire-and-forget)
             _send_telemetry_sync(payload)
@@ -427,7 +429,7 @@ def _send_telemetry_sync(payload: MonitorPayload) -> None:
         return
 
     try:
-        loop = asyncio.get_running_loop()
+        asyncio.get_running_loop()
         asyncio.create_task(send_to_api_simple(config, payload))
     except RuntimeError:
         # No event loop, skip (or could use threading)

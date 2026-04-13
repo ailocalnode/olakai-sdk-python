@@ -65,7 +65,6 @@ def instrument_google(
     }
 
     try:
-        import google.generativeai as genai
         from google.generativeai import GenerativeModel
     except ImportError:
         raise ImportError(
@@ -230,6 +229,9 @@ def _trace_google_call_sync(
                 duration_ms=duration_ms,
                 context=get_current_context(),
             )
+
+            # Get sessionId from config
+            payload.chatId = config.sessionId
 
             # Send telemetry (fire-and-forget)
             _send_telemetry_sync(payload)
@@ -440,7 +442,6 @@ def _reconstruct_from_chunks(chunks: list) -> Any:
     Google GenAI response for the extractor to process.
     """
     content_parts = []
-    model = None
 
     for chunk in chunks:
         # Extract text from chunk
@@ -495,7 +496,7 @@ def _send_telemetry_sync(payload: MonitorPayload) -> None:
         return
 
     try:
-        loop = asyncio.get_running_loop()
+        asyncio.get_running_loop()
         asyncio.create_task(send_to_api_simple(config, payload))
     except RuntimeError:
         if config.debug:

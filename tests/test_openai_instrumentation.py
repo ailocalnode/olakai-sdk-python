@@ -16,12 +16,12 @@ def reset_instrumentation():
     """Reset instrumentation state before each test."""
     try:
         uninstrument_openai()
-    except:
+    except Exception:
         pass
     yield
     try:
         uninstrument_openai()
-    except:
+    except Exception:
         pass
 
 

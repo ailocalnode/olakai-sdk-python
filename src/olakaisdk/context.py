@@ -140,4 +140,4 @@ def clear_context() -> None:
 
     This is primarily for testing purposes.
     """
-    token = _context_var.set(None)
+    _context_var.set(None)
