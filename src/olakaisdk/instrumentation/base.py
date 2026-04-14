@@ -1,7 +1,6 @@
 """Base interface for LLM provider instrumentation."""
 
 from abc import ABC, abstractmethod
-from typing import Optional
 
 
 class BaseInstrumentation(ABC):

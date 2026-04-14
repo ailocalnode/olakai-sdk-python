@@ -1,7 +1,7 @@
 """Integration tests for OpenAI instrumentation."""
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from src.olakaisdk import (
     olakai_config,
     instrument_openai,
@@ -16,12 +16,12 @@ def reset_instrumentation():
     """Reset instrumentation state before each test."""
     try:
         uninstrument_openai()
-    except:
+    except Exception:
         pass
     yield
     try:
         uninstrument_openai()
-    except:
+    except Exception:
         pass
 
 

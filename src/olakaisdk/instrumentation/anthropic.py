@@ -212,6 +212,9 @@ def _trace_anthropic_call_sync(
                 context=get_current_context(),
             )
 
+            # Get sessionId from config
+            payload.chatId = config.sessionId
+
             # Send telemetry (fire-and-forget)
             _send_telemetry_sync(payload)
 
@@ -481,7 +484,7 @@ def _send_telemetry_sync(payload: MonitorPayload) -> None:
         return
 
     try:
-        loop = asyncio.get_running_loop()
+        asyncio.get_running_loop()
         asyncio.create_task(send_to_api_simple(config, payload))
     except RuntimeError:
         if config.debug:

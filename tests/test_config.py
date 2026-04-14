@@ -5,8 +5,7 @@ from src.olakaisdk.config import (
     olakai_config,
     get_config,
     require_config,
-    is_initialized,
-    _global_config
+    is_initialized
 )
 from src.olakaisdk.shared.exceptions import APIKeyMissingError
 

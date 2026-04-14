@@ -2,7 +2,6 @@
 
 import pytest
 import asyncio
-from unittest.mock import Mock, patch
 from src.olakaisdk import OlakaiEventParams, __version__
 
 
@@ -125,7 +124,7 @@ def test_olakai_event():
     olakai_event(params)
 
 
-def test_olakai_event():
+def test_olakai_event_with_custom_data():
     """Test olakai event function."""
     from src.olakaisdk import olakai, olakai_config, OlakaiEventParams
 

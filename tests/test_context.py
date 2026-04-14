@@ -1,6 +1,5 @@
 """Tests for context module."""
 
-import pytest
 from src.olakaisdk.context import (
     olakai_context,
     get_current_context,

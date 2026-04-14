@@ -86,7 +86,7 @@ async def make_api_call(
             return ControlResponse(**result)
 
     except requests.exceptions.Timeout as err:
-        raise APITimeoutError(f"Request timed out after 30 seconds") from err
+        raise APITimeoutError("Request timed out after 30 seconds") from err
     except requests.exceptions.HTTPError as err:
         raise APIResponseError(
             f"HTTP error: {err.response.status_code} - {err.response.text}"

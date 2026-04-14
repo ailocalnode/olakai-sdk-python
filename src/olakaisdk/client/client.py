@@ -3,10 +3,7 @@ Simplified client for the Olakai SDK.
 """
 
 from ..shared import (
-    OlakaiConfig,
     InitializationError,
-    APIKeyMissingError,
-    URLConfigurationError,
 )
 
 

@@ -4,7 +4,7 @@ Core simplified API for the Olakai SDK.
 
 import time
 import asyncio
-from typing import Callable, Dict, Any, Literal, Optional, Union
+from typing import Callable, Dict, Literal, Optional, Union
 from .shared.types import OlakaiEventParams, MonitorPayload
 from .client.api import send_to_api_simple
 from .config import require_config
@@ -36,12 +36,12 @@ def olakai(params: OlakaiEventParams) -> None:
 
     # Send asynchronously in background if possible, otherwise ignore
     try:
-        loop = asyncio.get_running_loop()
+        asyncio.get_running_loop()
         asyncio.create_task(send_to_api_simple(config, payload))
     except RuntimeError:
         # No event loop running, skip API call
         if config.debug:
-            print(f"[Olakai SDK] Skipping API call - no event loop running")
+            print("[Olakai SDK] Skipping API call - no event loop running")
 
 
 def olakai_event(params: OlakaiEventParams) -> None:
