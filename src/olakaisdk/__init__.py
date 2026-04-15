@@ -24,9 +24,14 @@ from .core import olakai, olakai_event, olakai_feedback, olakai_monitor
 from .monitor import olakai_supervisor
 
 # Types
-from .shared import OlakaiBlockedError, MonitorOptions, OlakaiEventParams, OlakaiConfig
+from .shared import (
+    OlakaiBlockedError,
+    MonitorOptions,
+    OlakaiEventParams,
+    OlakaiConfig,
+)
 
-__version__ = "1.4.0"
+__version__ = "1.5.0"
 
 __all__ = [
     # Primary API (1.0.0)

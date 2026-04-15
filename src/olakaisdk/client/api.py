@@ -3,7 +3,7 @@ Simplified API communication module for the Olakai SDK.
 """
 
 from dataclasses import asdict
-from typing import Union, Literal
+from typing import Any, Dict, Union, Literal
 import asyncio
 from ..shared import (
     APITimeoutError,
@@ -32,7 +32,9 @@ async def make_api_call(
     """Make API call with optional logging."""
 
     if requests is None:
-        raise ImportError("requests library is required for API calls. Install with: pip install requests")
+        raise ImportError(
+            "requests library is required for API calls. Install with: pip install requests"
+        )
 
     headers = {"x-api-key": config.api_key}
     data_dict = asdict(payload)
@@ -41,7 +43,10 @@ async def make_api_call(
     if call_type == "monitoring":
         if "errorMessage" in data_dict and data_dict["errorMessage"] is None:
             del data_dict["errorMessage"]
-        if "taskExecutionId" in data_dict and data_dict["taskExecutionId"] is None:
+        if (
+            "taskExecutionId" in data_dict
+            and data_dict["taskExecutionId"] is None
+        ):
             del data_dict["taskExecutionId"]
         if "task" in data_dict and data_dict["task"] is None:
             del data_dict["task"]
@@ -52,7 +57,10 @@ async def make_api_call(
         if "shouldScore" in data_dict and data_dict["shouldScore"] is None:
             del data_dict["shouldScore"]
     else:
-        if "overrideControlCriteria" in data_dict and data_dict["overrideControlCriteria"] is None:
+        if (
+            "overrideControlCriteria" in data_dict
+            and data_dict["overrideControlCriteria"] is None
+        ):
             del data_dict["overrideControlCriteria"]
         if "task" in data_dict and data_dict["task"] is None:
             del data_dict["task"]
@@ -72,10 +80,10 @@ async def make_api_call(
             headers=headers,
             timeout=30,  # Fixed timeout
         )
-        
+
         if config.debug:
             print(f"[Olakai SDK] API call to {url}: {response.status_code}")
-        
+
         response.raise_for_status()
         result = response.json()
 
@@ -94,7 +102,9 @@ async def make_api_call(
     except requests.exceptions.RequestException as err:
         raise APIResponseError(f"Request failed: {str(err)}") from err
     except Exception as err:
-        raise APIResponseError(f"Unexpected error during API call: {str(err)}") from err
+        raise APIResponseError(
+            f"Unexpected error during API call: {str(err)}"
+        ) from err
 
 
 async def send_with_retry(
@@ -117,7 +127,9 @@ async def send_with_retry(
             last_error = err
 
             if config.debug:
-                print(f"[Olakai SDK] Attempt {attempt + 1}/{max_retries + 1} failed: {err}")
+                print(
+                    f"[Olakai SDK] Attempt {attempt + 1}/{max_retries + 1} failed: {err}"
+                )
 
             if attempt < max_retries:
                 delay = min(1000 * (2**attempt), 30000)  # Exponential backoff
@@ -141,6 +153,50 @@ async def send_to_api_simple(
         if config.debug:
             print(f"[Olakai SDK] Error sending payload to API: {e}")
         raise e
+
+
+async def send_feedback_to_api(
+    config: OlakaiConfig,
+    payload: Dict[str, Any],
+) -> None:
+    """Send a feedback payload to the dedicated feedback endpoint.
+
+    Fire-and-forget: any transport or HTTP errors are swallowed so that
+    user code is never affected. The endpoint owns the schema — the
+    caller is expected to have already built a clean wire payload
+    containing only ``sessionId``, ``rating``, and optional
+    ``turnIndex`` / ``comment`` / ``email`` keys.
+    """
+
+    if requests is None:
+        if config.debug:
+            print(
+                "[Olakai SDK] requests library not available — "
+                "skipping feedback send"
+            )
+        return
+
+    url = f"{config.endpoint}/api/monitoring/feedback"
+    headers = {"x-api-key": config.api_key}
+
+    try:
+        response = requests.post(
+            url,
+            json=payload,
+            headers=headers,
+            timeout=30,
+        )
+
+        if config.debug:
+            print(
+                f"[Olakai SDK] Feedback API call to {url}: "
+                f"{response.status_code}"
+            )
+
+        response.raise_for_status()
+    except Exception as err:  # noqa: BLE001 - fire-and-forget
+        if config.debug:
+            print(f"[Olakai SDK] Failed to send feedback: {err}")
 
 
 # Legacy function for backward compatibility

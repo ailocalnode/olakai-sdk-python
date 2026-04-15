@@ -7,12 +7,17 @@ from src.olakaisdk import OlakaiEventParams, __version__
 
 def test_version():
     """Test that version is accessible."""
-    assert __version__ == "1.4.0"
+    assert __version__ == "1.5.0"
 
 
 def test_import():
     """Test that main functions can be imported."""
-    from src.olakaisdk import olakai_config, olakai_monitor, olakai_event, olakai
+    from src.olakaisdk import (
+        olakai_config,
+        olakai_monitor,
+        olakai_event,
+        olakai,
+    )
 
     assert callable(olakai_config)
     assert callable(olakai_monitor)
@@ -26,7 +31,7 @@ def test_olakai_config():
 
     # Test basic configuration
     olakai_config("test-api-key", "https://test.com", debug=True)
-    
+
     config = get_config()
     assert config is not None
     assert config.api_key == "test-api-key"
@@ -117,7 +122,7 @@ def test_olakai_event():
         prompt="Test prompt",
         response="Test response",
         userEmail="test@example.com",
-        task="test-task"
+        task="test-task",
     )
 
     # Test basic reporting
@@ -135,7 +140,7 @@ def test_olakai_event_with_custom_data():
         response="Test response",
         userEmail="test@example.com",
         task="test-task",
-        customData={"dim1": "test", "metric1": 0.95}
+        customData={"dim1": "test", "metric1": 0.95},
     )
 
     # Test event tracking
@@ -241,7 +246,12 @@ def test_custom_data():
     olakai_config("test-key", "https://test.com")
 
     @olakai_monitor(
-        customData={"model": "gpt-4", "language": "en", "tokens": 150, "latency": 2.5}
+        customData={
+            "model": "gpt-4",
+            "language": "en",
+            "tokens": 150,
+            "latency": 2.5,
+        }
     )
     def test_function():
         return "response"
@@ -253,7 +263,7 @@ def test_custom_data():
     params = OlakaiEventParams(
         prompt="test",
         response="response",
-        customData={"dim1": "production", "metric1": 0.95}
+        customData={"dim1": "production", "metric1": 0.95},
     )
 
     assert params.customData["dim1"] == "production"

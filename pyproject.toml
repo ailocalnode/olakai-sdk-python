@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "olakai-sdk"
-version = "1.4.0"
+version = "1.5.0"
 description = "Auto-instrumentation SDK for monitoring and tracking LLM usage (OpenAI, Anthropic, etc.)"
 authors = [
     { name="Olakai", email="support@olakai.ai" }
@@ -68,13 +68,38 @@ line-length = 88
 target-version = ['py37']
 
 [tool.mypy]
+# mypy 1.20+ requires python_version >= 3.9. This only affects the
+# checker's version assumptions and does not relax runtime support
+# (the package still targets Python 3.7+ per requires-python).
 python_version = "3.9"
+warn_return_any = true
 warn_unused_configs = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+
+# TODO: Pre-existing type issues unrelated to the v1.5.0 feedback
+# endpoint. These modules were never strictly type-checked — errors
+# surface when strict defaults are enabled. Fix in a dedicated
+# cleanup PR, then remove these override blocks.
+[[tool.mypy.overrides]]
+module = [
+  "olakaisdk.instrumentation.base",
+  "olakaisdk.instrumentation.openai",
+  "olakaisdk.instrumentation.anthropic",
+  "olakaisdk.instrumentation.google",
+  "olakaisdk.extractors.openai_extractor",
+  "olakaisdk.extractors.google_extractor",
+  "olakaisdk.extractors.anthropic_extractor",
+  "olakaisdk.context",
+  "olakaisdk.client.api",
+  "olakaisdk.client.client",
+  "olakaisdk.core",
+  "olakaisdk.monitor.decorator",
+]
 disallow_untyped_defs = false
 warn_return_any = false
-ignore_missing_imports = true
 no_implicit_optional = false
-disable_error_code = ["method-assign", "union-attr", "arg-type", "assignment", "attr-defined"]
+disable_error_code = ["union-attr", "arg-type", "assignment", "attr-defined", "method-assign"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
