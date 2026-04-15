@@ -7,7 +7,7 @@ import asyncio
 from typing import Any, Callable, Dict, Literal, Optional, Union
 from .shared.types import OlakaiEventParams, MonitorPayload
 from .client.api import send_feedback_to_api, send_to_api_simple
-from .config import require_config
+from .config import get_config, require_config
 
 
 def olakai(params: OlakaiEventParams) -> None:
@@ -107,8 +107,6 @@ def olakai_feedback(
     del custom_data
 
     try:
-        from .config import get_config
-
         config = get_config()
         if config is None:
             # SDK not initialized — nothing to do. Stay silent (no
@@ -151,8 +149,6 @@ def olakai_feedback(
         # Never raise from feedback reporting. Best-effort debug log
         # only if the SDK is configured with debug=True.
         try:
-            from .config import get_config
-
             config = get_config()
             if config is not None and config.debug:
                 print(f"[Olakai SDK] olakai_feedback failed: {e}")
