@@ -4,9 +4,9 @@ Core simplified API for the Olakai SDK.
 
 import time
 import asyncio
-from typing import Callable, Dict, Literal, Optional, Union
+from typing import Any, Callable, Dict, Literal, Optional, Union
 from .shared.types import OlakaiEventParams, MonitorPayload
-from .client.api import send_to_api_simple
+from .client.api import send_feedback_to_api, send_to_api_simple
 from .config import require_config
 
 
@@ -47,11 +47,11 @@ def olakai(params: OlakaiEventParams) -> None:
 def olakai_event(params: OlakaiEventParams) -> None:
     """
     Direct reporting function for simple event tracking.
-    
+
     Args:
-        params: The input data  
+        params: The input data
     """
-    
+
     olakai(params)
 
 
@@ -73,11 +73,12 @@ def olakai_feedback(
     configuration or transport errors are swallowed so that user
     code is not affected.
 
-    Under the hood this sends a regular monitoring event with a
-    well-known shape: a sentinel prompt of ``"[feedback]"`` and an
-    empty response, tagged with ``eventType="feedback"`` and the
-    feedback fields in ``customData``. The Olakai backend recognises
-    this shape and routes it to the feedback surface.
+    Posts directly to the dedicated ``/api/monitoring/feedback``
+    endpoint. The Olakai backend resolves the target interaction
+    via session inference (most recent ``PromptRequest`` with
+    ``chatId == session_id``) and persists the feedback to the
+    ``UserFeedback`` table with a proper FK — no ``PromptRequest``
+    row is created and ``customData`` is not polluted.
 
     Args:
         session_id: The session/conversation ID of the interaction
@@ -88,13 +89,10 @@ def olakai_feedback(
             session, for turn-level feedback correlation.
         comment: Optional free-text comment alongside the rating.
         user_email: Optional override for the user who gave the
-            feedback. Defaults to ``"anonymous@olakai.ai"`` when
-            omitted, matching ``olakai_event()`` behaviour.
-        custom_data: Optional customer-defined fields for domain
-            context. Merged with the well-known feedback fields;
-            caller-provided keys do not override the reserved
-            ``eventType``/``feedbackRating``/``feedbackTurnIndex``/
-            ``feedbackComment`` fields.
+            feedback.
+        custom_data: Accepted for signature backward compatibility
+            with v1.4.0, but no longer forwarded to the server —
+            the dedicated feedback endpoint owns the schema.
 
     Example:
         >>> olakai_feedback(
@@ -104,31 +102,51 @@ def olakai_feedback(
         ...     comment="Very helpful answer",
         ... )
     """
+    # Silence unused-arg warning — intentionally accepted for signature
+    # parity with v1.4.0 but not forwarded to the wire.
+    del custom_data
+
     try:
-        # Build the well-known feedback customData payload. We start
-        # from the caller's custom_data (if any) so that our reserved
-        # fields always take precedence over user-supplied keys.
-        merged_custom_data: Dict[str, Union[str, int, float, bool, None]] = {}
-        if custom_data:
-            merged_custom_data.update(custom_data)
+        from .config import get_config
 
-        merged_custom_data["eventType"] = "feedback"
-        merged_custom_data["feedbackRating"] = rating
+        config = get_config()
+        if config is None:
+            # SDK not initialized — nothing to do. Stay silent (no
+            # debug config to honour).
+            return
+
+        # Build a clean wire payload. Only include optional keys when
+        # they have a value — mirrors the TypeScript SDK exactly.
+        payload: Dict[str, Any] = {
+            "sessionId": session_id,
+            "rating": rating,
+        }
         if turn_index is not None:
-            merged_custom_data["feedbackTurnIndex"] = turn_index
+            payload["turnIndex"] = turn_index
         if comment is not None:
-            merged_custom_data["feedbackComment"] = comment
+            payload["comment"] = comment
+        if user_email is not None:
+            payload["email"] = user_email
 
-        params = OlakaiEventParams(
-            prompt="[feedback]",
-            response="",
-            userEmail=user_email or "anonymous@olakai.ai",
-            sessionId=session_id,
-            customData=merged_custom_data,  # type: ignore[arg-type]
-            shouldScore=False,
-        )
+        if config.debug:
+            print(
+                f"[Olakai SDK] Sending feedback: "
+                f"sessionId={session_id} rating={rating} "
+                f"turnIndex={turn_index}"
+            )
 
-        olakai(params)
+        # Fire-and-forget: schedule the send on the running event
+        # loop if one is available, otherwise skip quietly (matching
+        # olakai() behaviour).
+        try:
+            asyncio.get_running_loop()
+            asyncio.create_task(send_feedback_to_api(config, payload))
+        except RuntimeError:
+            if config.debug:
+                print(
+                    "[Olakai SDK] Skipping feedback API call - "
+                    "no event loop running"
+                )
     except Exception as e:  # noqa: BLE001 - fire-and-forget
         # Never raise from feedback reporting. Best-effort debug log
         # only if the SDK is configured with debug=True.
@@ -145,11 +163,12 @@ def olakai_feedback(
 def olakai_monitor(fn: Callable = None, **options):
     """
     Decorator for automatic function monitoring.
-    
+
     Args:
         fn: Function to monitor (when used as decorator)
         **options: Monitoring options (email, chatId, task, subTask, etc.)
     """
+
     def decorator(func: Callable) -> Callable:
         def sync_wrapper(*args, **kwargs):
             start_time = time.time() * 1000
@@ -244,11 +263,9 @@ def olakai_monitor(fn: Callable = None, **options):
             return async_wrapper
         else:
             return sync_wrapper
-    
+
     # Handle both @olakai_monitor and @olakai_monitor(options) usage
     if fn is None:
         return decorator
     else:
         return decorator(fn)
-
-

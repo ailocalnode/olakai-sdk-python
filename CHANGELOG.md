@@ -5,6 +5,34 @@ All notable changes to the Olakai Python SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-04-14
+
+### Changed
+
+- **`olakai_feedback()`** now posts to the dedicated
+  `/api/monitoring/feedback` endpoint instead of wrapping
+  `olakai_event()` and routing through `/api/monitoring/prompt`.
+  The wire payload is minimal and native:
+  `{sessionId, rating, turnIndex?, comment?, email?}` — no more
+  `[feedback]` sentinel prompt, no more `customData` markers.
+  Public `olakai_feedback(...)` signature is unchanged.
+- The backend resolves the target interaction via session inference
+  (most recent `PromptRequest` with `chatId == sessionId`) and
+  stores the feedback in the `UserFeedback` table with a proper
+  FK — no `PromptRequest` phantom rows are created.
+
+### Migration
+
+No code changes required. Upgrade to `1.5.0` and `olakai_feedback()`
+will automatically use the new endpoint. Requires the backend
+changes that ship the `/api/monitoring/feedback` endpoint.
+
+### Notes
+
+- The `custom_data` keyword argument is still accepted for signature
+  backward compatibility but is no longer forwarded to the server —
+  the dedicated endpoint owns the schema.
+
 ## [1.4.0] - 2026-04-07
 
 ### Added
