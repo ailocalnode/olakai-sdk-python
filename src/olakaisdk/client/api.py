@@ -3,7 +3,7 @@ Simplified API communication module for the Olakai SDK.
 """
 
 from dataclasses import asdict
-from typing import Any, Dict, Union, Literal
+from typing import Any, Dict, Optional, Union, Literal
 import asyncio
 from ..shared import (
     APITimeoutError,
@@ -145,14 +145,20 @@ async def send_with_retry(
 async def send_to_api_simple(
     config: OlakaiConfig,
     payload: MonitorPayload,
-) -> Union[APIResponse, ControlResponse]:
-    """Send payload to API with simplified logic."""
+) -> Optional[Union[APIResponse, ControlResponse]]:
+    """Send payload to monitoring API.
+
+    Fire-and-forget: any transport, retry, or HTTP errors are swallowed so
+    that user code is never affected by telemetry failures. Returns the
+    response on success or ``None`` on any failure. Callers are not expected
+    to use the return value.
+    """
     try:
         return await send_with_retry(config, payload, "monitoring")
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - fire-and-forget telemetry
         if config.debug:
             print(f"[Olakai SDK] Error sending payload to API: {e}")
-        raise e
+        return None
 
 
 async def send_feedback_to_api(
@@ -204,8 +210,12 @@ async def send_to_api(
     config: OlakaiConfig,
     payload: Union[MonitorPayload, ControlPayload],
     options: dict = {},
-) -> Union[APIResponse, ControlResponse]:
-    """Send payload to API (legacy function for backward compatibility)."""
+) -> Optional[Union[APIResponse, ControlResponse]]:
+    """Send payload to API (legacy function for backward compatibility).
+
+    For monitoring payloads this is fire-and-forget — the return value may
+    be ``None`` on any failure. For control payloads, errors propagate.
+    """
     if isinstance(payload, MonitorPayload):
         return await send_to_api_simple(config, payload)
     else:
