@@ -247,15 +247,25 @@ asyncio.run(main())
 ```python
 from olakaisdk import olakai_config
 
-# Basic configuration
+# Basic configuration (SaaS — defaults to app.olakai.ai)
 olakai_config("your-api-key")
 
-# With custom endpoint
+# On-prem deployment via host argument
+olakai_config("your-api-key", host="olakai.acme.com")
+
+# On-prem deployment via OLAKAI_HOST env var (no host arg needed)
+#   $ export OLAKAI_HOST=olakai.acme.com
+olakai_config("your-api-key")
+
+# Full endpoint override (rarely needed; for non-default scheme/path)
 olakai_config("your-api-key", endpoint="https://custom.olakai.ai")
 
 # With debug logging
 olakai_config("your-api-key", debug=True)
 ```
+
+**Host resolution precedence:** explicit `endpoint` → explicit `host` →
+`OLAKAI_HOST` env var → default `app.olakai.ai`.
 
 ### Instrumentation Options
 
@@ -291,15 +301,20 @@ instrument_openai(
 
 ### Primary API (v1.0.0)
 
-#### `olakai_config(api_key, endpoint="https://app.olakai.ai", debug=False)`
+#### `olakai_config(api_key, endpoint=None, debug=False, host=None)`
 
 Initialize the Olakai SDK. Must be called before instrumentation.
 
 **Parameters:**
 
 - `api_key` (str): Your Olakai API key
-- `endpoint` (str, optional): API endpoint URL
+- `endpoint` (str, optional): Full API endpoint URL. If omitted, derived
+  from `host` / `OLAKAI_HOST` env var / default `https://app.olakai.ai`.
+  Use this only when you need a non-default scheme or path.
 - `debug` (bool, optional): Enable debug logging
+- `host` (str, optional): Olakai hostname only (e.g. `"olakai.acme.com"`)
+  for on-prem deployments. Falls back to the `OLAKAI_HOST` env var, then
+  `"app.olakai.ai"`. Ignored if `endpoint` is provided.
 
 ---
 

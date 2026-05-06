@@ -990,25 +990,30 @@ if __name__ == "__main__":
 import os
 
 def get_olakai_config():
-    """Get configuration based on environment."""
+    """Get configuration based on environment.
+
+    Tip: in many deployments you can skip this entirely and just set
+    the `OLAKAI_HOST` env var per-environment — the SDK will pick it up
+    automatically from `olakai_config(api_key)`.
+    """
     env = os.getenv("ENVIRONMENT", "development")
 
     if env == "production":
         return {
             "api_key": os.getenv("OLAKAI_API_KEY"),
-            "endpoint": "https://app.olakai.ai",
+            "host": "app.olakai.ai",
             "debug": False
         }
     elif env == "staging":
         return {
             "api_key": os.getenv("OLAKAI_STAGING_KEY"),
-            "endpoint": "https://staging.olakai.ai",
+            "host": "staging.olakai.ai",
             "debug": True
         }
     else:  # development
         return {
             "api_key": os.getenv("OLAKAI_DEV_KEY", "dev-key"),
-            "endpoint": "https://dev.olakai.ai",
+            "host": "dev.olakai.ai",
             "debug": True
         }
 

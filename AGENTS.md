@@ -140,7 +140,10 @@ examples/
 **`src/olakaisdk/config.py`**
 
 - Global configuration management via `_global_config`
-- `olakai_config(api_key, endpoint, debug)`: Initialize SDK
+- `olakai_config(api_key, endpoint=None, debug=False, host=None)`: Initialize SDK
+- `_resolve_endpoint(endpoint, host)`: Resolves the API URL with precedence:
+  explicit `endpoint` → explicit `host` → `OLAKAI_HOST` env var →
+  default `https://app.olakai.ai`. Used to support on-prem deployments.
 - `get_config()`: Get current configuration
 - `require_config()`: Get config or raise error
 - `is_initialized()`: Check if SDK is configured
@@ -205,6 +208,24 @@ examples/
 - Errors in telemetry don't affect user code
 
 ## Important Implementation Details
+
+### Host Resolution (on-prem support)
+
+Both `olakai_config()` and the legacy `init_olakai_client()` resolve the
+target Olakai host with this precedence:
+
+1. **Explicit `endpoint`** (full URL) — wins over everything; rare path,
+   reserved for non-default scheme/path.
+2. **Explicit `host`** (hostname only, e.g. `"olakai.acme.com"`) — preferred
+   for on-prem deployments. The SDK prepends `https://`.
+3. **`OLAKAI_HOST` env var** — same semantics as the `host` arg; lets ops
+   set the on-prem host without code changes.
+4. **Default** — `app.olakai.ai` (SaaS).
+
+The resolved endpoint is used in `client/api.py` to build
+`/api/monitoring/prompt`, `/api/control/prompt`, and
+`/api/monitoring/feedback` URLs. This mirrors the TypeScript SDK's
+`host` / `OLAKAI_HOST` behavior.
 
 ### Thread Safety
 
