@@ -56,6 +56,8 @@ async def make_api_call(
             del data_dict["customData"]
         if "shouldScore" in data_dict and data_dict["shouldScore"] is None:
             del data_dict["shouldScore"]
+        if "modelName" in data_dict and data_dict["modelName"] is None:
+            del data_dict["modelName"]
     else:
         if (
             "overrideControlCriteria" in data_dict
